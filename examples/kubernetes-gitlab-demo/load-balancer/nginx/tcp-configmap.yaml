@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-ports
+  namespace: nginx-ingress
+data:
+  22: "gitlab/gitlab:22"
