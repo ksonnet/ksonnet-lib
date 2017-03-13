@@ -374,7 +374,7 @@ local base = import "./base.libsonnet";
       Port(port):: base.Verify(bases.Container) { ports+: [port] },
 
       NamedPort(name, port):: base.Verify(bases.Container) {
-        ports+: [$.v1.port.container.Named("http", 80)],
+        ports+: [$.v1.port.container.Named(name, port)],
       },
 
       LivenessProbe(probe):: base.Verify(bases.Container) {
@@ -408,6 +408,16 @@ local base = import "./base.libsonnet";
           },
         },
       },
+
+      ValueFromSecret(name, secretName, secretKey):: {
+        name: name,
+        valueFrom: {
+          secretKeyRef: {
+            name: secretName,
+            key: secretKey,
+          },
+        },
+      },
     },
 
     //
@@ -437,7 +447,7 @@ local base = import "./base.libsonnet";
     //
     pod:: {
       Default(metadata, spec):: bases.Pod + ApiVersion + Kind("Pod") {
-        meadata: metadata,
+        metadata: metadata,
         spec: spec,
       },
 
