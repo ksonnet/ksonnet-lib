@@ -22,6 +22,13 @@ local core = import "./core.libsonnet";
             [core.v1.env.ValueFrom(name, configMapName, envSpec[name])
               for name in std.objectFields(envSpec)],
 
+          FromSecret(secret, envSpec)::
+            self.FromSecretName(secret.metadata.name, envSpec),
+
+          FromSecretName(secretName, envSpec)::
+            [core.v1.env.ValueFromSecret(name, secretName, envSpec[name])
+              for name in std.objectFields(envSpec)],
+
           FromObj(envVariables)::
             [core.v1.env.Variable(name, envVariables[name])
               for name in std.objectFields(envVariables)],
