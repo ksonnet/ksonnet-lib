@@ -1,9 +1,12 @@
 # kube.libsonnet
 
+**Concise, correct Kubernetes application definitions, without the YAML.**
+
 `kube.libsonnet`, is a [Jsonnet][jsonnet] library that makes it easy
-to interact with the [Kubernetes API][v1] by exposing _expressive_,
-_flexible_ abstractions for manipulating and customizing the API
-objects.
+to build Kubernetes applications by exposing _expressive_,
+_flexible_ abstractions for interacting with the [Kubernetes API][v1].
+
+![Jsonnet syntax highlighting][jsonnet-demo]
 
 Most other projects (_e.g._, [Kompose][Kompose],
 [OpenCompose][OpenCompose], and [compose2kube][compose2kube]) simplify
@@ -167,3 +170,4 @@ For a detailed tutorial, see [docs/TUTORIAL.md][tutorial]
 [tutorial]: https://github.com/heptio/kube.libsonnet/blob/master/docs/TUTORIAL.md "kube.libsonnet tutorial"
 [gitlab-jsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.jsonnet "gitlab.jsonnet"
 [gitlab-libsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.libsonnet "gitlab.libsonent"
+[jsonnet-demo]: docs/images/kube-demo.gif
