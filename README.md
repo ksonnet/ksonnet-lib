@@ -1,8 +1,10 @@
 # Concise, correct Kubernetes application definitions, without the YAML
 
-`kube.libsonnet` is a [Jsonnet][jsonnet] library that makes it easy
-to build Kubernetes applications by exposing _expressive_,
-_flexible_ abstractions for interacting with the [Kubernetes API][v1].
+Write Kubernetes applications without fiddling around with complicated
+YAML files. `kube.libsonnet` uses the data templating language,
+[Jsonnet][jsonnet], to make it trivial to start writing against the
+[Kubernetes application API][v1], and easy to grow as your
+configuration needs scale up.
 
 ![Jsonnet syntax highlighting][jsonnet-demo]
 
