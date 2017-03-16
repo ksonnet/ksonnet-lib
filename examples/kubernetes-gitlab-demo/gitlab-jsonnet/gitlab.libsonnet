@@ -60,7 +60,7 @@ local data = import "./data.libsonnet";
       ]) +
       container.Ports(podPorts);
 
-    local appPodTemplate(deploymentName, config) =
+    local appPodTemplate =
       core.v1.pod.template.Default(
         metadata.Labels({ name: podName, app: podName }),
         pod.spec.Containers([appContainer]) +
@@ -76,7 +76,7 @@ local data = import "./data.libsonnet";
       metadata.Name(deploymentName) + metadata.Namespace(config.namespace),
       deployment.spec.ReplicatedPod(
         1,
-        appPodTemplate(deploymentName, config))),
+        appPodTemplate)),
 
   //
   // Service.
