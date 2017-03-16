@@ -1,8 +1,6 @@
-# kube.libsonnet
+# Concise, correct Kubernetes application definitions, without the YAML
 
-**Concise, correct Kubernetes application definitions, without the YAML.**
-
-`kube.libsonnet`, is a [Jsonnet][jsonnet] library that makes it easy
+`kube.libsonnet` is a [Jsonnet][jsonnet] library that makes it easy
 to build Kubernetes applications by exposing _expressive_,
 _flexible_ abstractions for interacting with the [Kubernetes API][v1].
 
