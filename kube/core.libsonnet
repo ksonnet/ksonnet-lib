@@ -95,6 +95,10 @@ local base = import "./base.libsonnet";
             port: servicePort,
           },
 
+        WithTarget(servicePort, targetPort)::
+          self.Default(servicePort) +
+          self.TargetPort(targetPort),
+
         Named(name, servicePort, targetPort)::
           kubeAssert.Type("name", name, "string") +
           self.Default(servicePort) +
@@ -122,12 +126,13 @@ local base = import "./base.libsonnet";
     // Service.
     //
     service:: {
-      Default(name, namespace, portList, labels={}):
+      Default(name, namespace, portList, labels={}, annotations={}):
         bases.Service + ApiVersion + Kind("Service") {
           metadata:
             $.v1.metadata.Name(name) +
             $.v1.metadata.Namespace(namespace) +
-            $.v1.metadata.Labels(labels),
+            $.v1.metadata.Labels(labels) +
+            $.v1.metadata.Annotations(annotations),
           spec: {
             ports: portList,
           },
@@ -144,6 +149,20 @@ local base = import "./base.libsonnet";
             },
           },
 
+        Annotation(key, value)::
+          base.Verify(bases.Service) {
+            metadata+: {
+              annotations+: { [key]: value },
+            },
+          },
+
+        Annotations(annotations)::
+          base.Verify(bases.Service) {
+            metadata+: {
+              annotations+: annotations,
+            },
+          },
+
         //
         // Service spec.
         //
@@ -152,6 +171,10 @@ local base = import "./base.libsonnet";
           "ExternalName", "ClusterIP", "NodePort", "LoadBalancer"]),
         local sessionAffinityOptions = std.set(["ClientIP", "None"]),
         local specMixin(mixin) = { spec+: mixin },
+
+        Port(port)::
+          base.Verify(bases.Service) +
+          specMixin({ports+: [port]}),
 
         Selector(selector)::
           base.Verify(bases.Service) +
@@ -251,6 +274,15 @@ local base = import "./base.libsonnet";
 
         DefaultFromClaim(name, claim)::
           self.Default(name, claim.metadata.name)
+      },
+
+      hostPath:: {
+        Default(name, path):: {
+          name: name,
+          hostPath: {
+            path: path
+          },
+        },
       },
 
       // TODO: It is confusing that there is one of these in `v1` and
@@ -377,8 +409,13 @@ local base = import "./base.libsonnet";
         command: command,
       },
 
+      // TODO: Should this take a k/v pair instead?
       Env(env):: base.Verify(bases.Container) {
         env: env,
+      },
+
+      Resources(resources):: base.Verify(bases.Container) {
+        resources: resources
       },
 
       Ports(ports):: base.Verify(bases.Container) {
@@ -470,7 +507,11 @@ local base = import "./base.libsonnet";
         // TODO: This does not really belong here. We should have
         // something like `deployment.spec.Template` instead.
         Default(metadata, spec):: {
-          metadata: metadata,
+          local stubMetadata = {
+            labels: {},
+            annotations: {},
+          },
+          metadata: stubMetadata + metadata,
           spec: spec,
         },
       },
@@ -508,11 +549,36 @@ local base = import "./base.libsonnet";
       // Deployments.
       //
       deployment:: {
-        Default(metadata, spec):
+        Default(metadata, spec)::
           bases.Deployment + ApiVersion + Kind("Deployment") {
             metadata: metadata,
             spec: spec,
           },
+
+        local specMixin(mixin) = {spec+: mixin},
+
+        NodeSelector(labels)::
+          base.Verify(bases.Deployment) +
+          specMixin({nodeSelector: labels}),
+
+        local templateMixin(mixin) =
+          specMixin({
+            template+: {
+              metadata+: mixin,
+            },
+          }),
+
+        PodAnnotations(annotations)::
+          base.Verify(bases.Deployment) +
+          templateMixin({annotations+: annotations}),
+
+        PodLabel(key, value)::
+          base.Verify(bases.Deployment) +
+          templateMixin({labels+: {[key]: value}}),
+
+        PodLabels(labels)::
+          base.Verify(bases.Deployment) +
+          templateMixin({labels+: labels}),
 
         // TODO: Consider rolling this into `deployment` namespace.
         spec:: {
