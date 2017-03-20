@@ -122,13 +122,27 @@ local base = import "./base.libsonnet";
     // Service.
     //
     service:: {
-      Default(metadata, portList):
+      Default(name, namespace, portList, labels={}):
         bases.Service + ApiVersion + Kind("Service") {
-          metadata: metadata,
+          metadata:
+            $.v1.metadata.Name(name) +
+            $.v1.metadata.Namespace(namespace) +
+            $.v1.metadata.Labels(labels),
           spec: {
             ports: portList,
           },
         },
+
+        //
+        // Metadata
+        //
+
+        Label(key, value)::
+          base.Verify(bases.Service) {
+            metadata+: {
+              labels+: { [key]: value },
+            },
+          },
 
         //
         // Service spec.

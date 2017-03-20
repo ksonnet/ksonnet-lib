@@ -61,16 +61,12 @@ local data = import "./data.libsonnet";
   //
 
   Service(config, serviceName, targetPod)::
-    local svcMetadata =
-      metadata.Name(serviceName) +
-      metadata.Namespace(config.namespace) +
-      metadata.Labels({ name: serviceName });
-
     local servicePorts = port.service.array.FromContainerPorts(
       function (containerPort) config[containerPort.name + "ServicePort"],
       podPorts);
 
-    service.Default(svcMetadata, servicePorts) +
+    service.Default(serviceName, config.namespace, servicePorts) +
+    service.Label("name", serviceName) +
     service.Selector({ name: targetPod }),
 
   //

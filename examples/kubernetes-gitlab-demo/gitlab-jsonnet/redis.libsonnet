@@ -59,7 +59,8 @@ local service = core.v1.service;
       function (containerPort) config[containerPort.name + "ServicePort"],
       podPorts);
 
-    service.Default(svcMetadata, servicePorts) +
+    service.Default(serviceName, config.namespace, servicePorts) +
+    service.Label("name", serviceName) +
     service.Selector({ name: targetPod }),
 
   //
