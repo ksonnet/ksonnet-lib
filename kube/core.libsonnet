@@ -53,11 +53,11 @@ local base = import "./base.libsonnet";
           protocol: protocol,
         },
 
-        local PortName(name, targetPort) =
-          base.Verify(targetPort) +
-          kubeAssert.Type("name", name, "string") {
-            name: name,
-          },
+      local PortName(name, targetPort) =
+        base.Verify(targetPort) +
+        kubeAssert.Type("name", name, "string") {
+          name: name,
+        },
 
       container:: {
         Default(containerPort)::
@@ -673,10 +673,6 @@ local base = import "./base.libsonnet";
           }
         ]
       },
-
-      // Ingress(fullname, chart): ApiVersion + Metadata(fullname) {
-      //   kind: "Ingress",
-      // },
     },
   },
 }
