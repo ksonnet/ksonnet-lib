@@ -1,0 +1,69 @@
+{
+   "deployment.json": {
+      "apiVersion": "extensions/v1beta1",
+      "kind": "Deployment",
+      "metadata": {
+         "labels": {
+            "app": "cow",
+            "tier": "backend"
+         },
+         "name": "cow-service-deployment"
+      },
+      "spec": {
+         "replicas": 1,
+         "template": {
+            "metadata": {
+               "annotations": { },
+               "labels": {
+                  "app": "cow",
+                  "tier": "backend"
+               }
+            },
+            "spec": {
+               "containers": [
+                  {
+                     "env": [
+                        {
+                           "name": "GOOGLE_APPLICATION_CREDENTIALS",
+                           "value": "/etc/credentials/service-account-credentials.json"
+                        }
+                     ],
+                     "image": "gcr.io/fkorotkov/cow-service:latest",
+                     "imagePullPolicy": "Always",
+                     "livenessProbe": {
+                        "httpGet": {
+                           "path": "/healthz",
+                           "port": 8080
+                        },
+                        "initialDelaySeconds": 1,
+                        "timeoutSeconds": 1
+                     },
+                     "name": "cow-service",
+                     "ports": [
+                        {
+                           "containerPort": 8080
+                        }
+                     ],
+                     "readinessProbe": {
+                        "httpGet": {
+                           "path": "/healthz",
+                           "port": 8080
+                        },
+                        "initialDelaySeconds": 10,
+                        "timeoutSeconds": 1
+                     },
+                     "volumeMounts": [
+                        {
+                           "mountPath": "/etc/credentials",
+                           "name": "gcp-credentials",
+                           "readOnly": true
+                        }
+                     ]
+                  }
+               ],
+               "volumes": [ ]
+            }
+         }
+      }
+   }
+}

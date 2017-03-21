@@ -1,0 +1,107 @@
+{
+   "chart.json": {
+      "apiVersion": "v1",
+      "description": "Scales worker nodes within autoscaling groups.",
+      "engine": "gotpl",
+      "maintainers": [
+         {
+            "email": "mgoodness@gmail.com",
+            "name": "Michael Goodness"
+         }
+      ],
+      "name": "aws-cluster-autoscaler",
+      "sources": [
+         "https://github.com/kubernetes/contrib/tree/master/cluster-autoscaler/cloudprovider/aws"
+      ],
+      "version": "0.2.1"
+   },
+   "deployment.json": {
+      "apiVersion": "extensions/v1beta1",
+      "kind": "Deployment",
+      "metadata": {
+         "labels": { },
+         "name": "aws-cluster-autoscaler-beta"
+      },
+      "spec": {
+         "nodeSelector": { },
+         "replicas": 1,
+         "template": {
+            "metadata": {
+               "annotations": { },
+               "labels": {
+                  "app": "aws-cluster-autoscaler",
+                  "release": "3"
+               }
+            },
+            "spec": {
+               "containers": [
+                  {
+                     "command": [
+                        "./cluster-autoscaler",
+                        "--cloud-provider=aws",
+                        "--scale-down-delay=10m",
+                        "--skip-nodes-with-local-storage=false",
+                        "--skip-nodes-with-system-pods=true",
+                        "--v=4"
+                     ],
+                     "env": [
+                        {
+                           "AWS_REGION": "us-east-1"
+                        }
+                     ],
+                     "image": "gcr.io/google_containers/cluster-autoscaler:v0.4.0",
+                     "imagePullPolicy": "IfNotPresent",
+                     "name": "aws-cluster-autoscaler",
+                     "ports": [
+                        {
+                           "containerPort": 8085
+                        }
+                     ],
+                     "resources": { },
+                     "volumeMounts": [
+                        {
+                           "mountPath": "/etc/ssl/certs/ca-certificates.crt",
+                           "name": "ssl-certs",
+                           "readOnly": true
+                        }
+                     ]
+                  }
+               ],
+               "volumes": [ ]
+            }
+         }
+      }
+   },
+   "service.json": {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+         "annotations": { },
+         "labels": {
+            "app": "aws-cluster-autoscaler",
+            "chart": "aws-cluster-autoscaler",
+            "heritage": "tiller",
+            "release": "3"
+         },
+         "name": "aws-cluster-autoscaler-beta",
+         "namespace": "aws-cluster-autoscaler-beta"
+      },
+      "spec": {
+         "clusterIP": "",
+         "externalIPs": [ ],
+         "loadBalancerIP": "",
+         "loadBalancerSourceRanges": [ ],
+         "ports": [
+            {
+               "port": 8085,
+               "targetPort": 8085
+            }
+         ],
+         "selector": {
+            "app": "aws-cluster-autoscaler",
+            "release": "3"
+         },
+         "type": "ClusterIP"
+      }
+   }
+}

@@ -1,0 +1,83 @@
+{
+   "lamp-pod.json": {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+         "labels": {
+            "app": "mysql"
+         }
+      },
+      "spec": {
+         "containers": [
+            {
+               "env": [ ],
+               "image": "mysql",
+               "imagePullPolicy": "Always",
+               "name": "mysql",
+               "ports": [ ],
+               "volumeMounts": [
+                  {
+                     "mountPath": "/var/lib/mysql",
+                     "name": "site-data",
+                     "readOnly": false,
+                     "subPath": "mysql"
+                  }
+               ]
+            },
+            {
+               "env": [ ],
+               "image": "php",
+               "imagePullPolicy": "Always",
+               "name": "php",
+               "ports": [
+                  {
+                     "containerPort": 80,
+                     "name": "http"
+                  },
+                  {
+                     "containerPort": 443,
+                     "name": "https"
+                  }
+               ],
+               "volumeMounts": [
+                  {
+                     "mountPath": "/var/www/html",
+                     "name": "site-data",
+                     "readOnly": false,
+                     "subPath": "html"
+                  }
+               ]
+            }
+         ],
+         "volumes": [
+            {
+               "name": "site-data",
+               "persistentVolumeClaim": {
+                  "claimName": "my-lamp-site-data"
+               }
+            }
+         ]
+      }
+   },
+   "lamp-pvc.json": {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+         "annotations": {
+            "volume.beta.kubernetes.io/storage-class": "fast"
+         },
+         "name": "my-lamp-site-data",
+         "namespace": "lamp-test"
+      },
+      "spec": {
+         "accessModes": [
+            "ReadWriteMany"
+         ],
+         "resources": {
+            "requests": {
+               "storage": "20Gi"
+            }
+         }
+      }
+   }
+}
