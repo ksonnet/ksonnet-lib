@@ -36,16 +36,25 @@ local core = import "./core.libsonnet";
       },
 
       pod:: {
-        FromContainer(container)::
+        FromContainer(container, labels={app: container.name})::
           core.v1.pod.Default(
-            core.v1.metadata.Labels({ app: container.name }),
+            core.v1.metadata.Labels(labels),
             core.v1.pod.spec.Containers([container])),
 
+        local mixinSpec(mixin) = {
+          spec+: mixin,
+        },
+
+        Volumes(volumes):: mixinSpec({volumes: volumes}),
+
         template:: {
-          FromContainer(container)::
+          FromContainer(container, labels={app: container.name}, volumes=[])::
+            local spec =
+              core.v1.pod.spec.Volumes(volumes) +
+              core.v1.pod.spec.Containers([container]);
             core.v1.pod.template.Default(
-              core.v1.metadata.Labels({ app: container.name, }),
-              core.v1.pod.spec.Containers([container])),
+              core.v1.metadata.Labels(labels),
+              spec),
         },
       },
 
@@ -63,16 +72,25 @@ local core = import "./core.libsonnet";
 
     v1beta1:: {
       deployment:: {
-        FromPodTemplate(name, replicas, podTemplate)::
+        FromPodTemplate(name, replicas, podTemplate, labels={})::
           core.extensions.v1beta1.deployment.Default(
-            core.v1.metadata.Name(name),
+            core.v1.metadata.Name(name) + core.v1.metadata.Labels(labels),
             core.extensions.v1beta1.deployment.spec.ReplicatedPod(replicas, podTemplate)),
 
-        FromContainer(name, replicas, container)::
+        FromContainer(
+          name,
+          replicas,
+          container,
+          labels={},
+          podLabels={app: container.name},
+          volumes=[]
+        )::
           self.FromPodTemplate(
             name,
             replicas,
-            $.app.v1.pod.template.FromContainer(container)),
+            $.app.v1.pod.template.FromContainer(
+              container, labels=podLabels, volumes=volumes),
+            labels=labels),
 
         MixinSpec(spec):: {
           spec+: spec

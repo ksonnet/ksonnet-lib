@@ -297,6 +297,15 @@ local base = import "./base.libsonnet";
         },
       },
 
+      secret:: {
+        Default(name, secretName):: {
+          name: name,
+          secret: {
+            secretName: secretName,
+          },
+        },
+      },
+
       EmptyDir(name):: {
         name: name,
         emptyDir: {},
@@ -358,28 +367,48 @@ local base = import "./base.libsonnet";
     // Probe.
     //
     probe:: {
-      Default(initDelaySecs, timeoutSecs):: bases.Probe {
+      local defaultTimeout = 1,
+      local defaultPeriod = 10,
+
+      Default(
+        initDelaySecs,
+        timeoutSecs=defaultTimeout,
+        periodSeconds=defaultPeriod
+      ):: bases.Probe {
         initialDelaySeconds: initDelaySecs,
         timeoutSeconds: timeoutSecs,
       },
 
-      Http(getPath, portName, initDelaySecs, timeoutSecs)::
-        self.Default(initDelaySecs, timeoutSecs) {
+      Http(
+        getPath,
+        portName,
+        initDelaySecs,
+        timeoutSecs=defaultTimeout,
+        periodSeconds=defaultPeriod
+      ):: self.Default(initDelaySecs, timeoutSecs) {
           httpGet: {
             path: getPath,
             port: portName,
           },
         },
 
-      Tcp(port, initDelaySecs, timeoutSecs)::
-        self.Default(initDelaySecs, timeoutSecs) {
+      Tcp(
+        port,
+        initDelaySecs,
+        timeoutSecs=defaultTimeout,
+        periodSeconds=defaultPeriod
+      ):: self.Default(initDelaySecs, timeoutSecs) {
           tcpSocket: {
             port: port,
           },
         },
 
-      Exec(command, initDelaySecs, timeoutSecs)::
-        self.Default(initDelaySecs, timeoutSecs) {
+      Exec(
+        command,
+        initDelaySecs,
+        timeoutSecs=defaultTimeout,
+        periodSeconds=defaultPeriod
+      ):: self.Default(initDelaySecs, timeoutSecs) {
           exec: {
             command: command,
           },
@@ -403,6 +432,7 @@ local base = import "./base.libsonnet";
           imagePullPolicy: imagePullPolicy,
           // TODO: Think carefully about whether we want an empty list here.
           ports: [],
+          env: [],
         },
 
       Command(command):: base.Verify(bases.Container) {
@@ -514,9 +544,22 @@ local base = import "./base.libsonnet";
           metadata: stubMetadata + metadata,
           spec: spec,
         },
+
+        Labels(labels):: {
+          metadata+: {
+            labels+: labels,
+          },
+        },
+
+        Label(key, value):: {
+          metadata+: {
+            labels+: {[key]: value},
+          },
+        },
       },
 
       // TODO: Consider making this just a function on the pod itself.
+      // TODO: Shouldn't this just be in pod.template?
       spec:: {
         Containers(containers):: {
           containers: containers,
@@ -556,6 +599,13 @@ local base = import "./base.libsonnet";
           },
 
         local specMixin(mixin) = {spec+: mixin},
+
+        Labels(labels)::
+          base.Verify(bases.Deployment) + {
+            metadata+: {
+              labels+: labels,
+            },
+          },
 
         NodeSelector(labels)::
           base.Verify(bases.Deployment) +
