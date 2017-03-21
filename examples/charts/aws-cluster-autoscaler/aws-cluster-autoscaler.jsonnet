@@ -53,13 +53,19 @@ local template = import "template.libsonnet";
 
   // Data
 
+  local name = chart.Name(chartSpec.name),
+  local fullname = chart.Fullname(chartSpec.name, "beta"),
+  local release = {
+    name: std.extVar("release.name"),
+    service: std.extVar("release.service"),
+  },
+
   local containerImage = "%s:%s" % [values.image.repository, values.image.tag],
 
   local autoscaleFlags = [
     "--nodes=%s:%s:%s" % [group.minSize, group.maxSize, group.name]
     for group in values.autoscalingGroups
   ],
-
   local extraArgsFlags = [
     "--%s=%s" % [key, values.extraArgs[key]],
     for key in std.objectFields(values.extraArgs)
@@ -76,12 +82,4 @@ local template = import "template.libsonnet";
       "--v=4"
     ] +
     extraArgsFlags,
-
-  local name = chart.Name(chartSpec.name),
-  local fullname = chart.Fullname(chartSpec.name, "beta"),
-
-  local release = {
-    name: std.extVar("release.name"),
-    service: std.extVar("release.service"),
-  },
 }
