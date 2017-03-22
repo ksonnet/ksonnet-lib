@@ -37,9 +37,8 @@ local core = import "./core.libsonnet";
 
       pod:: {
         FromContainer(container, labels={app: container.name})::
-          core.v1.pod.Default(
-            core.v1.metadata.Labels(labels),
-            core.v1.pod.spec.Containers([container])),
+          core.v1.pod.Default(core.v1.pod.spec.Containers([container])) +
+          core.v1.pod.Labels(labels),
 
         local mixinSpec(mixin) = {
           spec+: mixin,
@@ -52,9 +51,8 @@ local core = import "./core.libsonnet";
             local spec =
               core.v1.pod.spec.Volumes(volumes) +
               core.v1.pod.spec.Containers([container]);
-            core.v1.pod.template.Default(
-              core.v1.metadata.Labels(labels),
-              spec),
+            core.v1.pod.template.Default(spec) +
+            core.v1.pod.template.Labels(labels),
         },
       },
 
@@ -74,8 +72,9 @@ local core = import "./core.libsonnet";
       deployment:: {
         FromPodTemplate(name, replicas, podTemplate, labels={})::
           core.extensions.v1beta1.deployment.Default(
-            core.v1.metadata.Name(name) + core.v1.metadata.Labels(labels),
-            core.extensions.v1beta1.deployment.spec.ReplicatedPod(replicas, podTemplate)),
+            name,
+            core.extensions.v1beta1.deployment.spec.ReplicatedPod(replicas, podTemplate)) +
+          core.extensions.v1beta1.deployment.Labels(labels),
 
         FromContainer(
           name,

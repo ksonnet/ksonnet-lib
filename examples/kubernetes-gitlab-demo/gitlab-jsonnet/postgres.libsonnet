@@ -9,7 +9,6 @@ local deployment = core.extensions.v1beta1.deployment;
 local container = core.v1.container;
 local claim = core.v1.volume.claim;
 local configMap = core.v1.configMap;
-local metadata = core.v1.metadata;
 local probe = core.v1.probe;
 local pod = core.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
@@ -47,14 +46,15 @@ local data = import "./data.libsonnet";
 
     local postgresPodTemplate =
       pod.template.Default(
-        metadata.Labels({ name: podName }),
         pod.spec.Containers([postgresContainer]) +
-          pod.spec.Volumes([dataVolume, postgresConfigMap]));
+          pod.spec.Volumes([dataVolume, postgresConfigMap])) +
+      pod.template.Labels({ name: podName });
 
     // Deployment.
     deployment.Default(
-      metadata.Name(deploymentName) + metadata.Namespace(config.namespace),
-      deployment.spec.ReplicatedPod(1, postgresPodTemplate)),
+      deploymentName,
+      deployment.spec.ReplicatedPod(1, postgresPodTemplate)) +
+    deployment.Namespace(config.namespace),
 
   //
   // Service.
@@ -65,7 +65,8 @@ local data = import "./data.libsonnet";
       function (containerPort) config[containerPort.name + "ServicePort"],
       podPorts);
 
-    service.Default(serviceName, config.namespace, servicePorts) +
+    service.Default(serviceName, servicePorts) +
+    service.Namespace(config.namespace) +
     service.Label("name", serviceName) +
     service.Selector({ name: targetPod }),
 

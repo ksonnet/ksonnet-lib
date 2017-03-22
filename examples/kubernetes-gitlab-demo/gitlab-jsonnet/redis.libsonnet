@@ -9,7 +9,6 @@ local persistent = core.v1.volume.persistent;
 local pod = core.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
 local probe = core.v1.probe;
-local metadata = core.v1.metadata;
 local mount = core.v1.volume.mount;
 local service = core.v1.service;
 
@@ -36,30 +35,27 @@ local service = core.v1.service;
 
     local redisPodTemplate =
       pod.template.Default(
-        metadata.Labels({ name: podName }),
         pod.spec.Containers([redisContainer]) +
-          pod.spec.Volumes([dataVolume]));
+          pod.spec.Volumes([dataVolume])) +
+      pod.template.Labels({ name: podName });
 
     // Deployment.
     deployment.Default(
-      metadata.Name(deploymentName) + metadata.Namespace(config.namespace),
-      deployment.spec.ReplicatedPod(1, redisPodTemplate)),
+      deploymentName,
+      deployment.spec.ReplicatedPod(1, redisPodTemplate)) +
+    deployment.Namespace(config.namespace),
 
   //
   // Service.
   //
 
   Service(config, serviceName, targetPod)::
-    local svcMetadata =
-      metadata.Name(serviceName) +
-      metadata.Namespace(config.namespace) +
-      metadata.Labels({ name: serviceName });
-
     local servicePorts = port.service.array.FromContainerPorts(
       function (containerPort) config[containerPort.name + "ServicePort"],
       podPorts);
 
-    service.Default(serviceName, config.namespace, servicePorts) +
+    service.Default(serviceName, servicePorts) +
+    service.Namespace(config.namespace) +
     service.Label("name", serviceName) +
     service.Selector({ name: targetPod }),
 

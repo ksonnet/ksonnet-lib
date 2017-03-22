@@ -8,7 +8,6 @@ local kubeUtil = import "../../../kube/util.libsonnet";
 local deployment = core.extensions.v1beta1.deployment;
 local container = core.v1.container;
 local claim = core.v1.volume.claim;
-local metadata = core.v1.metadata;
 local probe = core.v1.probe;
 local pod = core.v1.pod + kubeUtil.app.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
@@ -62,21 +61,22 @@ local data = import "./data.libsonnet";
 
     local appPodTemplate =
       core.v1.pod.template.Default(
-        metadata.Labels({ name: podName, app: podName }),
         pod.spec.Containers([appContainer]) +
         pod.spec.Volumes([
           configStorageVolume,
           dataVolume,
           registryVolume,
           patchesConfigMap
-        ]));
+        ])) +
+      core.v1.pod.template.Labels({ name: podName, app: podName });
 
     // The deployment.
     deployment.Default(
-      metadata.Name(deploymentName) + metadata.Namespace(config.namespace),
+      deploymentName,
       deployment.spec.ReplicatedPod(
         1,
-        appPodTemplate)),
+        appPodTemplate)) +
+    deployment.Namespace(config.namespace),
 
   //
   // Service.
@@ -89,7 +89,8 @@ local data = import "./data.libsonnet";
       function (containerPort) config[containerPort.name + "ServicePort"],
       podPorts);
 
-    service.Default(serviceName, config.namespace, servicePorts) +
+    service.Default(serviceName, servicePorts) +
+    service.Namespace(serviceName) +
     service.Label("name", serviceName) +
     service.Selector({ name: targetPod }),
 

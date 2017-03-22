@@ -6,6 +6,26 @@ local base = import "./base.libsonnet";
     kind: kind,
   },
 
+  local metadataBuilder = {
+    local mixinMetadata(mixin) = {metadata+: mixin},
+
+    EmptyMetadata:: {metadata: {}},
+
+    Name(name)::
+      kubeAssert.Type("name", name, "string") +
+      mixinMetadata({name: name}),
+
+    Label(key, value):: mixinMetadata({labels+: {[key]: value}}),
+    Labels(labels):: mixinMetadata({labels: labels}),
+
+    Namespace(namespace)::
+      kubeAssert.Type("namespace", namespace, "string") +
+      mixinMetadata({namespace: namespace}),
+
+    Annotation(key, value):: mixinMetadata({annotations+: {[key]: value}}),
+    Annotations(annotations):: mixinMetadata({annotations: annotations}),
+  },
+
   v1:: {
     local bases = {
       ConfigMap: base.New("configMap", "AC74E727-0605-4872-8F30-E5CAFB2A0984"),
@@ -36,9 +56,8 @@ local base = import "./base.libsonnet";
         bases.Namespace +
         kubeAssert.Type("name", name, "string") +
         ApiVersion +
-        Kind("Namespace") {
-          metadata: $.v1.metadata.Name(name)
-        },
+        Kind("Namespace") +
+        metadataBuilder.EmptyMetadata + metadataBuilder.Name(name),
     },
 
     //
@@ -125,43 +144,18 @@ local base = import "./base.libsonnet";
     //
     // Service.
     //
-    service:: {
-      Default(name, namespace, portList, labels={}, annotations={}):
-        bases.Service + ApiVersion + Kind("Service") {
-          metadata:
-            $.v1.metadata.Name(name) +
-            $.v1.metadata.Namespace(namespace) +
-            $.v1.metadata.Labels(labels) +
-            $.v1.metadata.Annotations(annotations),
+    service:: metadataBuilder + {
+      Default(name, portList, labels={}, annotations={})::
+        local defaultMetadata =
+          self.EmptyMetadata +
+          self.Name(name) +
+          self.Labels(labels) +
+          self.Annotations(annotations);
+        bases.Service + ApiVersion + Kind("Service") +defaultMetadata + {
           spec: {
             ports: portList,
           },
         },
-
-        //
-        // Metadata
-        //
-
-        Label(key, value)::
-          base.Verify(bases.Service) {
-            metadata+: {
-              labels+: { [key]: value },
-            },
-          },
-
-        Annotation(key, value)::
-          base.Verify(bases.Service) {
-            metadata+: {
-              annotations+: { [key]: value },
-            },
-          },
-
-        Annotations(annotations)::
-          base.Verify(bases.Service) {
-            metadata+: {
-              annotations+: annotations,
-            },
-          },
 
         //
         // Service spec.
@@ -220,12 +214,14 @@ local base = import "./base.libsonnet";
           specMixin({externalName: externalName}),
     },
 
-    configMap:: {
+    configMap:: metadataBuilder + {
       Default(namespace, configMapName, data):
-        bases.ConfigMap + ApiVersion + Kind("ConfigMap") {
-          metadata:
-            $.v1.metadata.Name(configMapName) +
-            $.v1.metadata.Namespace(namespace),
+        bases.ConfigMap +
+        ApiVersion +
+        Kind("ConfigMap") +
+        self.EmptyMetadata +
+        self.Name(configMapName) +
+        self.Namespace(namespace) {
           data: data,
         },
 
@@ -233,12 +229,14 @@ local base = import "./base.libsonnet";
         self.Default(namespace, name, claim.metadata.name)
     },
 
-    secret:: {
+    secret:: metadataBuilder + {
       Default(namespace, configMapName, data)::
-        bases.Secret + ApiVersion + Kind("Secret") {
-          metadata:
-            $.v1.metadata.Name(configMapName) +
-            $.v1.metadata.Namespace(namespace),
+        bases.Secret +
+        ApiVersion +
+        Kind("Secret") +
+        self.EmptyMetadata +
+        self.Name(configMapName) +
+        self.Namespace(namespace) {
           data: data,
         },
 
@@ -331,7 +329,7 @@ local base = import "./base.libsonnet";
       //
       // Claim.
       //
-      claim:: {
+      claim:: metadataBuilder + {
         DefaultPersistent(
           namespace,
           claimName,
@@ -339,18 +337,20 @@ local base = import "./base.libsonnet";
           size,
           storageClass="fast"
         ):
+          local defaultMetadata =
+            self.EmptyMetadata +
+            self.Name(claimName) +
+            self.Namespace(namespace) +
+            self.Annotations({
+              "volume.beta.kubernetes.io/storage-class": storageClass,
+            });
           bases.PersistentVolumeClaim +
           ApiVersion +
-          Kind("PersistentVolumeClaim") {
+          Kind("PersistentVolumeClaim") +
+          defaultMetadata {
             // TODO: Move this assert to `kubeAssert.Type`.
             assert std.type(accessModes) == "array"
               : "'accessModes' must by of type 'array'",
-            metadata:
-              $.v1.metadata.Name(claimName) +
-              $.v1.metadata.Namespace(namespace) +
-              $.v1.metadata.Annotations({
-                "volume.beta.kubernetes.io/storage-class": storageClass,
-              }),
             spec: {
               accessModes: accessModes,
               resources: {
@@ -502,60 +502,27 @@ local base = import "./base.libsonnet";
     },
 
     //
-    // Metadata.
-    //
-    metadata:: {
-      Name(name):: kubeAssert.Type("name", name, "string") {
-        name: name,
-      },
-
-      Labels(labels):: {
-        labels: labels,
-      },
-
-      Namespace(namespace)::
-        kubeAssert.Type("namespace", namespace, "string") {
-          namespace: namespace,
-        },
-
-      Annotations(annotations):: {
-        annotations: annotations,
-      },
-    },
-
-    //
     // Pods.
     //
-    pod:: {
-      Default(metadata, spec):: bases.Pod + ApiVersion + Kind("Pod") {
-        metadata: metadata,
-        spec: spec,
-      },
-
-      // TODO: Consider making this just a function on the pod itself.
-      template:: {
-        // TODO: This does not really belong here. We should have
-        // something like `deployment.spec.Template` instead.
-        Default(metadata, spec):: {
-          local stubMetadata = {
-            labels: {},
-            annotations: {},
-          },
-          metadata: stubMetadata + metadata,
+    pod:: metadataBuilder + {
+      Default(spec)::
+        bases.Pod +
+        ApiVersion +
+        Kind("Pod") +
+        self.EmptyMetadata {
           spec: spec,
         },
 
-        Labels(labels):: {
-          metadata+: {
-            labels+: labels,
+      // TODO: Consider making this just a function on the pod itself.
+      template:: metadataBuilder + {
+        // TODO: This does not really belong here. We should have
+        // something like `deployment.spec.Template` instead.
+        Default(spec)::
+          self.EmptyMetadata +
+          self.Labels({}) +
+          self.Annotations({}) {
+            spec: spec,
           },
-        },
-
-        Label(key, value):: {
-          metadata+: {
-            labels+: {[key]: value},
-          },
-        },
       },
 
       // TODO: Consider making this just a function on the pod itself.
@@ -591,21 +558,18 @@ local base = import "./base.libsonnet";
       //
       // Deployments.
       //
-      deployment:: {
-        Default(metadata, spec)::
-          bases.Deployment + ApiVersion + Kind("Deployment") {
-            metadata: metadata,
+      deployment:: metadataBuilder + {
+        Default(name, spec)::
+          local defaultMetadata =
+            self.EmptyMetadata + self.Name(name);
+          bases.Deployment +
+          ApiVersion +
+          Kind("Deployment") +
+          defaultMetadata {
             spec: spec,
           },
 
         local specMixin(mixin) = {spec+: mixin},
-
-        Labels(labels)::
-          base.Verify(bases.Deployment) + {
-            metadata+: {
-              labels+: labels,
-            },
-          },
 
         NodeSelector(labels)::
           base.Verify(bases.Deployment) +

@@ -2,7 +2,6 @@ local core = (import "../../../kube/core.libsonnet");
 local kubeUtil = (import "../../../kube/util.libsonnet");
 
 local env = core.v1.env + kubeUtil.app.v1.env;
-local metadata = core.v1.metadata;
 local port = core.v1.port;
 local volume = core.v1.volume;
 

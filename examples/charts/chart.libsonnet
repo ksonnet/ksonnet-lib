@@ -32,7 +32,8 @@ local deployment = core.extensions.v1beta1.deployment;
     }),
 
   DefaultService(fullname, name, chartSpec, release)::
-    service.Default(fullname, fullname, []) +
+    service.Default(fullname, []) +
+    service.Namespace(fullname) +
     self.DefaultLabels(name, chartSpec, release) +
     self.DefaultSelector(name, release),
 
