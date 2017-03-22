@@ -575,25 +575,6 @@ local base = import "./base.libsonnet";
           base.Verify(bases.Deployment) +
           specMixin({nodeSelector: labels}),
 
-        local templateMixin(mixin) =
-          specMixin({
-            template+: {
-              metadata+: mixin,
-            },
-          }),
-
-        PodAnnotations(annotations)::
-          base.Verify(bases.Deployment) +
-          templateMixin({annotations+: annotations}),
-
-        PodLabel(key, value)::
-          base.Verify(bases.Deployment) +
-          templateMixin({labels+: {[key]: value}}),
-
-        PodLabels(labels)::
-          base.Verify(bases.Deployment) +
-          templateMixin({labels+: labels}),
-
         // TODO: Consider rolling this into `deployment` namespace.
         spec:: {
           ReplicatedPod(replicas, podTemplate):: {

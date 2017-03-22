@@ -11,6 +11,7 @@ local volume = core.v1.volume;
 
 local kubeUtil = import "../../../kube/util.libsonnet";
 local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
+local podTemplate = core.v1.pod.template + kubeUtil.app.v1.pod.template;
 
 local values = import "./values.libsonnet";
 
@@ -46,9 +47,11 @@ local template = import "template.libsonnet";
       container.Port(port.container.Default(8085)) +
       container.VolumeMounts([mount.FromVolume(certsVolume, certPath, true)]) +
       container.Resources(values.resources);
-    deployment.FromContainer(fullname, values.replicaCount, appContainer) +
-    deployment.PodAnnotations(values.podAnnotations) +
-    deployment.PodLabel("release", release.name) +
+    local appPod =
+      podTemplate.FromContainer(appContainer) +
+      podTemplate.Label("release", release.name) +
+      podTemplate.Annotations(values.podAnnotations);
+    deployment.FromPodTemplate(fullname, values.replicaCount, appPod) +
     deployment.NodeSelector(values.nodeSelector),
 
   // Data
