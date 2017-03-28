@@ -5,7 +5,7 @@ local core = import "../../../kube/core.libsonnet";
 local kubeUtil = import "../../../kube/util.libsonnet";
 
 // Convenient namespaces.
-local deployment = core.extensions.v1beta1.deployment;
+local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
 local container = core.v1.container;
 local claim = core.v1.volume.claim;
 local probe = core.v1.probe;
@@ -59,24 +59,17 @@ local data = import "./data.libsonnet";
       ]) +
       container.Ports(podPorts);
 
-    local appPodTemplate =
-      core.v1.pod.template.Default(
-        pod.spec.Containers([appContainer]) +
-        pod.spec.Volumes([
-          configStorageVolume,
-          dataVolume,
-          registryVolume,
-          patchesConfigMap
-        ])) +
-      core.v1.pod.template.Labels({ name: podName, app: podName });
-
     // The deployment.
-    deployment.Default(
-      deploymentName,
-      deployment.spec.ReplicatedPod(
-        1,
-        appPodTemplate)) +
-    deployment.Namespace(config.namespace),
+    local podLabels = { name: podName, app: podName };
+    deployment.FromContainer(
+      deploymentName, 1, appContainer, podLabels=podLabels) +
+    deployment.Namespace(config.namespace) +
+    deployment.mixin.podTemplate.Volumes([
+      configStorageVolume,
+      dataVolume,
+      registryVolume,
+      patchesConfigMap
+    ]),
 
   //
   // Service.

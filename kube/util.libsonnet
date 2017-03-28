@@ -91,8 +91,36 @@ local core = import "./core.libsonnet";
               container, labels=podLabels, volumes=volumes),
             labels=labels),
 
+        // TODO: Delete this.
         MixinSpec(spec):: {
           spec+: spec
+        },
+
+        mixin:: {
+          podTemplate:: {
+            local templateMixin(mixin) = {
+              // TODO: Add base verification here.
+              spec+: {
+                template+: {
+                  spec+: mixin
+                },
+              },
+            },
+
+            Volumes(volumes)::
+              templateMixin(core.v1.pod.spec.Volumes(volumes)),
+
+            Containers(containers)::
+              templateMixin(core.v1.pod.spec.Containers(containers)),
+
+            // TODO: Consider moving this default to some common
+            // place, so it's not duplicated.
+            DnsPolicy(policy="ClusterFirst")::
+              templateMixin(core.v1.pod.spec.DnsPolicy(policy=policy)),
+
+            RestartPolicy(policy="Always")::
+              templateMixin(core.v1.pod.spec.RestartPolicy(policy=policy)),
+          },
         },
       },
     },

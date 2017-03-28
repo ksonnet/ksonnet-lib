@@ -54,6 +54,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "labels": { },
          "name": "gitlab",
          "namespace": "gitlab"
       },
@@ -407,6 +408,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "labels": { },
          "name": "gitlab-postgresql",
          "namespace": "gitlab"
       },
@@ -582,6 +584,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "labels": { },
          "name": "gitlab-redis",
          "namespace": "gitlab"
       },

@@ -5,7 +5,7 @@ local core = import "../../../kube/core.libsonnet";
 local kubeUtil = import "../../../kube/util.libsonnet";
 
 // Convenient namespaces.
-local deployment = core.extensions.v1beta1.deployment;
+local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
 local container = core.v1.container;
 local claim = core.v1.volume.claim;
 local configMap = core.v1.configMap;
@@ -44,17 +44,11 @@ local data = import "./data.libsonnet";
         mount.FromConfigMap(postgresConfigMap, "/docker-entrypoint-initdb.d", true)]) +
       container.Ports(podPorts);
 
-    local postgresPodTemplate =
-      pod.template.Default(
-        pod.spec.Containers([postgresContainer]) +
-          pod.spec.Volumes([dataVolume, postgresConfigMap])) +
-      pod.template.Labels({ name: podName });
-
     // Deployment.
-    deployment.Default(
-      deploymentName,
-      deployment.spec.ReplicatedPod(1, postgresPodTemplate)) +
-    deployment.Namespace(config.namespace),
+    deployment.FromContainer(
+      deploymentName, 1, postgresContainer, podLabels={ name: podName }) +
+    deployment.Namespace(config.namespace) +
+    deployment.mixin.podTemplate.Volumes([dataVolume, postgresConfigMap]),
 
   //
   // Service.

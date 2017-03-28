@@ -4,7 +4,7 @@ local kubeUtil = import "../../../kube/util.libsonnet";
 // Convenient namespaces.
 local claim = core.v1.volume.claim;
 local container = core.v1.container;
-local deployment = core.extensions.v1beta1.deployment;
+local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
 local persistent = core.v1.volume.persistent;
 local pod = core.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
@@ -33,17 +33,11 @@ local service = core.v1.service;
       ]) +
       container.Ports(podPorts);
 
-    local redisPodTemplate =
-      pod.template.Default(
-        pod.spec.Containers([redisContainer]) +
-          pod.spec.Volumes([dataVolume])) +
-      pod.template.Labels({ name: podName });
-
     // Deployment.
-    deployment.Default(
-      deploymentName,
-      deployment.spec.ReplicatedPod(1, redisPodTemplate)) +
-    deployment.Namespace(config.namespace),
+    deployment.FromContainer(
+      deploymentName, 1, redisContainer, podLabels={ name: podName }) +
+    deployment.Namespace(config.namespace) +
+    deployment.mixin.podTemplate.Volumes([dataVolume]),
 
   //
   // Service.
