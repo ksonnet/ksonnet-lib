@@ -2,24 +2,6 @@ local kubeAssert = import "./assert.libsonnet";
 local core = import "./core.libsonnet";
 
 {
-  local metadataMixinHelper = {
-    Name(name)::
-      kubeAssert.Type("name", name, "string") +
-      core.mixin.Metadata(core.v1.metadata.Name(name)),
-
-    Label(key, value):: core.mixin.Metadata(core.v1.metadata.Label(key, value)),
-    Labels(labels):: core.mixin.Metadata(core.v1.metadata.Labels(labels)),
-
-    Namespace(namespace)::
-      kubeAssert.Type("namespace", namespace, "string") +
-      core.mixin.Metadata(core.v1.metadata.Namespace(namespace)),
-
-    Annotation(key, value)::
-      core.mixin.Metadata(core.v1.metadata.Annotation(key, value)),
-    Annotations(annotations)::
-      core.mixin.Metadata(core.v1.metadata.Annotations(annotations)),
-  },
-
   app:: {
     v1:: {
       container:: {
@@ -72,10 +54,6 @@ local core = import "./core.libsonnet";
               core.v1.pod.spec.Containers([container]);
             core.v1.pod.template.Default(spec) +
             core.v1.pod.template.Metadata(core.v1.metadata.Labels(labels)),
-
-          mixin:: {
-            metadata:: metadataMixinHelper,
-          },
         },
       },
 
@@ -87,12 +65,6 @@ local core = import "./core.libsonnet";
                 port.name, createServicePort(port), port.name)
               for port in containerPorts],
           }
-        },
-      },
-
-      service:: {
-        mixin:: {
-          metadata:: metadataMixinHelper,
         },
       },
     },
@@ -125,35 +97,6 @@ local core = import "./core.libsonnet";
         // TODO: Delete this.
         MixinSpec(spec):: {
           spec+: spec
-        },
-
-        mixin:: {
-          metadata:: metadataMixinHelper,
-
-          podTemplate:: {
-            local templateMixin(mixin) = {
-              // TODO: Add base verification here.
-              spec+: {
-                template+: {
-                  spec+: mixin
-                },
-              },
-            },
-
-            Volumes(volumes)::
-              templateMixin(core.v1.pod.spec.Volumes(volumes)),
-
-            Containers(containers)::
-              templateMixin(core.v1.pod.spec.Containers(containers)),
-
-            // TODO: Consider moving this default to some common
-            // place, so it's not duplicated.
-            DnsPolicy(policy="ClusterFirst")::
-              templateMixin(core.v1.pod.spec.DnsPolicy(policy=policy)),
-
-            RestartPolicy(policy="Always")::
-              templateMixin(core.v1.pod.spec.RestartPolicy(policy=policy)),
-          },
         },
       },
     },

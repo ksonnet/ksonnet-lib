@@ -1,7 +1,7 @@
 local core = import "../../kube/core.libsonnet";
 local kubeUtil = import "../../kube/util.libsonnet";
 
-local service = core.v1.service + kubeUtil.app.v1.service;
+local service = core.v1.service;
 local deployment = core.extensions.v1beta1.deployment;
 
 {

@@ -9,9 +9,11 @@ local base = import "./base.libsonnet";
     Metadata(mixin):: {metadata+: mixin},
   },
 
-  // A collection of common fields in the Kubernetes API objects. For
-  // example, `Kind` appears frequently in API objects of both
-  // `extensions/v1beta1` and `v1`.
+  // A collection of common fields in the Kubernetes API objects,
+  // that we do not want to expose for public use. For example,
+  // `Kind` appears frequently in API objects of both
+  // `extensions/v1beta1` and `v1`, but we don't want users to mess
+  // mess with an object's `Kind`.
   local common = {
     Kind(kind):: kubeAssert.Type("kind", kind, "string") {kind: kind},
 
@@ -44,39 +46,85 @@ local base = import "./base.libsonnet";
 
     metadata:: {
       Default(name=null, namespace=null, annotations=null, labels=null)::
-        // TODO: Type check names.
-        bases.Metadata + {
+        bases.Metadata +
+        (if name != null then self.Name(name) else {}) +
+        (if namespace != null then self.Namespace(namespace) else {}) + {
           annotations: if annotations == null then {} else annotations,
           labels: if labels == null then {} else labels,
-          [if name != null then "name"]: name,
-          [if namespace != null then "namespace"]: namespace,
         },
 
-      Name(name)::
-        base.Verify(bases.Metadata) +
-        kubeAssert.Type("name", name, "string") +
-        {name: name},
+      Name:: CreateNameFunction(false),
+      Label:: CreateLabelFunction(false),
+      Labels:: CreateLabelsFunction(false),
+      Namespace:: CreateNamespaceFunction(false),
+      Annotation:: CreateAnnotationFunction(false),
+      Annotations:: CreateAnnotationsFunction(false),
 
-      Label(key, value)::
-        base.Verify(bases.Metadata) +
-        {labels+: {[key]: value}},
+      // TODO: Consider renaming this or moving it. `mixins` is
+      // probably not something we want to expose to users, at least
+      // in this form.
+      mixins:: {
+        Name:: CreateNameFunction(true),
+        Label:: CreateLabelFunction(true),
+        Labels:: CreateLabelsFunction(true),
+        Namespace:: CreateNamespaceFunction(true),
+        Annotation:: CreateAnnotationFunction(true),
+        Annotations:: CreateAnnotationsFunction(true),
+      },
 
-      Labels(labels)::
-        base.Verify(bases.Metadata) +
-        {labels+: labels},
+      //
+      // Helpers.
+      //
 
-      Namespace(namespace)::
-        base.Verify(bases.Metadata) +
-        kubeAssert.Type("namespace", namespace, "string") +
-        {namespace: namespace},
+      local CreateNameFunction(isMixin) =
+        local fn(name) =
+          base.Verify(bases.Metadata) +
+          kubeAssert.Type("name", name, "string") +
+          {name: name};
+        if isMixin
+        then function(name) $.mixin.Metadata(fn(name))
+        else fn,
 
-      Annotation(key, value)::
-        base.Verify(bases.Metadata) +
-        {annotations+: {[key]: value}},
+      local CreateLabelFunction(isMixin) =
+        local fn(key, value) =
+          base.Verify(bases.Metadata) +
+          {labels+: {[key]: value}};
+        if isMixin
+        then function(key, value) $.mixin.Metadata(fn(key, value))
+        else fn,
 
-      Annotations(annotations)::
-        base.Verify(bases.Metadata) +
-        {annotations+: annotations},
+      local CreateLabelsFunction(isMixin) =
+        local fn(labels) =
+          base.Verify(bases.Metadata) +
+          {labels+: labels};
+        if isMixin
+        then function(labels) $.mixin.Metadata(fn(labels))
+        else fn,
+
+      local CreateNamespaceFunction(isMixin) =
+        local fn(namespace) =
+          base.Verify(bases.Metadata) +
+          kubeAssert.Type("namespace", namespace, "string") +
+          {namespace: namespace};
+        if isMixin
+        then function(namespace) $.mixin.Metadata(fn(namespace))
+        else fn,
+
+      local CreateAnnotationFunction(isMixin) =
+        local fn(key, value) =
+          base.Verify(bases.Metadata) +
+          {annotations+: {[key]: value}};
+        if isMixin
+        then function(key, value) $.mixin.Metadata(fn(key, value))
+        else fn,
+
+      local CreateAnnotationsFunction(isMixin) =
+        local fn(annotations) =
+          base.Verify(bases.Metadata) +
+          {annotations+: annotations};
+        if isMixin
+        then function(annotations) $.mixin.Metadata(fn(annotations))
+        else fn,
     },
 
     //
@@ -191,6 +239,7 @@ local base = import "./base.libsonnet";
         },
 
         Metadata:: $.mixin.Metadata,
+        mixin:: {metadata: $.v1.metadata.mixins},
 
         //
         // Service spec.
@@ -560,6 +609,7 @@ local base = import "./base.libsonnet";
           },
 
         Metadata:: $.mixin.Metadata,
+        mixin:: {metadata: $.v1.metadata.mixins},
       },
 
       // TODO: Consider making this just a function on the pod itself.
@@ -607,6 +657,35 @@ local base = import "./base.libsonnet";
           },
 
         Metadata:: $.mixin.Metadata,
+
+        mixin:: {
+          metadata: $.v1.metadata.mixins,
+
+          podTemplate:: {
+            local templateMixin(mixin) = {
+              // TODO: Add base verification here.
+              spec+: {
+                template+: {
+                  spec+: mixin
+                },
+              },
+            },
+
+            Volumes(volumes)::
+              templateMixin($.v1.pod.spec.Volumes(volumes)),
+
+            Containers(containers)::
+              templateMixin($.v1.pod.spec.Containers(containers)),
+
+            // TODO: Consider moving this default to some common
+            // place, so it's not duplicated.
+            DnsPolicy(policy="ClusterFirst")::
+              templateMixin($.v1.pod.spec.DnsPolicy(policy=policy)),
+
+            RestartPolicy(policy="Always")::
+              templateMixin($.v1.pod.spec.RestartPolicy(policy=policy)),
+          },
+        },
 
         local specMixin(mixin) = {spec+: mixin},
 

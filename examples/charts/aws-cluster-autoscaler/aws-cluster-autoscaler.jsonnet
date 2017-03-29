@@ -10,7 +10,7 @@ local volume = core.v1.volume;
 
 local kubeUtil = import "../../../kube/util.libsonnet";
 local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
-local service = core.v1.service + kubeUtil.app.v1.service;
+local service = core.v1.service;
 local podTemplate = core.v1.pod.template + kubeUtil.app.v1.pod.template;
 
 local values = import "./values.libsonnet";
