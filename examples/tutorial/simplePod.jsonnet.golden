@@ -3,6 +3,7 @@
       "apiVersion": "v1",
       "kind": "Pod",
       "metadata": {
+         "annotations": { },
          "labels": {
             "app": "nginx"
          }

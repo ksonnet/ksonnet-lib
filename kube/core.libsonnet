@@ -9,15 +9,15 @@ local base = import "./base.libsonnet";
     Metadata(mixin):: {metadata+: mixin},
   },
 
+  // A collection of common fields in the Kubernetes API objects. For
+  // example, `Kind` appears frequently in API objects of both
+  // `extensions/v1beta1` and `v1`.
   local common = {
-    kind:: {
-      Default(kind):: kubeAssert.Type("kind", kind, "string") {kind: kind},
-    },
+    Kind(kind):: kubeAssert.Type("kind", kind, "string") {kind: kind},
 
-    metadata:: {
-      Empty:: {metadata: {}},
-      Default(metadata):: {metadata: metadata},
-    },
+    // TODO: This sets the metadata property, rather than doing a
+    // mixin. Is this what we want?
+    Metadata(metadata={}):: {metadata: $.v1.metadata.Default() + metadata},
   },
 
   v1:: {
@@ -26,6 +26,7 @@ local base = import "./base.libsonnet";
       Container: base.New("container", "50281784-097C-46A9-8D2C-C6E9078D77D4"),
       ContainerPort:
         base.New("containerPort", "2854EB13-644C-4FEF-A62D-DBAC554D6A24"),
+      Metadata: base.New("metadata", "027AE69D-1DD6-42D2-AD47-8F4A55DF9D76"),
       PersistentVolume:
         base.New("persistentVolume", "03113473-7083-4D07-A7FE-83699EB4128C"),
       PersistentVolumeClaim:
@@ -42,19 +43,40 @@ local base = import "./base.libsonnet";
     ApiVersion:: { apiVersion: "v1" },
 
     metadata:: {
+      Default(name=null, namespace=null, annotations=null, labels=null)::
+        // TODO: Type check names.
+        bases.Metadata + {
+          annotations: if annotations == null then {} else annotations,
+          labels: if labels == null then {} else labels,
+          [if name != null then "name"]: name,
+          [if namespace != null then "namespace"]: namespace,
+        },
+
       Name(name)::
+        base.Verify(bases.Metadata) +
         kubeAssert.Type("name", name, "string") +
         {name: name},
 
-      Label(key, value):: {labels+: {[key]: value}},
-      Labels(labels):: {labels: labels},
+      Label(key, value)::
+        base.Verify(bases.Metadata) +
+        {labels+: {[key]: value}},
+
+      Labels(labels)::
+        base.Verify(bases.Metadata) +
+        {labels+: labels},
 
       Namespace(namespace)::
+        base.Verify(bases.Metadata) +
         kubeAssert.Type("namespace", namespace, "string") +
         {namespace: namespace},
 
-      Annotation(key, value):: {annotations+: {[key]: value}},
-      Annotations(annotations):: {annotations: annotations},
+      Annotation(key, value)::
+        base.Verify(bases.Metadata) +
+        {annotations+: {[key]: value}},
+
+      Annotations(annotations)::
+        base.Verify(bases.Metadata) +
+        {annotations+: annotations},
     },
 
     //
@@ -66,8 +88,8 @@ local base = import "./base.libsonnet";
         bases.Namespace +
         kubeAssert.Type("name", name, "string") +
         $.v1.ApiVersion +
-        common.kind.Default("Namespace") +
-        common.metadata.Default($.v1.metadata.Name(name)),
+        common.Kind("Namespace") +
+        common.Metadata($.v1.metadata.Name(name)),
     },
 
     //
@@ -157,12 +179,12 @@ local base = import "./base.libsonnet";
     service:: {
       Default(name, portList, labels={}, annotations={})::
         local defaultMetadata =
-          common.metadata.Default(
+          common.Metadata(
             $.v1.metadata.Name(name) +
             $.v1.metadata.Labels(labels) +
             $.v1.metadata.Annotations(annotations));
-        local defaultKind = common.kind.Default("Service");
-        bases.Service + $.v1.ApiVersion + defaultKind + defaultMetadata {
+        local serviceKind = common.Kind("Service");
+        bases.Service + $.v1.ApiVersion + serviceKind + defaultMetadata {
           spec: {
             ports: portList,
           },
@@ -231,8 +253,8 @@ local base = import "./base.libsonnet";
       Default(namespace, configMapName, data):
         bases.ConfigMap +
         $.v1.ApiVersion +
-        common.kind.Default("ConfigMap") +
-        common.metadata.Default(
+        common.Kind("ConfigMap") +
+        common.Metadata(
           $.v1.metadata.Name(configMapName) +
           $.v1.metadata.Namespace(namespace)) {
           data: data,
@@ -246,8 +268,8 @@ local base = import "./base.libsonnet";
       Default(namespace, configMapName, data)::
         bases.Secret +
         $.v1.ApiVersion +
-        common.kind.Default("Secret") +
-        common.metadata.Default(
+        common.Kind("Secret") +
+        common.Metadata(
           $.v1.metadata.Name(configMapName) +
           $.v1.metadata.Namespace(namespace)) {
           data: data,
@@ -351,7 +373,7 @@ local base = import "./base.libsonnet";
           storageClass="fast"
         ):
           local defaultMetadata =
-            common.metadata.Default(
+            common.Metadata(
               $.v1.metadata.Name(claimName) +
               $.v1.metadata.Namespace(namespace) +
               $.v1.metadata.Annotations({
@@ -359,7 +381,7 @@ local base = import "./base.libsonnet";
               }));
           bases.PersistentVolumeClaim +
           $.v1.ApiVersion +
-          common.kind.Default("PersistentVolumeClaim") +
+          common.Kind("PersistentVolumeClaim") +
           defaultMetadata {
             // TODO: Move this assert to `kubeAssert.Type`.
             assert std.type(accessModes) == "array"
@@ -521,8 +543,8 @@ local base = import "./base.libsonnet";
       Default(spec)::
         bases.Pod +
         $.v1.ApiVersion +
-        common.kind.Default("Pod") +
-        common.metadata.Empty {
+        common.Kind("Pod") +
+        common.Metadata() {
           spec: spec,
         },
 
@@ -533,7 +555,7 @@ local base = import "./base.libsonnet";
         // TODO: This does not really belong here. We should have
         // something like `deployment.spec.Template` instead.
         Default(spec)::
-          common.metadata.Empty {
+          common.Metadata() {
             spec: spec,
           },
 
@@ -576,10 +598,10 @@ local base = import "./base.libsonnet";
       deployment:: {
         Default(name, spec)::
           local defaultMetadata =
-            common.metadata.Default($.v1.metadata.Name(name));
+            common.Metadata($.v1.metadata.Name(name));
           bases.Deployment +
           $.extensions.v1beta1.ApiVersion +
-          common.kind.Default("Deployment") +
+          common.Kind("Deployment") +
           defaultMetadata {
             spec: spec,
           },

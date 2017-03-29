@@ -3,6 +3,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": { },
          "name": "nginx-deployment"
       },
@@ -22,6 +23,7 @@
          },
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "app": "nginx"
                }

@@ -6,6 +6,8 @@
       },
       "kind": "ConfigMap",
       "metadata": {
+         "annotations": { },
+         "labels": { },
          "name": "gitlab-patches",
          "namespace": "gitlab"
       }
@@ -17,6 +19,7 @@
          "annotations": {
             "volume.beta.kubernetes.io/storage-class": "fast"
          },
+         "labels": { },
          "name": "gitlab-config-storage",
          "namespace": "gitlab"
       },
@@ -46,6 +49,8 @@
       },
       "kind": "ConfigMap",
       "metadata": {
+         "annotations": { },
+         "labels": { },
          "name": "gitlab-config",
          "namespace": "gitlab"
       }
@@ -54,6 +59,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": { },
          "name": "gitlab",
          "namespace": "gitlab"
@@ -62,6 +68,7 @@
          "replicas": 1,
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "app": "gitlab",
                   "name": "gitlab"
@@ -296,6 +303,8 @@
       "apiVersion": "v1",
       "kind": "Namespace",
       "metadata": {
+         "annotations": { },
+         "labels": { },
          "name": "gitlab"
       }
    },
@@ -306,6 +315,7 @@
          "annotations": {
             "volume.beta.kubernetes.io/storage-class": "fast"
          },
+         "labels": { },
          "name": "gitlab-rails-storage",
          "namespace": "gitlab"
       },
@@ -327,6 +337,7 @@
          "annotations": {
             "volume.beta.kubernetes.io/storage-class": "fast"
          },
+         "labels": { },
          "name": "gitlab-registry-storage",
          "namespace": "gitlab"
       },
@@ -350,6 +361,8 @@
       },
       "kind": "Secret",
       "metadata": {
+         "annotations": { },
+         "labels": { },
          "name": "gitlab-secrets",
          "namespace": "gitlab"
       }
@@ -407,6 +420,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": { },
          "name": "gitlab-postgresql",
          "namespace": "gitlab"
@@ -415,6 +429,7 @@
          "replicas": 1,
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "name": "gitlab-postgresql"
                }
@@ -553,6 +568,8 @@
       },
       "kind": "ConfigMap",
       "metadata": {
+         "annotations": { },
+         "labels": { },
          "name": "gitlab-postgresql-initdb",
          "namespace": "gitlab"
       }
@@ -564,6 +581,7 @@
          "annotations": {
             "volume.beta.kubernetes.io/storage-class": "fast"
          },
+         "labels": { },
          "name": "gitlab-postgresql-storage",
          "namespace": "gitlab"
       },
@@ -582,6 +600,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": { },
          "name": "gitlab-redis",
          "namespace": "gitlab"
@@ -590,6 +609,7 @@
          "replicas": 1,
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "name": "gitlab-redis"
                }
@@ -655,6 +675,7 @@
          "annotations": {
             "volume.beta.kubernetes.io/storage-class": "fast"
          },
+         "labels": { },
          "name": "gitlab-redis-storage",
          "namespace": "gitlab"
       },

@@ -3,6 +3,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": {
             "app": "cow",
             "tier": "backend"
@@ -13,6 +14,7 @@
          "replicas": 1,
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "app": "cow",
                   "tier": "backend"

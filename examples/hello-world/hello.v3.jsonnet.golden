@@ -3,6 +3,7 @@
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
+         "annotations": { },
          "labels": { },
          "name": "nginx-deployment"
       },
@@ -10,6 +11,7 @@
          "replicas": 2,
          "template": {
             "metadata": {
+               "annotations": { },
                "labels": {
                   "app": "nginx"
                }
