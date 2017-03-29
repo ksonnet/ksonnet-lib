@@ -6,11 +6,11 @@ local container = core.v1.container;
 local persistent = core.v1.volume.persistent;
 local mount = core.v1.volume.mount;
 local port = core.v1.port;
-local service = core.v1.service;
 local volume = core.v1.volume;
 
 local kubeUtil = import "../../../kube/util.libsonnet";
 local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
+local service = core.v1.service + kubeUtil.app.v1.service;
 local podTemplate = core.v1.pod.template + kubeUtil.app.v1.pod.template;
 
 local values = import "./values.libsonnet";
@@ -32,7 +32,7 @@ local template = import "template.libsonnet";
     chart.DefaultService(fullname, name, chartSpec, release) +
     service.Port(port.service.WithTarget(values.service.servicePort, 8085)) +
     service.Type(values.service.type) +
-    service.Annotations(values.service.annotations) +
+    service.mixin.metadata.Annotations(values.service.annotations) +
     service.ClusterIp(values.service.clusterIp) +
     service.ExternalIps(values.service.externalIps) +
     service.LoadBalancerIp(values.service.loadBalancerIp) +
@@ -49,8 +49,8 @@ local template = import "template.libsonnet";
       container.Resources(values.resources);
     local appPod =
       podTemplate.FromContainer(appContainer) +
-      podTemplate.Label("release", release.name) +
-      podTemplate.Annotations(values.podAnnotations);
+      podTemplate.mixin.metadata.Label("release", release.name) +
+      podTemplate.mixin.metadata.Annotations(values.podAnnotations);
     deployment.FromPodTemplate(fullname, values.replicaCount, appPod) +
     deployment.NodeSelector(values.nodeSelector),
 

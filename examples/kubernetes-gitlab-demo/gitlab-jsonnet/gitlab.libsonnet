@@ -11,8 +11,9 @@ local claim = core.v1.volume.claim;
 local probe = core.v1.probe;
 local pod = core.v1.pod + kubeUtil.app.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
-local service = core.v1.service;
+local service = core.v1.service + kubeUtil.app.v1.service;
 local secret = core.v1.secret;
+local metadata = core.v1.metadata;
 local persistent = core.v1.volume.persistent;
 local volume = core.v1.volume;
 local configMap = core.v1.configMap;
@@ -63,7 +64,7 @@ local data = import "./data.libsonnet";
     local podLabels = { name: podName, app: podName };
     deployment.FromContainer(
       deploymentName, 1, appContainer, podLabels=podLabels) +
-    deployment.Namespace(config.namespace) +
+    deployment.mixin.metadata.Namespace(config.namespace) +
     deployment.mixin.podTemplate.Volumes([
       configStorageVolume,
       dataVolume,
@@ -83,8 +84,9 @@ local data = import "./data.libsonnet";
       podPorts);
 
     service.Default(serviceName, servicePorts) +
-    service.Namespace(serviceName) +
-    service.Label("name", serviceName) +
+    service.Metadata(
+      metadata.Namespace(serviceName) +
+      metadata.Label("name", serviceName)) +
     service.Selector({ name: targetPod }),
 
   //

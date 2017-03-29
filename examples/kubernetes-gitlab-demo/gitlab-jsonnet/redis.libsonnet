@@ -5,6 +5,7 @@ local kubeUtil = import "../../../kube/util.libsonnet";
 local claim = core.v1.volume.claim;
 local container = core.v1.container;
 local deployment = core.extensions.v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
+local metadata = core.v1.metadata;
 local persistent = core.v1.volume.persistent;
 local pod = core.v1.pod;
 local port = core.v1.port + kubeUtil.app.v1.port;
@@ -36,7 +37,7 @@ local service = core.v1.service;
     // Deployment.
     deployment.FromContainer(
       deploymentName, 1, redisContainer, podLabels={ name: podName }) +
-    deployment.Namespace(config.namespace) +
+    deployment.mixin.metadata.Namespace(config.namespace) +
     deployment.mixin.podTemplate.Volumes([dataVolume]),
 
   //
@@ -49,8 +50,9 @@ local service = core.v1.service;
       podPorts);
 
     service.Default(serviceName, servicePorts) +
-    service.Namespace(config.namespace) +
-    service.Label("name", serviceName) +
+    service.Metadata(
+      metadata.Namespace(config.namespace) +
+      metadata.Label("name", serviceName)) +
     service.Selector({ name: targetPod }),
 
   //

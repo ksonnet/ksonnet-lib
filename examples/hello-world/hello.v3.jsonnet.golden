@@ -10,7 +10,6 @@
          "replicas": 2,
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "app": "nginx"
                }

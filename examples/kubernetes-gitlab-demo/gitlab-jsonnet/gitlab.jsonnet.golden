@@ -62,7 +62,6 @@
          "replicas": 1,
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "app": "gitlab",
                   "name": "gitlab"
@@ -416,7 +415,6 @@
          "replicas": 1,
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "name": "gitlab-postgresql"
                }
@@ -592,7 +590,6 @@
          "replicas": 1,
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "name": "gitlab-redis"
                }

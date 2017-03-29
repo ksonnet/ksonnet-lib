@@ -22,7 +22,6 @@
          },
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "app": "nginx"
                }

@@ -1,6 +1,7 @@
 local core = import "../../kube/core.libsonnet";
+local kubeUtil = import "../../kube/util.libsonnet";
 
-local service = core.v1.service;
+local service = core.v1.service + kubeUtil.app.v1.service;
 local deployment = core.extensions.v1beta1.deployment;
 
 {
@@ -20,10 +21,10 @@ local deployment = core.extensions.v1beta1.deployment;
     dnsName(name),
 
   DefaultLabels(name, chart, release)::
-    service.Label("app", name) +
-    service.Label("chart", chart.name) +
-    service.Label("heritage", release.service) +
-    service.Label("release", release.name),
+    service.mixin.metadata.Label("app", name) +
+    service.mixin.metadata.Label("chart", chart.name) +
+    service.mixin.metadata.Label("heritage", release.service) +
+    service.mixin.metadata.Label("release", release.name),
 
   DefaultSelector(name, release)::
     service.Selector({
@@ -33,7 +34,7 @@ local deployment = core.extensions.v1beta1.deployment;
 
   DefaultService(fullname, name, chartSpec, release)::
     service.Default(fullname, []) +
-    service.Namespace(fullname) +
+    service.mixin.metadata.Namespace(fullname) +
     self.DefaultLabels(name, chartSpec, release) +
     self.DefaultSelector(name, release),
 

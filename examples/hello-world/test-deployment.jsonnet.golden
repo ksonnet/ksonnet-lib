@@ -13,7 +13,6 @@
          "replicas": 1,
          "template": {
             "metadata": {
-               "annotations": { },
                "labels": {
                   "app": "cow",
                   "tier": "backend"
