@@ -1,6 +1,25 @@
+local kubeAssert = import "./assert.libsonnet";
 local core = import "./core.libsonnet";
 
 {
+  local metadataMixinHelper = {
+    Name(name)::
+      kubeAssert.Type("name", name, "string") +
+      core.mixin.Metadata(core.v1.metadata.Name(name)),
+
+    Label(key, value):: core.mixin.Metadata(core.v1.metadata.Label(key, value)),
+    Labels(labels):: core.mixin.Metadata(core.v1.metadata.Labels(labels)),
+
+    Namespace(namespace)::
+      kubeAssert.Type("namespace", namespace, "string") +
+      core.mixin.Metadata(core.v1.metadata.Namespace(namespace)),
+
+    Annotation(key, value)::
+      core.mixin.Metadata(core.v1.metadata.Annotation(key, value)),
+    Annotations(annotations)::
+      core.mixin.Metadata(core.v1.metadata.Annotations(annotations)),
+  },
+
   app:: {
     v1:: {
       container:: {
@@ -38,7 +57,7 @@ local core = import "./core.libsonnet";
       pod:: {
         FromContainer(container, labels={app: container.name})::
           core.v1.pod.Default(core.v1.pod.spec.Containers([container])) +
-          core.v1.pod.Labels(labels),
+          core.v1.pod.Metadata(core.v1.metadata.Labels(labels)),
 
         local mixinSpec(mixin) = {
           spec+: mixin,
@@ -52,7 +71,11 @@ local core = import "./core.libsonnet";
               core.v1.pod.spec.Volumes(volumes) +
               core.v1.pod.spec.Containers([container]);
             core.v1.pod.template.Default(spec) +
-            core.v1.pod.template.Labels(labels),
+            core.v1.pod.template.Metadata(core.v1.metadata.Labels(labels)),
+
+          mixin:: {
+            metadata:: metadataMixinHelper,
+          },
         },
       },
 
@@ -65,7 +88,13 @@ local core = import "./core.libsonnet";
               for port in containerPorts],
           }
         },
-      }
+      },
+
+      service:: {
+        mixin:: {
+          metadata:: metadataMixinHelper,
+        },
+      },
     },
 
     v1beta1:: {
@@ -73,8 +102,10 @@ local core = import "./core.libsonnet";
         FromPodTemplate(name, replicas, podTemplate, labels={})::
           core.extensions.v1beta1.deployment.Default(
             name,
-            core.extensions.v1beta1.deployment.spec.ReplicatedPod(replicas, podTemplate)) +
-          core.extensions.v1beta1.deployment.Labels(labels),
+            core.extensions.v1beta1.deployment.spec.ReplicatedPod(
+              replicas, podTemplate)) +
+          core.extensions.v1beta1.deployment.Metadata(
+            core.v1.metadata.Labels(labels)),
 
         FromContainer(
           name,
@@ -97,6 +128,8 @@ local core = import "./core.libsonnet";
         },
 
         mixin:: {
+          metadata:: metadataMixinHelper,
+
           podTemplate:: {
             local templateMixin(mixin) = {
               // TODO: Add base verification here.
