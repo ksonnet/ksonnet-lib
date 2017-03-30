@@ -28,7 +28,8 @@
                            "containerPort": 80,
                            "name": "http"
                         }
-                     ]
+                     ],
+                     "volumeMounts": [ ]
                   }
                ],
                "volumes": [ ]

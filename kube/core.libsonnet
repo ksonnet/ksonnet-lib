@@ -516,6 +516,7 @@ local meta = import "internal/meta.libsonnet";
           // TODO: Think carefully about whether we want an empty list here.
           ports: [],
           env: [],
+          volumeMounts: [],
         },
 
       Command(command):: base.Verify(bases.Container) {
@@ -524,7 +525,7 @@ local meta = import "internal/meta.libsonnet";
 
       // TODO: Should this take a k/v pair instead?
       Env(env):: base.Verify(bases.Container) {
-        env: env,
+        env+: env,
       },
 
       Resources(resources):: base.Verify(bases.Container) {
@@ -532,7 +533,7 @@ local meta = import "internal/meta.libsonnet";
       },
 
       Ports(ports):: base.Verify(bases.Container) {
-        ports: ports,
+        ports+: ports,
       },
 
       Port(port):: base.Verify(bases.Container) { ports+: [port] },
@@ -550,7 +551,7 @@ local meta = import "internal/meta.libsonnet";
       },
 
       VolumeMounts(mounts):: base.Verify(bases.Container) {
-        volumeMounts: mounts,
+        volumeMounts+: mounts,
       },
     },
 
@@ -707,10 +708,8 @@ local meta = import "internal/meta.libsonnet";
           podTemplate:: {
             local pod = $.v1.pod,
 
-            Volumes::
-              meta.MixinPartial1(pod.spec.Volumes, podMixin),
-            Containers::
-              meta.MixinPartial1(pod.spec.Containers, podMixin),
+            Volumes:: meta.MixinPartial1(pod.spec.Volumes, podMixin),
+            Containers:: meta.MixinPartial1(pod.spec.Containers, podMixin),
 
             // TODO: Consider moving this default to some common
             // place, so it's not duplicated.

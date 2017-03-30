@@ -2,8 +2,8 @@
 
 * [ ] Look at the double declarations of parameter defaults.
   Consolidate to a common place.
-* [ ] Decide whether Volumes (and other things like it) should be
-  mixins or assignments.
+* [ ] Decide whether Volumes (and other things like it, like labels
+  and selectors) should be mixins or assignments.
 * Consider adding base to `deployment.spec`.
 * [ ] Clean up the use of `common.metadata.Default`. We should
   probably be using `self.Metadata` where possible.
