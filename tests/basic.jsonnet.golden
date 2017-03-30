@@ -1,5 +1,19 @@
 {
-   "deployment": {
+   "containerPortTest1": {
+      "containerPort": 9090
+   },
+   "containerPortTest2": {
+      "containerPort": 9091,
+      "name": "containerPort1"
+   },
+   "containerPortTest3": {
+      "containerPort": 9092,
+      "hostIP": "127.0.0.2",
+      "hostPort": 9093,
+      "name": "containerPort2",
+      "protocol": "UDP"
+   },
+   "deploymentTest": {
       "apiVersion": "extensions/v1beta1",
       "kind": "Deployment",
       "metadata": {
@@ -25,9 +39,56 @@
    },
    "metadataTest": {
       "annotations": {
-         "chicken": "cluck",
-         "cow": "moo"
+         "annotation1": "label1",
+         "annotation2": "label2",
+         "annotation3": "label3"
       },
-      "labels": { }
+      "labels": {
+         "label1": "value1",
+         "label2": "value2",
+         "label3": "value3"
+      },
+      "name": "name1",
+      "namespace": "namespace1"
+   },
+   "namespaceTest": {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+         "annotations": { },
+         "labels": { },
+         "name": "namespace1"
+      }
+   },
+   "servicePortTest1": {
+      "port": 8080
+   },
+   "servicePortTest2": {
+      "port": 8081,
+      "targetPort": 8082
+   },
+   "servicePortTest3": {
+      "name": "servicePort1",
+      "port": 8083,
+      "targetPort": 8084
+   },
+   "servicePortTest4": {
+      "name": "servicePort2",
+      "nodePort": 8087,
+      "port": 8085,
+      "protocol": "TCP",
+      "targetPort": 8086
+   },
+   "serviceTest1": {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+         "annotations": { },
+         "labels": { },
+         "name": "service1"
+      },
+      "spec": {
+         "ports": [ ]
+      }
    }
 }
