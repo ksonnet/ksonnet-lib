@@ -1,4 +1,4 @@
-local kubeAssert = import "./assert.libsonnet";
+local kubeAssert = import "internal/assert.libsonnet";
 local core = import "./core.libsonnet";
 
 {

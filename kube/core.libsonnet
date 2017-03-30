@@ -1,5 +1,5 @@
-local kubeAssert = import "./assert.libsonnet";
-local base = import "./base.libsonnet";
+local kubeAssert = import "internal/assert.libsonnet";
+local base = import "internal/base.libsonnet";
 
 {
   mixin:: {
