@@ -1,5 +1,16 @@
 # TODO list
 
+* [ ] Look at the double declarations of parameter defaults.
+  Consolidate to a common place.
+* [ ] Decide whether Volumes (and other things like it) should be
+  mixins or assignments.
+* Consider adding base to `deployment.spec`.
+* [ ] Clean up the use of `common.metadata.Default`. We should
+  probably be using `self.Metadata` where possible.
+* [ ] Ok, probably we need to not flatten out too much the namespaces.
+  Stuff like deployment.pod is better than deployment.PodLabels.
+  * SOME flattening is required, though. Otherwise you end up with
+    something like `deployment.spec.template.spec.container`. Gross.
 * [ ] Decide how we want `service.Port` to work with `port.service.*`.
   Perhaps we should import all those functions into this namespace,
   for convenience sake? Otherwise we end up repeating ourselves a lot.

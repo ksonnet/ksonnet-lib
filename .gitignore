@@ -29,3 +29,6 @@ _testmain.go
 # External packages folder
 vendor/
 tmp/
+
+# Project-specific working space
+charts/
