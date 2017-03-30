@@ -188,6 +188,7 @@ local meta = import "internal/meta.libsonnet";
     //
     // Service.
     //
+
     service:: {
       Default(name, portList, labels={}, annotations={})::
         local defaultMetadata =
@@ -203,45 +204,13 @@ local meta = import "internal/meta.libsonnet";
         },
 
         Metadata:: common.mixin.Metadata,
-
-        mixin:: {
-          metadata:: common.mixin.metadata,
-
-          spec:: {
-            local service = $.v1.service,
-
-            Port::
-              meta.MixinPartial1(service.spec.Port, service.Spec),
-            Selector::
-              meta.MixinPartial1(service.spec.Selector, service.Spec),
-            ClusterIp::
-              meta.MixinPartial1(service.spec.ClusterIp, service.Spec),
-            Type::
-              meta.MixinPartial1(service.spec.Type, service.Spec),
-            ExternalIps::
-              meta.MixinPartial1(service.spec.ExternalIps, service.Spec),
-            SessionAffinity::
-              meta.MixinPartial1(service.spec.SessionAffinity, service.Spec),
-            LoadBalancerIp::
-              meta.MixinPartial1(service.spec.LoadBalancerIp, service.Spec),
-            LoadBalancerSourceRanges:: meta.MixinPartial1(
-              service.spec.LoadBalancerSourceRanges, service.Spec),
-            ExternalName::
-              meta.MixinPartial1(service.spec.ExternalName, service.Spec),
-          },
-        },
-
-        //
-        // Service spec.
-        //
-
-        local typeOptions = std.set([
-          "ExternalName", "ClusterIP", "NodePort", "LoadBalancer"]),
-        local sessionAffinityOptions = std.set(["ClientIP", "None"]),
-
         Spec(mixin):: {spec+: mixin},
 
         spec:: {
+          local typeOptions = std.set([
+            "ExternalName", "ClusterIP", "NodePort", "LoadBalancer"]),
+          local sessionAffinityOptions = std.set(["ClientIP", "None"]),
+
           Port(port)::
             // base.Verify(bases.Service) +
             {ports+: [port]},
@@ -289,6 +258,33 @@ local meta = import "internal/meta.libsonnet";
             // base.Verify(bases.Service) +
             kubeAssert.Type("externalName", externalName, "string") +
             {externalName: externalName},
+        },
+
+        mixin:: {
+          metadata:: common.mixin.metadata,
+
+          spec:: {
+            local service = $.v1.service,
+
+            Port::
+              meta.MixinPartial1(service.spec.Port, service.Spec),
+            Selector::
+              meta.MixinPartial1(service.spec.Selector, service.Spec),
+            ClusterIp::
+              meta.MixinPartial1(service.spec.ClusterIp, service.Spec),
+            Type::
+              meta.MixinPartial1(service.spec.Type, service.Spec),
+            ExternalIps::
+              meta.MixinPartial1(service.spec.ExternalIps, service.Spec),
+            SessionAffinity::
+              meta.MixinPartial1(service.spec.SessionAffinity, service.Spec),
+            LoadBalancerIp::
+              meta.MixinPartial1(service.spec.LoadBalancerIp, service.Spec),
+            LoadBalancerSourceRanges:: meta.MixinPartial1(
+              service.spec.LoadBalancerSourceRanges, service.Spec),
+            ExternalName::
+              meta.MixinPartial1(service.spec.ExternalName, service.Spec),
+          },
         },
     },
 
