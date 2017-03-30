@@ -760,6 +760,7 @@ local meta = import "internal/meta.libsonnet";
           },
 
           spec:: {
+            NodeSelector:: CreateNodeSelectorFunction(true),
             Selector:: CreateSelectorFunction(true),
             MinReadySeconds:: CreateMinReadySecondsFunction(true),
             RollingUpdateStrategy::
@@ -767,24 +768,29 @@ local meta = import "internal/meta.libsonnet";
           },
         },
 
-        // TODO: Consolidate so that we have one of these functions.
-        local specMixin(mixin) = {spec+: mixin},
-
-        NodeSelector(labels)::
-          base.Verify(bases.Deployment) +
-          specMixin({nodeSelector: labels}),
-
         spec:: {
           ReplicatedPod(replicas, podTemplate):: {
             replicas: replicas,
             template: podTemplate,
           },
 
+          NodeSelector:: CreateNodeSelectorFunction(false),
           Selector:: CreateSelectorFunction(false),
           MinReadySeconds:: CreateMinReadySecondsFunction(false),
           RollingUpdateStrategy::
             CreateRollingUpdateStrategyFunction(false),
         },
+
+        // TODO: Consolidate so that we have one of these functions.
+        local specMixin(mixin) = {spec+: mixin},
+
+        local CreateNodeSelectorFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(labels)
+              // base.Verify(bases.Service) +
+              {nodeSelector: labels}),
 
         local CreateSelectorFunction(isMixin) =
           meta.MixinPartial1(

@@ -54,7 +54,7 @@ local template = import "template.libsonnet";
       podTemplate.mixin.metadata.Label("release", release.name) +
       podTemplate.mixin.metadata.Annotations(values.podAnnotations);
     deployment.FromPodTemplate(fullname, values.replicaCount, appPod) +
-    deployment.NodeSelector(values.nodeSelector),
+    deployment.mixin.spec.NodeSelector(values.nodeSelector),
 
   // Data
 
