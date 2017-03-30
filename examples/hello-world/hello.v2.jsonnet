@@ -12,7 +12,6 @@ local deployment = kubeUtil.app.v1beta1.deployment + core.extensions.v1beta1.dep
 
   "deployment.json":
     deployment.FromContainer("nginx-deployment", 2, nginxContainer) +
-    deployment.MixinSpec(
-      deployment.spec.RollingUpdateStrategy(1, 1) +
-      deployment.spec.Selector({ "app": "nginx" })),
+    deployment.mixin.spec.RollingUpdateStrategy() +
+    deployment.mixin.spec.Selector({ "app": "nginx" }),
 }

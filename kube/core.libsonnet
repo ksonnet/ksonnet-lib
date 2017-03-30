@@ -415,6 +415,7 @@ local meta = import "internal/meta.libsonnet";
 
     volume:: {
       persistent:: {
+        // TODO: Add checks to the parameters here.
         Default(name, claimName):: bases.PersistentVolume {
           name: name,
           persistentVolumeClaim: {
@@ -427,6 +428,7 @@ local meta = import "internal/meta.libsonnet";
       },
 
       hostPath:: {
+        // TODO: Add checks to the parameters here.
         Default(name, path):: {
           name: name,
           hostPath: {
@@ -435,10 +437,8 @@ local meta = import "internal/meta.libsonnet";
         },
       },
 
-      // TODO: It is confusing that there is one of these in `v1` and
-      // `v1.volume`.
-      // TODO: Add a check here.
       configMap:: {
+        // TODO: Add checks to the parameters here.
         Default(name, configMapName):: {
           name: name,
           configMap: {
@@ -448,6 +448,7 @@ local meta = import "internal/meta.libsonnet";
       },
 
       secret:: {
+        // TODO: Add checks to the parameters here.
         Default(name, secretName):: {
           name: name,
           secret: {
@@ -456,9 +457,11 @@ local meta = import "internal/meta.libsonnet";
         },
       },
 
-      EmptyDir(name):: {
-        name: name,
-        emptyDir: {},
+      emptyDir:: {
+        Default(name):: {
+          name: name,
+          emptyDir: {},
+        },
       },
 
       //
@@ -482,6 +485,8 @@ local meta = import "internal/meta.libsonnet";
       // Claim.
       //
       claim:: {
+        // TODO: This defaults to a storage class; probably it
+        // shouldn't.
         DefaultPersistent(
           namespace,
           claimName,
@@ -753,41 +758,75 @@ local meta = import "internal/meta.libsonnet";
             RestartPolicy(policy="Always")::
               templateMixin($.v1.pod.spec.RestartPolicy(policy=policy)),
           },
+
+          spec:: {
+            Selector:: CreateSelectorFunction(true),
+            MinReadySeconds:: CreateMinReadySecondsFunction(true),
+            RollingUpdateStrategy::
+              CreateRollingUpdateStrategyFunction(true),
+          },
         },
 
+        // TODO: Consolidate so that we have one of these functions.
         local specMixin(mixin) = {spec+: mixin},
 
         NodeSelector(labels)::
           base.Verify(bases.Deployment) +
           specMixin({nodeSelector: labels}),
 
-        // TODO: Consider rolling this into `deployment` namespace.
         spec:: {
           ReplicatedPod(replicas, podTemplate):: {
             replicas: replicas,
             template: podTemplate,
           },
 
-          Selector(labels):: {
-            selector: {
-              matchLabels: labels,
-            },
-          },
-
-          MinReadySeconds(seconds=0):: {
-            minReadySeconds: seconds,
-          },
-
-          RollingUpdateStrategy(maxSurge=1, maxUnavailable=1):: {
-            strategy: {
-              rollingUpdate: {
-                maxSurge: maxSurge,
-                maxUnavailable: maxUnavailable,
-              },
-              type: "RollingUpdate",
-            },
-          },
+          Selector:: CreateSelectorFunction(false),
+          MinReadySeconds:: CreateMinReadySecondsFunction(false),
+          RollingUpdateStrategy::
+            CreateRollingUpdateStrategyFunction(false),
         },
+
+        local CreateSelectorFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(labels)
+              // base.Verify(bases.Service) +
+              {
+                selector: {
+                  matchLabels: labels,
+                },
+              }),
+
+        local CreateMinReadySecondsFunction(isMixin) =
+          local partial =
+            meta.MixinPartial1(
+              isMixin,
+              specMixin,
+              function(seconds)
+                // base.Verify(bases.Service) +
+                {minReadySeconds: seconds});
+          function(seconds=0) partial(seconds),
+
+        local CreateRollingUpdateStrategyFunction(isMixin) =
+          local partial =
+            meta.MixinPartial2(
+              isMixin,
+              specMixin,
+              // function(maxSurge=1, maxUnavailable=1)
+              function(maxSurge, maxUnavailable)
+                // base.Verify(bases.Service)
+                {
+                  strategy: {
+                    rollingUpdate: {
+                      maxSurge: maxSurge,
+                      maxUnavailable: maxUnavailable,
+                    },
+                    type: "RollingUpdate",
+                  },
+                });
+          function(maxSurge=1, maxUnavailable=1)
+            partial(maxSurge, maxUnavailable),
       },
 
       IngressSpec(domain, serviceName, servicePort):: {

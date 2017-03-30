@@ -4,7 +4,7 @@ JSONNET_CMD=jsonnet
 JSONNET_ARGS="--ext-str GITLAB_GKE_DOMAIN=\"gitlab.io\" --ext-str release.name=3 --ext-str release.service=tiller --ext-str serviceName=cow"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-for JSONNET_FILE in $(find $DIR/examples/ -name "*.jsonnet") ; do
+for JSONNET_FILE in $(find $DIR/examples/ $DIR/tests/ -name "*.jsonnet") ; do
   TEST_OUTPUT="$($JSONNET_CMD $JSONNET_ARGS "$JSONNET_FILE" 2>&1)"
   TEST_EXIT_CODE="$?"
 

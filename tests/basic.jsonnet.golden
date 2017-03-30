@@ -1,0 +1,33 @@
+{
+   "deployment": {
+      "apiVersion": "extensions/v1beta1",
+      "kind": "Deployment",
+      "metadata": {
+         "annotations": { },
+         "labels": { },
+         "name": "hello"
+      },
+      "spec": {
+         "minReadySeconds": 3,
+         "selector": {
+            "matchLabels": {
+               "frog": "ribbit"
+            }
+         },
+         "strategy": {
+            "rollingUpdate": {
+               "maxSurge": 1,
+               "maxUnavailable": 1
+            },
+            "type": "RollingUpdate"
+         }
+      }
+   },
+   "metadataTest": {
+      "annotations": {
+         "chicken": "cluck",
+         "cow": "moo"
+      },
+      "labels": { }
+   }
+}

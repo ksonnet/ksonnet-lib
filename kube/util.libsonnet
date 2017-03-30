@@ -93,11 +93,6 @@ local core = import "./core.libsonnet";
             $.app.v1.pod.template.FromContainer(
               container, labels=podLabels, volumes=volumes),
             labels=labels),
-
-        // TODO: Delete this.
-        MixinSpec(spec):: {
-          spec+: spec
-        },
       },
     },
   },
