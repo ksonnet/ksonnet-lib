@@ -41,12 +41,6 @@ local core = import "./core.libsonnet";
           core.v1.pod.Default(core.v1.pod.spec.Containers([container])) +
           core.v1.pod.Metadata(core.v1.metadata.Labels(labels)),
 
-        local mixinSpec(mixin) = {
-          spec+: mixin,
-        },
-
-        Volumes(volumes):: mixinSpec({volumes: volumes}),
-
         template:: {
           FromContainer(container, labels={app: container.name}, volumes=[])::
             local spec =
