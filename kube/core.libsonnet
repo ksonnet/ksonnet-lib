@@ -597,11 +597,17 @@ local meta = import "internal/meta.libsonnet";
         },
 
       Metadata:: common.mixin.Metadata,
+      Spec(mixin):: {spec+: mixin},
 
-      // TODO: Consider making this just a function on the pod itself.
+      spec:: {
+        // TODO: Consider making this a mixin.
+        Volumes(volumes):: {volumes: volumes},
+        Containers(containers):: {containers: containers},
+        DnsPolicy:: CreateDnsPolicyFunction(),
+        RestartPolicy:: CreateRestartPolicyFunction(),
+      },
+
       template:: {
-        // TODO: This does not really belong here. We should have
-        // something like `deployment.spec.Template` instead.
         Default(spec)::
           common.Metadata() {
             spec: spec,
@@ -626,16 +632,6 @@ local meta = import "internal/meta.libsonnet";
               meta.MixinPartial1(pod.spec.RestartPolicy, templateSpecMixin),
           },
         },
-      },
-
-      // TODO: Consider making this just a function on the pod itself.
-      // TODO: Shouldn't this just be in pod.template?
-      spec:: {
-        // TODO: Consider making this a mixin.
-        Volumes(volumes):: {volumes: volumes},
-        Containers(containers):: {containers: containers},
-        DnsPolicy:: CreateDnsPolicyFunction(),
-        RestartPolicy:: CreateRestartPolicyFunction(),
       },
 
       local CreateDnsPolicyFunction(createMixin=null) =
@@ -675,6 +671,35 @@ local meta = import "internal/meta.libsonnet";
           },
 
         Metadata:: common.mixin.Metadata,
+        Spec(mixin):: {spec+: mixin},
+
+        spec:: {
+          ReplicatedPod(replicas, podTemplate):: {
+            replicas: replicas,
+            template: podTemplate,
+          },
+
+          NodeSelector(labels)::
+            // base.Verify(bases.Service) +
+            {nodeSelector: labels},
+
+          Selector(labels):: {
+            // base.Verify(bases.Service) +
+            // TODO: Consider making these mixins.
+            selector: {
+              matchLabels: labels,
+            },
+          },
+
+          MinReadySeconds:: CreateMinReadySecondsFunction(),
+          RollingUpdateStrategy:: CreateRollingUpdateStrategyFunction(),
+
+          pod:: {
+            template:: {
+
+            },
+          },
+        },
 
         mixin:: {
           metadata:: common.mixin.metadata,
@@ -719,36 +744,6 @@ local meta = import "internal/meta.libsonnet";
               CreateRollingUpdateStrategyFunction(deployment.Spec),
           },
         },
-
-        spec:: {
-          ReplicatedPod(replicas, podTemplate):: {
-            replicas: replicas,
-            template: podTemplate,
-          },
-
-          NodeSelector(labels)::
-            // base.Verify(bases.Service) +
-            {nodeSelector: labels},
-
-          Selector(labels):: {
-            // base.Verify(bases.Service) +
-            // TODO: Consider making these mixins.
-            selector: {
-              matchLabels: labels,
-            },
-          },
-
-          MinReadySeconds:: CreateMinReadySecondsFunction(),
-          RollingUpdateStrategy:: CreateRollingUpdateStrategyFunction(),
-
-          pod:: {
-            template:: {
-
-            },
-          },
-        },
-
-        Spec(mixin):: {spec+: mixin},
 
         local CreateMinReadySecondsFunction(createMixin=null) =
           local partial =
