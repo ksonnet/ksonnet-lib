@@ -3,13 +3,6 @@ local base = import "internal/base.libsonnet";
 local meta = import "internal/meta.libsonnet";
 
 {
-  mixin:: {
-    // NOTE: Convenience mixins, will eventually be moved to a mixin
-    // package.
-
-    Metadata(mixin):: {metadata+: mixin},
-  },
-
   // A collection of common fields in the Kubernetes API objects,
   // that we do not want to expose for public use. For example,
   // `Kind` appears frequently in API objects of both
@@ -21,6 +14,23 @@ local meta = import "internal/meta.libsonnet";
     // TODO: This sets the metadata property, rather than doing a
     // mixin. Is this what we want?
     Metadata(metadata={}):: {metadata: $.v1.metadata.Default() + metadata},
+
+    mixin:: {
+      Metadata(mixin):: {metadata+: mixin},
+
+      metadata:: {
+        local metadata = $.v1.metadata,
+        local mixin = common.mixin,
+
+        Name:: meta.MixinPartial1(metadata.Name, mixin.Metadata),
+        Label:: meta.MixinPartial2(metadata.Label, mixin.Metadata),
+        Labels:: meta.MixinPartial1(metadata.Labels, mixin.Metadata),
+        Namespace:: meta.MixinPartial1(metadata.Namespace, mixin.Metadata),
+        Annotation:: meta.MixinPartial2(metadata.Annotation, mixin.Metadata),
+        Annotations::
+          meta.MixinPartial1(metadata.Annotations, mixin.Metadata),
+      },
+    },
   },
 
   v1:: {
@@ -79,21 +89,6 @@ local meta = import "internal/meta.libsonnet";
       Annotations(annotations)::
         base.Verify(bases.Metadata) +
         {annotations+: annotations},
-
-      // TODO: Consider renaming this or moving it. `mixins` is
-      // probably not something we want to expose to users, at least
-      // in this form.
-      mixins:: {
-        Name:: meta.MixinPartial1($.v1.metadata.Name, $.mixin.Metadata),
-        Label:: meta.MixinPartial2($.v1.metadata.Label, $.mixin.Metadata),
-        Labels:: meta.MixinPartial1($.v1.metadata.Labels, $.mixin.Metadata),
-        Namespace::
-          meta.MixinPartial1($.v1.metadata.Namespace, $.mixin.Metadata),
-        Annotation::
-          meta.MixinPartial2($.v1.metadata.Annotation, $.mixin.Metadata),
-        Annotations::
-          meta.MixinPartial1($.v1.metadata.Annotations, $.mixin.Metadata),
-      },
     },
 
     //
@@ -207,10 +202,10 @@ local meta = import "internal/meta.libsonnet";
           },
         },
 
-        Metadata:: $.mixin.Metadata,
+        Metadata:: common.mixin.Metadata,
 
         mixin:: {
-          metadata:: $.v1.metadata.mixins,
+          metadata:: common.mixin.metadata,
 
           spec:: {
             local service = $.v1.service,
@@ -601,7 +596,7 @@ local meta = import "internal/meta.libsonnet";
           spec: spec,
         },
 
-      Metadata:: $.mixin.Metadata,
+      Metadata:: common.mixin.Metadata,
 
       // TODO: Consider making this just a function on the pod itself.
       template:: {
@@ -612,10 +607,10 @@ local meta = import "internal/meta.libsonnet";
             spec: spec,
           },
 
-        Metadata:: $.mixin.Metadata,
+        Metadata:: common.mixin.Metadata,
 
         mixin:: {
-          metadata:: $.v1.metadata.mixins,
+          metadata:: common.mixin.metadata,
 
           spec:: {
             local pod = $.v1.pod,
@@ -679,10 +674,10 @@ local meta = import "internal/meta.libsonnet";
             spec: spec,
           },
 
-        Metadata:: $.mixin.Metadata,
+        Metadata:: common.mixin.Metadata,
 
         mixin:: {
-          metadata:: $.v1.metadata.mixins,
+          metadata:: common.mixin.metadata,
 
           podTemplate:: {
             local pod = $.v1.pod,
