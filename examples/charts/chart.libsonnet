@@ -27,7 +27,7 @@ local deployment = core.extensions.v1beta1.deployment;
     service.mixin.metadata.Label("release", release.name),
 
   DefaultSelector(name, release)::
-    service.Selector({
+    service.mixin.spec.Selector({
       app: name,
       release: release.name
     }),

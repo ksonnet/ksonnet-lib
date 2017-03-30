@@ -53,7 +53,7 @@ local service = core.v1.service;
     service.Metadata(
       metadata.Namespace(config.namespace) +
       metadata.Label("name", serviceName)) +
-    service.Selector({ name: targetPod }),
+    service.mixin.spec.Selector({ name: targetPod }),
 
   //
   // Persistent volume claims.

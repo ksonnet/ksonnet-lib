@@ -64,7 +64,7 @@ local data = import "./data.libsonnet";
     service.Metadata(
       metadata.Namespace(config.namespace) +
       metadata.Label("name", serviceName)) +
-    service.Selector({ name: targetPod }),
+    service.mixin.spec.Selector({ name: targetPod }),
 
   //
   // Config maps.

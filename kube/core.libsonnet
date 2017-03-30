@@ -1,5 +1,6 @@
 local kubeAssert = import "internal/assert.libsonnet";
 local base = import "internal/base.libsonnet";
+local meta = import "internal/meta.libsonnet";
 
 {
   mixin:: {
@@ -77,54 +78,54 @@ local base = import "internal/base.libsonnet";
       //
 
       local CreateNameFunction(isMixin) =
-        local fn(name) =
-          base.Verify(bases.Metadata) +
-          kubeAssert.Type("name", name, "string") +
-          {name: name};
-        if isMixin
-        then function(name) $.mixin.Metadata(fn(name))
-        else fn,
+        meta.MixinPartial1(
+          isMixin,
+          $.mixin.Metadata,
+          function(name)
+            base.Verify(bases.Metadata) +
+            kubeAssert.Type("name", name, "string") +
+            {name: name}),
 
       local CreateLabelFunction(isMixin) =
-        local fn(key, value) =
-          base.Verify(bases.Metadata) +
-          {labels+: {[key]: value}};
-        if isMixin
-        then function(key, value) $.mixin.Metadata(fn(key, value))
-        else fn,
+        meta.MixinPartial2(
+          isMixin,
+          $.mixin.Metadata,
+          function(key, value)
+            base.Verify(bases.Metadata) +
+            {labels+: {[key]: value}}),
 
       local CreateLabelsFunction(isMixin) =
-        local fn(labels) =
-          base.Verify(bases.Metadata) +
-          {labels+: labels};
-        if isMixin
-        then function(labels) $.mixin.Metadata(fn(labels))
-        else fn,
+        meta.MixinPartial1(
+          isMixin,
+          $.mixin.Metadata,
+          function(labels)
+            base.Verify(bases.Metadata) +
+            {labels+: labels}),
 
       local CreateNamespaceFunction(isMixin) =
-        local fn(namespace) =
-          base.Verify(bases.Metadata) +
-          kubeAssert.Type("namespace", namespace, "string") +
-          {namespace: namespace};
-        if isMixin
-        then function(namespace) $.mixin.Metadata(fn(namespace))
-        else fn,
+        meta.MixinPartial1(
+          isMixin,
+          $.mixin.Metadata,
+          function(namespace)
+            base.Verify(bases.Metadata) +
+            kubeAssert.Type("namespace", namespace, "string") +
+            {namespace: namespace}),
 
       local CreateAnnotationFunction(isMixin) =
-        local fn(key, value) =
-          base.Verify(bases.Metadata) +
-          {annotations+: {[key]: value}};
-        if isMixin
-        then function(key, value) $.mixin.Metadata(fn(key, value))
-        else fn,
+        meta.MixinPartial2(
+          isMixin,
+          $.mixin.Metadata,
+          function(key, value)
+            base.Verify(bases.Metadata) +
+            {annotations+: {[key]: value}}),
 
       local CreateAnnotationsFunction(isMixin) =
-        local fn(annotations) =
-          base.Verify(bases.Metadata) +
-          {annotations+: annotations};
-        if isMixin
-        then function(annotations) $.mixin.Metadata(fn(annotations))
-        else fn,
+        meta.MixinPartial1(
+          isMixin,
+          $.mixin.Metadata,
+          function(annotations)
+            base.Verify(bases.Metadata) +
+            {annotations+: annotations}),
     },
 
     //
@@ -239,7 +240,23 @@ local base = import "internal/base.libsonnet";
         },
 
         Metadata:: $.mixin.Metadata,
-        mixin:: {metadata: $.v1.metadata.mixins},
+
+        mixin:: {
+          metadata:: $.v1.metadata.mixins,
+
+          spec:: {
+            Port:: CreatePortFunction(true),
+            Selector:: CreateSelectorFunction(true),
+            ClusterIp:: CreateClusterIpFunction(true),
+            Type:: CreateTypeFunction(true),
+            ExternalIps:: CreateExternalIpsFunction(true),
+            SessionAffinity:: CreateSessionAffinityFunction(true),
+            LoadBalancerIp:: CreateLoadBalancerIpFunction(true),
+            LoadBalancerSourceRanges::
+              CreateLoadBalancerSourceRangesFunction(true),
+            ExternalName:: CreateExternalNameFunction(true),
+          },
+        },
 
         //
         // Service spec.
@@ -248,54 +265,105 @@ local base = import "internal/base.libsonnet";
         local typeOptions = std.set([
           "ExternalName", "ClusterIP", "NodePort", "LoadBalancer"]),
         local sessionAffinityOptions = std.set(["ClientIP", "None"]),
+
+        spec:: {
+          Port:: CreatePortFunction(false),
+          Selector:: CreateSelectorFunction(false),
+          ClusterIp:: CreateClusterIpFunction(false),
+          Type:: CreateTypeFunction(false),
+          ExternalIps:: CreateExternalIpsFunction(false),
+          SessionAffinity:: CreateSessionAffinityFunction(false),
+          LoadBalancerIp:: CreateLoadBalancerIpFunction(false),
+          LoadBalancerSourceRanges::
+            CreateLoadBalancerSourceRangesFunction(false),
+          ExternalName:: CreateExternalNameFunction(false),
+        },
+
         local specMixin(mixin) = { spec+: mixin },
 
-        Port(port)::
-          base.Verify(bases.Service) +
-          specMixin({ports+: [port]}),
+        local CreatePortFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(port)
+              // base.Verify(bases.Service) +
+              {ports+: [port]}),
 
-        Selector(selector)::
-          base.Verify(bases.Service) +
-          specMixin({selector: selector}),
+        local CreateSelectorFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(selector)
+              // base.Verify(bases.Service) +
+              {selector: selector}),
 
-        ClusterIp(clusterIp)::
-          base.Verify(bases.Service) +
-          kubeAssert.Type("clusterIp", clusterIp, "string") +
-          specMixin({clusterIP: clusterIp}),
+        local CreateClusterIpFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(clusterIp)
+              // base.Verify(bases.Service) +
+              kubeAssert.Type("clusterIp", clusterIp, "string") +
+              {clusterIP: clusterIp}),
 
-        Type(type)::
-          base.Verify(bases.Service) +
-          kubeAssert.InSet("type", type, typeOptions) +
-          specMixin({type: type}),
+        local CreateTypeFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(type)
+              // base.Verify(bases.Service) +
+              kubeAssert.InSet("type", type, typeOptions) +
+              {type: type}),
 
-        ExternalIps(externalIpList)::
-          base.Verify(bases.Service) +
-          // TODO: Verify that externalIpList is a list of string.
-          kubeAssert.Type("externalIpList", externalIpList, "array") +
-          specMixin({externalIPs: externalIpList}),
+        local CreateExternalIpsFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(externalIpList)
+              // base.Verify(bases.Service) +
+              // TODO: Verify that externalIpList is a list of string.
+              kubeAssert.Type("externalIpList", externalIpList, "array") +
+              {externalIPs: externalIpList}),
 
-        SessionAffinity(sessionAffinity)::
-          base.Verify(bases.Service) +
-          kubeAssert.InSet(
-            "sessionAffinity", sessionAffinity, sessionAffinityOptions) +
-          specMixin({sessionAffinity: sessionAffinity}),
+        local CreateSessionAffinityFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(sessionAffinity)
+              // base.Verify(bases.Service) +
+              kubeAssert.InSet(
+                "sessionAffinity", sessionAffinity, sessionAffinityOptions) +
+              {sessionAffinity: sessionAffinity}),
 
-        LoadBalancerIp(loadBalancerIp)::
-          base.Verify(bases.Service) +
-          kubeAssert.Type("loadBalancerIp", loadBalancerIp, "string") +
-          specMixin({loadBalancerIP: loadBalancerIp}),
+        local CreateLoadBalancerIpFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(loadBalancerIp)
+              // base.Verify(bases.Service) +
+              kubeAssert.Type("loadBalancerIp", loadBalancerIp, "string") +
+              {loadBalancerIP: loadBalancerIp}),
 
-        LoadBalancerSourceRanges(loadBalancerSourceRanges)::
-          base.Verify(bases.Service) +
-          // TODO: Verify that loadBalancerSourceRanges is a list of string.
-          kubeAssert.Type(
-            "loadBalancerSourceRanges", loadBalancerSourceRanges, "array") +
-          specMixin({loadBalancerSourceRanges: loadBalancerSourceRanges}),
+        local CreateLoadBalancerSourceRangesFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(loadBalancerSourceRanges)
+              // base.Verify(bases.Service) +
+              // TODO: Verify that loadBalancerSourceRanges is a list
+              // of string.
+              kubeAssert.Type(
+                "loadBalancerSourceRanges", loadBalancerSourceRanges, "array") +
+              {loadBalancerSourceRanges: loadBalancerSourceRanges}),
 
-        ExternalName(externalName)::
-          base.Verify(bases.Service) +
-          kubeAssert.Type("externalName", externalName, "string") +
-          specMixin({externalName: externalName}),
+        local CreateExternalNameFunction(isMixin) =
+          meta.MixinPartial1(
+            isMixin,
+            specMixin,
+            function(externalName)
+              // base.Verify(bases.Service) +
+              kubeAssert.Type("externalName", externalName, "string") +
+              {externalName: externalName}),
     },
 
     configMap:: {
@@ -609,7 +677,7 @@ local base = import "internal/base.libsonnet";
           },
 
         Metadata:: $.mixin.Metadata,
-        mixin:: {metadata: $.v1.metadata.mixins},
+        mixin:: {metadata:: $.v1.metadata.mixins},
       },
 
       // TODO: Consider making this just a function on the pod itself.
@@ -659,7 +727,7 @@ local base = import "internal/base.libsonnet";
         Metadata:: $.mixin.Metadata,
 
         mixin:: {
-          metadata: $.v1.metadata.mixins,
+          metadata:: $.v1.metadata.mixins,
 
           podTemplate:: {
             local templateMixin(mixin) = {

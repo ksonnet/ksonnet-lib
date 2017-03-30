@@ -30,13 +30,15 @@ local template = import "template.libsonnet";
   "chart.json": chartSpec,
   "service.json":
     chart.DefaultService(fullname, name, chartSpec, release) +
-    service.Port(port.service.WithTarget(values.service.servicePort, 8085)) +
-    service.Type(values.service.type) +
+    service.mixin.spec.Port(
+      port.service.WithTarget(values.service.servicePort, 8085)) +
+    service.mixin.spec.Type(values.service.type) +
     service.mixin.metadata.Annotations(values.service.annotations) +
-    service.ClusterIp(values.service.clusterIp) +
-    service.ExternalIps(values.service.externalIps) +
-    service.LoadBalancerIp(values.service.loadBalancerIp) +
-    service.LoadBalancerSourceRanges(values.service.loadBalancerSourceRanges),
+    service.mixin.spec.ClusterIp(values.service.clusterIp) +
+    service.mixin.spec.ExternalIps(values.service.externalIps) +
+    service.mixin.spec.LoadBalancerIp(values.service.loadBalancerIp) +
+    service.mixin.spec.LoadBalancerSourceRanges(
+      values.service.loadBalancerSourceRanges),
   "deployment.json":
     local certPath = "/etc/ssl/certs/ca-certificates.crt";
     local certsVolume = volume.hostPath.Default("ssl-certs", certPath);
