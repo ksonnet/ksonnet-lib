@@ -304,12 +304,12 @@ local meta = import "internal/meta.libsonnet";
     },
 
     secret:: {
-      Default(namespace, configMapName, data)::
+      Default(namespace, secretName, data)::
         bases.Secret +
         $.v1.ApiVersion +
         common.Kind("Secret") +
         common.Metadata(
-          $.v1.metadata.Name(configMapName) +
+          $.v1.metadata.Name(secretName) +
           $.v1.metadata.Namespace(namespace)) {
           data: data,
         },
