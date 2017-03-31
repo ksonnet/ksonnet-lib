@@ -31,4 +31,4 @@ vendor/
 tmp/
 
 # Project-specific working space
-charts/
+/charts/

@@ -515,6 +515,10 @@ local meta = import "internal/meta.libsonnet";
           volumeMounts: [],
         },
 
+      Args(args)::  base.Verify(bases.Container) {
+        args: args
+      },
+
       Command(command):: base.Verify(bases.Container) {
         command: command,
       },
@@ -548,6 +552,23 @@ local meta = import "internal/meta.libsonnet";
 
       VolumeMounts(mounts):: base.Verify(bases.Container) {
         volumeMounts+: mounts,
+      },
+
+      // TODO: Make these into mixins, also.
+      resources:: {
+        Requests(cpu, memory):: {
+          requests: {
+            cpu: cpu,
+            memory: memory
+          },
+        },
+
+        Limits(cpu, memory):: {
+          limits: {
+            cpu: cpu,
+            memory: memory
+          },
+        },
       },
     },
 
@@ -658,12 +679,10 @@ local meta = import "internal/meta.libsonnet";
       //
       deployment:: {
         Default(name, spec)::
-          local defaultMetadata =
-            common.Metadata($.v1.metadata.Name(name));
           bases.Deployment +
           $.extensions.v1beta1.ApiVersion +
           common.Kind("Deployment") +
-          defaultMetadata {
+          common.Metadata($.v1.metadata.Name(name)) {
             spec: spec,
           },
 

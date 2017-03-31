@@ -12,6 +12,8 @@ local deployment = core.extensions.v1beta1.deployment;
     then name
     else std.substr(name, 0, 63),
 
+  ContainerImage(image, tag):: "%s:%s" % [image, tag],
+
   Name(chartName)::
     // TODO: Remove trailing '-' character if it exists after truncation.
     dnsName(chartName),
@@ -20,11 +22,12 @@ local deployment = core.extensions.v1beta1.deployment;
     local name = "%s-%s" % [chartName, releaseName];
     dnsName(name),
 
-  DefaultLabels(name, chart, release)::
-    service.mixin.metadata.Label("app", name) +
-    service.mixin.metadata.Label("chart", chart.name) +
-    service.mixin.metadata.Label("heritage", release.service) +
-    service.mixin.metadata.Label("release", release.name),
+  DefaultLabels(name, chart, release):: {
+    "app": name,
+    "chart": chart.name,
+    "heritage": release.service,
+    "release": release.name,
+  },
 
   DefaultSelector(name, release)::
     service.mixin.spec.Selector({
@@ -35,7 +38,8 @@ local deployment = core.extensions.v1beta1.deployment;
   DefaultService(fullname, name, chartSpec, release)::
     service.Default(fullname, []) +
     service.mixin.metadata.Namespace(fullname) +
-    self.DefaultLabels(name, chartSpec, release) +
+    service.Metadata(
+      core.v1.metadata.Labels(self.DefaultLabels(name, chartSpec, release))) +
     self.DefaultSelector(name, release),
 
   Default(name, version, engine="gotpl"):: apiVersion + {
@@ -47,10 +51,15 @@ local deployment = core.extensions.v1beta1.deployment;
   },
 
   Description(description):: { description: description },
-
+  Keywords(keywordsList):: { keywords: keywordsList, },
+  Home(homeUrl):: { home: homeUrl, },
+  Icon(url):: { icon: url, },
+  Version(version):: { version: version, },
   Source(url):: { sources+: [url] },
-
+  Sources(urlList):: { sources+: urlList, },
   Maintainer(maintainer):: { maintainers+: [maintainer] },
+  Maintainers(maintainerList):: { maintainers+: maintainerList, },
+  Engine(engine):: { engine: engine, },
 
   maintainer:: {
     Default(name, email):: { name: name, email: email },

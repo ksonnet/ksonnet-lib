@@ -65,7 +65,8 @@ local template = import "template.libsonnet";
     service: std.extVar("release.service"),
   },
 
-  local containerImage = "%s:%s" % [values.image.repository, values.image.tag],
+  local containerImage =
+    chart.ContainerImage(values.image.repository, values.image.tag),
 
   local autoscaleFlags = [
     "--nodes=%s:%s:%s" % [group.minSize, group.maxSize, group.name]

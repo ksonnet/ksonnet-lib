@@ -1,0 +1,77 @@
+{
+   "chart.json": {
+      "apiVersion": "v1",
+      "description": "Chaoskube periodically kills random pods in your Kubernetes cluster.",
+      "engine": "gotpl",
+      "home": "https://github.com/linki/chaoskube",
+      "maintainers": [
+         {
+            "email": "linki+kubernetes.io@posteo.de",
+            "name": "Martin Linkhorst"
+         }
+      ],
+      "name": "chaoskube",
+      "sources": [
+         "https://github.com/linki/chaoskube"
+      ],
+      "version": "0.5.0"
+   },
+   "deployment.json": {
+      "apiVersion": "extensions/v1beta1",
+      "kind": "Deployment",
+      "metadata": {
+         "annotations": { },
+         "labels": {
+            "app": "3-tiller",
+            "chart": "chaoskube",
+            "heritage": "tiller",
+            "release": "3"
+         },
+         "name": "3-tiller"
+      },
+      "spec": {
+         "replicas": 1,
+         "template": {
+            "metadata": {
+               "annotations": { },
+               "labels": {
+                  "app": "3-tiller",
+                  "chart": "chaoskube",
+                  "heritage": "tiller",
+                  "release": "3"
+               }
+            },
+            "spec": {
+               "containers": [
+                  {
+                     "args": [
+                        "--in-cluster",
+                        "--interval=10m",
+                        "--labels=",
+                        "--annotations=",
+                        "--namespaces="
+                     ],
+                     "env": [ ],
+                     "image": "quay.io/linki/chaoskube:v0.5.0",
+                     "imagePullPolicy": "Always",
+                     "name": "chaoskube",
+                     "ports": [ ],
+                     "resources": {
+                        "limits": {
+                           "cpu": "10m",
+                           "memory": "16Mi"
+                        },
+                        "requests": {
+                           "cpu": "10m",
+                           "memory": "16Mi"
+                        }
+                     },
+                     "volumeMounts": [ ]
+                  }
+               ],
+               "volumes": [ ]
+            }
+         }
+      }
+   }
+}
