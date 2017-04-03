@@ -4,7 +4,7 @@ local v1beta1 = (import "../kube/core.libsonnet").extensions.v1beta1;
 {
   claimTest1:
     v1.volume.claim.DefaultPersistent(
-      "pvcNamespace1", "pvcName1", ["ReadWrite"], "2G"),
+      "pvcName1", ["ReadWrite"], "2G", namespace="pvcNamespace1"),
   configMapTest1:
     v1.configMap.Default("namespace1", "configMap1", {datum1: "value1"}),
   containerPortTest1:
@@ -87,7 +87,7 @@ local v1beta1 = (import "../kube/core.libsonnet").extensions.v1beta1;
     v1.volume.persistent.DefaultFromClaim(
       "pv2",
       v1.volume.claim.DefaultPersistent(
-        "pvNamespace1", "pvc2", ["ReadWrite"], "2G")),
+        "pvc2", ["ReadWrite"], "2G", namespace="pvNamespace1")),
   volumeSecretTest1:
     v1.volume.secret.Default("secretVolume1", "secretVolumeName1"),
 }

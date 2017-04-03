@@ -3,9 +3,7 @@
       "apiVersion": "v1",
       "kind": "PersistentVolumeClaim",
       "metadata": {
-         "annotations": {
-            "volume.beta.kubernetes.io/storage-class": "fast"
-         },
+         "annotations": { },
          "labels": { },
          "name": "pvcName1",
          "namespace": "pvcNamespace1"

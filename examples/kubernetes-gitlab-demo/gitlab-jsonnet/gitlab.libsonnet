@@ -110,14 +110,23 @@ local data = import "./data.libsonnet";
   // Persistent volume claims.
   //
 
-  ConfigStorageClaim(config):: claim.DefaultPersistent(
-    config.namespace, config.appConfigStorageClaimName, ["ReadWriteMany"], "1Gi"),
+  ConfigStorageClaim(config)::
+    local claimName = config.appConfigStorageClaimName;
+    claim.DefaultPersistent(
+      claimName, ["ReadWriteMany"], "1Gi", namespace=config.namespace) +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 
-  RailsStorageClaim(config):: claim.DefaultPersistent(
-    config.namespace, config.appDataClaimName, ["ReadWriteMany"], "30Gi"),
+  RailsStorageClaim(config)::
+    local claimName = config.appDataClaimName;
+    claim.DefaultPersistent(
+      claimName, ["ReadWriteMany"], "30Gi", namespace=config.namespace) +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 
-  RegistryStorageClaim(config):: claim.DefaultPersistent(
-    config.namespace, config.appRegistryClaimName, ["ReadWriteMany"], "30Gi"),
+  RegistryStorageClaim(config)::
+    local claimName = config.appRegistryClaimName;
+    claim.DefaultPersistent(
+      claimName, ["ReadWriteMany"], "30Gi", namespace=config.namespace) +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 
   //
   // Private helpers.

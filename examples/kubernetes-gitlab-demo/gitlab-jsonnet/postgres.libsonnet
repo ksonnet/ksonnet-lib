@@ -77,8 +77,11 @@ local data = import "./data.libsonnet";
   // Persistent volume claims.
   //
 
-  StorageClaim(config):: claim.DefaultPersistent(
-      config.namespace, config.postgresStorageClaimName, ["ReadWriteOnce"], "30Gi"),
+  StorageClaim(config)::
+    local claimName = config.postgresStorageClaimName;
+    claim.DefaultPersistent(
+      claimName, ["ReadWriteOnce"], "30Gi", namespace=config.namespace) +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 
   //
   // Private helpers.

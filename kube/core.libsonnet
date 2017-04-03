@@ -407,22 +407,9 @@ local meta = import "internal/meta.libsonnet";
       // Claim.
       //
       claim:: {
-        // TODO: This defaults to a storage class; probably it
-        // shouldn't.
-        DefaultPersistent(
-          namespace,
-          claimName,
-          accessModes,
-          size,
-          storageClass="fast"
-        ):
-          local defaultMetadata =
-            common.Metadata(
-              $.v1.metadata.Name(claimName) +
-              $.v1.metadata.Namespace(namespace) +
-              $.v1.metadata.Annotations({
-                "volume.beta.kubernetes.io/storage-class": storageClass,
-              }));
+        DefaultPersistent(claimName, accessModes, size, namespace=null):
+          local defaultMetadata = common.Metadata(
+            $.v1.metadata.Default(namespace=namespace, name=claimName));
           bases.PersistentVolumeClaim +
           $.v1.ApiVersion +
           common.Kind("PersistentVolumeClaim") +
@@ -439,6 +426,22 @@ local meta = import "internal/meta.libsonnet";
               },
             },
           },
+
+        mixin:: {
+          metadata:: common.mixin.metadata {
+            annotation:: {
+              AlphaStorageClass(storageClass)::
+                common.mixin.metadata.Annotation(
+                  "volume.alpha.kubernetes.io/storage-class",
+                  storageClass),
+
+              BetaStorageClass(storageClass)::
+                common.mixin.metadata.Annotation(
+                  "volume.beta.kubernetes.io/storage-class",
+                  storageClass),
+            },
+          },
+        },
       },
     },
 

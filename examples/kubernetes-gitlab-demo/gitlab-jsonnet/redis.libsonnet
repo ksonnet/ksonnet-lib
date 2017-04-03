@@ -59,8 +59,11 @@ local service = core.v1.service;
   // Persistent volume claims.
   //
 
-  StorageClaim(config):: claim.DefaultPersistent(
-    config.namespace, config.redisStorageClaimName, ["ReadWriteOnce"], "5Gi"),
+  StorageClaim(config)::
+    local claimName = config.redisStorageClaimName;
+    claim.DefaultPersistent(
+      claimName, ["ReadWriteOnce"], "5Gi", namespace=config.namespace) +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 
   //
   // Private helpers.

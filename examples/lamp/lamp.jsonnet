@@ -40,6 +40,8 @@ local mount = core.v1.volume.mount;
     },
 
   // NOTE: This is a total guess.
-  "lamp-pvc.json": claim.DefaultPersistent(
-    "lamp-test", lampPvcName, ["ReadWriteMany"], "20Gi"),
+  "lamp-pvc.json":
+    claim.DefaultPersistent(
+      lampPvcName, ["ReadWriteMany"], "20Gi", namespace="lamp-test") +
+    claim.mixin.metadata.annotation.BetaStorageClass("fast"),
 }
