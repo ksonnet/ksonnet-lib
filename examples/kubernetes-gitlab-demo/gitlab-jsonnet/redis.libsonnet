@@ -50,9 +50,8 @@ local service = core.v1.service;
       podPorts);
 
     service.Default(serviceName, servicePorts) +
-    service.Metadata(
-      metadata.Namespace(config.namespace) +
-      metadata.Label("name", serviceName)) +
+    service.mixin.metadata.Namespace(config.namespace) +
+    service.mixin.metadata.Label("name", serviceName) +
     service.mixin.spec.Selector({ name: targetPod }),
 
   //

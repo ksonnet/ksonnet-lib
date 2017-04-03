@@ -84,9 +84,8 @@ local data = import "./data.libsonnet";
       podPorts);
 
     service.Default(serviceName, servicePorts) +
-    service.Metadata(
-      metadata.Namespace(serviceName) +
-      metadata.Label("name", serviceName)) +
+    service.mixin.metadata.Namespace(serviceName) +
+    service.mixin.metadata.Label("name", serviceName) +
     service.mixin.spec.Selector({ name: targetPod }),
 
   //
