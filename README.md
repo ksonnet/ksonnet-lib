@@ -1,48 +1,45 @@
-# Concise, correct Kubernetes application definitions, without the YAML
+# kube.libsonnet: concise, correct Kubernetes configurations, without the YAML
 
-Write Kubernetes applications without fiddling around with complicated
-YAML files. `kube.libsonnet` uses the data templating language,
-[Jsonnet][jsonnet], to make it trivial to start writing against the
-[Kubernetes application API][v1], and easy to grow as your
-configuration needs scale up.
+By Heptio, Inc., 2017
+
+`kube.libsonnet` provides a simple alternative to writing 
+complex YAML for your Kubernetes configurations. It accomplishes
+this goal by using the data templating language
+[Jsonnet][jsonnet] to write against the
+[Kubernetes application API][v1]. This approach also makes it 
+easy to extend your configuration as your application scales up.
 
 ![Jsonnet syntax highlighting][jsonnet-demo]
 
-Most other projects (_e.g._, [Kompose][Kompose],
-[OpenCompose][OpenCompose], and [compose2kube][compose2kube]) simplify
-the process of creating a Kubernetes application by creating a simpler
-API that maps to the Kubernetes API. `kube.libsonnet` instead aims
-instead to make it much simpler to build and customize the Kubernetes
-API objects themselves, in all their complexity. This results in
-concise, modular application definitions, but without losing any of the options
-and features of the original Kubernetes API.
+Other projects, such as [Kompose][Kompose],
+[OpenCompose][OpenCompose], and [compose2kube][compose2kube], simplify
+the process of writing a Kubernetes configuration by creating a simpler
+API that maps to the Kubernetes API. `kube.libsonnet` instead simplifies 
+the work required to build and customize the Kubernetes API objects 
+themselves. This approach results in concise, modular configurations, 
+without losing any of the options and features of the original 
+Kubernetes API.
 
-For more info, see the following resources:
+## Installing and running
 
-* **[Hello, stateless world!][hello-world]** A simple example
-  application.
-* **[Tutorial][tutorial]**, a more in-depth tutorial explaining the
-  core abstractions and tools exposed by `kube.libsonnet`.
-* **[gitlab.jsonnet][gitlab-jsonnet] and
-  [gitlab.libsonnet][gitlab-libsonnet]**. This is a real-world example
-  of a Kubernetes application written on `kube.libsonent`. The first
-  file is the main entry point for Jsonnet, when it compiles GitLab's
-  deployments, services, _etc._, to JSON so that `kubectl` can pick
-  them up; the second contains all the nitty-gritty logic of defining
-  the each of those components.
-* **[Design document][design]**, (_highly incomplete_) explaining the
-  goals and rationale behind the core design decisions of
-  `kube.libsonnet`.
+First, you need Jsonnet:
+
+`brew install jsonnet`
+
+Then, fork or clone this repository, and add the appropriate import 
+statements for the library to your Jsonnet code. For example 
+(from the tutorial):
+
+```c++
+local core = import "../../kube/core.libsonnet";
+local kubeUtil = import "../../kube/util.libsonnet";
+```
 
 ## Hello, stateless world!
 
-A detailed look at `kube.libsonnet`'s core abstractions is available
-in the [tutorial][tutorial]. This section is intended to give just a
-taste of what is possible.
-
-Let's start by converting the Kubernetes [nginx hello world
-tutorial][helloworld] to use `kube.libsonnet`. Here is the original
-YAML:
+Let's start by converting the Kubernetes 
+[nginx hello world tutorial][helloworld] to use `kube.libsonnet`. 
+Here is the original YAML:
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -91,12 +88,10 @@ precisely what you want.
 
 A core goal of `kube.libsonnet` is to maintain the flexibility and
 expressiveness of the original Kubernetes API objects. To give you
-some idea of how easy it is to modify these objects, we will show how
-we can use `kube.libsonnet`'s mixins to change the deployment
-specification to use a rolling update strategy, and a custom selector
-(see also [source][v2hellojsonnet]). **The use of mixins is covered in
-much more detail during the [tutorial][tutorial];** this is really
-intended to give you a taste of what's possible:
+some idea of how easy it is to modify these objects, let's
+change the deployment specification to use a rolling update strategy 
+and a custom selector (see also [source][v2hellojsonnet]). We use
+`kube.libsonnet`'s mixins to make the changes.
 
 ```c++
 // hello.jsonnet; imports omitted
@@ -112,14 +107,14 @@ intended to give you a taste of what's possible:
 }
 ```
 
-Here we have customized the `strategy` and `selector` fields, but we
+Here we customize the `strategy` and `selector` fields, but we
 can use this method to customize any field in the Kubernetes-standard
-[Deployment Spec API object][deploymentspec]. In fact, as you will see
-in the [tutorial][tutorial], _all_ `kube.libsonnet` objects are highly
-customizable!
+[Deployment Spec API object][deploymentspec]. In fact, as
+the [tutorial][tutorial] demonstrates, _all_ `kube.libsonnet` 
+objects are customizable.
 
-Looking at the YAML that is generated, we can begin to understand the
-power of these mixins to customize the default API objects:
+If you look at the generated YAML, you can see the customized API
+objects.
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -148,9 +143,21 @@ spec:
         - containerPort: 80
 ```
 
-## Tutorial
+## More information
 
-For a detailed tutorial, see [docs/TUTORIAL.md][tutorial]
+See also the following resources:
+
+* **[Tutorial][tutorial]**. A more in-depth tutorial that explains the
+  core abstractions and tools exposed by `kube.libsonnet`.
+* **[gitlab.jsonnet][gitlab-jsonnet] and
+  [gitlab.libsonnet][gitlab-libsonnet]**. A real-world example
+  of a Kubernetes configuration written with `kube.libsonent`. The first
+  file is the main entry point for Jsonnet. It compiles GitLab's
+  deployments, services, _etc._, to JSON so that `kubectl` can pick
+  them up. The second file contains the logic that defines
+  each component.
+* **[Design document][design]**, (_highly incomplete_) Explains the
+  goals and rationale behind the core design decisions.
 
 
 [jsonnet]: http://jsonnet.org/ "Jsonnet"
