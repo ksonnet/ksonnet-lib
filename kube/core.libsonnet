@@ -695,6 +695,7 @@ local meta = import "internal/meta.libsonnet";
         spec:: {
           ReplicatedPod(replicas, podTemplate):: {
             replicas: replicas,
+            // TODO: Should this be a mixin?
             template: podTemplate,
           },
 
@@ -712,12 +713,6 @@ local meta = import "internal/meta.libsonnet";
 
           MinReadySeconds:: CreateMinReadySecondsFunction(),
           RollingUpdateStrategy:: CreateRollingUpdateStrategyFunction(),
-
-          pod:: {
-            template:: {
-
-            },
-          },
         },
 
         mixin:: {
@@ -790,19 +785,65 @@ local meta = import "internal/meta.libsonnet";
             partial(maxSurge, maxUnavailable),
       },
 
-      IngressSpec(domain, serviceName, servicePort):: {
-        rules: [
-          {
-            host: domain,
-            http: {
-              paths: [{
-                backend: {
-                  serviceName: serviceName,
-                  servicePort: servicePort,
-                }}]
-            }
-          }
-        ]
+      ingress:: {
+        local ingress = self,
+
+        Default(name, ingressTls=[], ingressRules=[], labels=null)::
+          $.extensions.v1beta1.ApiVersion +
+          common.Kind("Ingress") +
+          common.Metadata($.v1.metadata.Default(name=name, labels=labels)) {
+            spec: {
+              tls: ingressTls,
+              rules: ingressRules,
+            },
+          },
+
+        Metadata:: common.mixin.Metadata,
+        Spec(mixin):: {spec+: mixin},
+
+        spec:: {
+          Tls:: CreateTlsFunction(),
+          Rule:: CreateRuleFunction(),
+        },
+
+        rule:: {
+          Default:: CreateRuleFunction(),
+        },
+
+        httpIngressPath:: {
+          Default(serviceName, servicePort, path=null):: {
+            backend: {
+              serviceName: serviceName,
+              servicePort: servicePort,
+            },
+            [if path != null then "path"]: path,
+          },
+        },
+
+        mixin:: {
+          metadata:: common.mixin.metadata,
+          spec:: {
+            Tls:: CreateTlsFunction(function(tls) ingress.Spec({tls+: [tls]})),
+            Rule:: CreateRuleFunction(
+              function(rule) ingress.Spec({rules+: [rule]})),
+          },
+        },
+
+        local CreateTlsFunction(createMixin=null) =
+          local tls(hosts, secretName) = {
+              [if hosts != null then "hosts"]: hosts,
+              [if secretName != null then "secretName"]: secretName,
+          };
+          local partial = meta.MixinPartial2(tls, createMixin);
+          function(hosts=null, secretName=null) partial(hosts, secretName),
+
+        local CreateRuleFunction(createMixin=null) =
+          local rule(host, httpIngressRule) = {
+            [if host != null then "host"]: host,
+            [if httpIngressRule != null then "http"]: httpIngressRule,
+          };
+          local partial = meta.MixinPartial2(rule, createMixin);
+          function(host=null, http=null) partial(host, http),
       },
     },
   },
