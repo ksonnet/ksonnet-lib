@@ -8,6 +8,9 @@ local v1beta1 = core.extensions.v1beta1;
 
 local values = import "values.libsonnet";
 
+local deployment = v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
+local container = v1.container;
+
 {
   // Configuration.
 
@@ -22,8 +25,6 @@ local values = import "values.libsonnet";
 
   "chart.json": chartSpec,
   "deployment.json":
-    local deployment = v1beta1.deployment + kubeUtil.app.v1beta1.deployment;
-    local container = v1.container;
     local appContainer =
       container.Default(values.name, containerImage) +
       container.Args([
