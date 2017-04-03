@@ -1,5 +1,8 @@
 # TODO list
 
+* [ ] Consider transitioning `ingress.Tls` (and other functions like
+  it) on whether its an array or a string. Append if string, `+` if
+  array.
 * [ ] Look at the double declarations of parameter defaults.
   Consolidate to a common place.
 * [ ] Decide whether Volumes (and other things like it, like labels
@@ -16,7 +19,8 @@
   for convenience sake? Otherwise we end up repeating ourselves a lot.
   Same for ports, volume mounts, etc.
   * [ ] Consider moving these helpers into util.
-* [ ] Rethink whether `container.Env` should take a whole list, or a k/v pair.
+* [ ] Rethink whether `container.Env` should take a whole list, or a
+  k/v pair.
 * [ ] Consider erroring out if a name is not DNS conformant. (e.g., in
   a Deployment).
 * [ ] Rethink the namespace issues. Importing util should probably
@@ -26,4 +30,5 @@
 * [ ] Unify different kinds of volumes. No need for a persistent
   volume with its own base (for example).
 * [ ] Get rid of default storage class in PVC.
-* [ ] metadata.Labels currently overwrites whatever came before it. Desired?
+* [ ] metadata.Labels currently overwrites whatever came before it.
+  Desired?
