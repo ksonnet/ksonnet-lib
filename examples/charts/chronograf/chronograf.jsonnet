@@ -60,7 +60,6 @@ local volume = v1.volume;
     service.mixin.spec.Selector({app: fullname}) +
     service.mixin.spec.Type(values.service.type),
 
-  // TODO: If ingress is enabled.
   [if values.ingress.enabled then "ingress.json"]:
     ingress.Default(fullname, labels=labels) +
     ingress.mixin.metadata.Annotations(values.ingress.annotations) +
@@ -85,11 +84,11 @@ local volume = v1.volume;
     mixin.metadata.Labels(labels) +
     storageClassMixin,
 
-  // Data
+  // Data.
 
   local labels = chart.DefaultLabels(fullname, chartSpec, release),
-  local containerImage = chart.ContainerImage(
-    values.image.repository, values.image.tag),
+  local containerImage =
+    chart.ContainerImage(values.image.repository, values.image.tag),
   local release = {
     name: std.extVar("release.name"),
     service: std.extVar("release.service"),
