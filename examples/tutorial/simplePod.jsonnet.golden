@@ -31,7 +31,8 @@
                ],
                "volumeMounts": [ ]
             }
-         ]
+         ],
+         "volumes": [ ]
       }
    }
 }

@@ -203,6 +203,7 @@ local meta = import "internal/meta.libsonnet";
           },
         },
 
+      // TODO: Incorrect indentation below.
         Metadata:: common.mixin.Metadata,
         Spec(mixin):: {spec+: mixin},
 
@@ -609,18 +610,25 @@ local meta = import "internal/meta.libsonnet";
     // Pods.
     //
     pod:: {
-      Default(spec)::
+      local pod = self,
+
+      Default(containers, volumes=[])::
         bases.Pod +
         $.v1.ApiVersion +
         common.Kind("Pod") +
         common.Metadata() {
-          spec: spec,
+          spec: pod.spec.Default(containers, volumes),
         },
 
       Metadata:: common.mixin.Metadata,
       Spec(mixin):: {spec+: mixin},
 
       spec:: {
+        Default(containers, volumes=[]):: {
+          containers: containers,
+          volumes: volumes,
+        },
+
         // TODO: Consider making this a mixin.
         Volumes(volumes):: {volumes: volumes},
         Containers(containers):: {containers: containers},
@@ -629,9 +637,9 @@ local meta = import "internal/meta.libsonnet";
       },
 
       template:: {
-        Default(spec)::
+        Default(containers, volumes=[])::
           common.Metadata() {
-            spec: spec,
+            spec: pod.spec.Default(containers, volumes),
           },
 
         Metadata:: common.mixin.Metadata,
@@ -681,6 +689,7 @@ local meta = import "internal/meta.libsonnet";
       // Deployments.
       //
       deployment:: {
+        // TODO: Get rid of the `spec` parameter.
         Default(name, spec)::
           bases.Deployment +
           $.extensions.v1beta1.ApiVersion +

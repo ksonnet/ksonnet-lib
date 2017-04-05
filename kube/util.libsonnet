@@ -37,16 +37,13 @@ local core = import "./core.libsonnet";
       },
 
       pod:: {
-        FromContainer(container, labels={app: container.name})::
-          core.v1.pod.Default(core.v1.pod.spec.Containers([container])) +
+        FromContainer(container, labels={app: container.name}, volumes=[])::
+          core.v1.pod.Default([container], volumes) +
           core.v1.pod.Metadata(core.v1.metadata.Labels(labels)),
 
         template:: {
           FromContainer(container, labels={app: container.name}, volumes=[])::
-            local spec =
-              core.v1.pod.spec.Volumes(volumes) +
-              core.v1.pod.spec.Containers([container]);
-            core.v1.pod.template.Default(spec) +
+            core.v1.pod.template.Default([container], volumes) +
             core.v1.pod.template.Metadata(core.v1.metadata.Labels(labels)),
         },
       },
