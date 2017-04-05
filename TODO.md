@@ -1,5 +1,12 @@
 # TODO list
 
+* [ ] Consider defaulting `selector: null` and making `Selector`
+  append it's not set. (Will this even work?)
+* [ ] Consider checking the type tag of arguments to a function for
+  complex types.
+  * [ ] One big problem with this is if someone wants to add their own
+    custom-created type as argument. THIS COMPLAINT ALSO APPLIES TO
+    ADDING CLASSES TOGETHER.
 * [ ] Consider transitioning `ingress.Tls` (and other functions like
   it) on whether its an array or a string. Append if string, `+` if
   array.
