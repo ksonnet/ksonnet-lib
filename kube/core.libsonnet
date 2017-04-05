@@ -262,7 +262,14 @@ local meta = import "internal/meta.libsonnet";
         },
 
         mixin:: {
-          metadata:: common.mixin.metadata,
+          metadata:: common.mixin.metadata {
+            annotation:: {
+              TolerateUnreadyEndpoints(truthiness)::
+                common.mixin.metadata.Annotation(
+                  "service.alpha.kubernetes.io/tolerate-unready-endpoints",
+                  truthiness),
+            },
+          },
 
           spec:: {
             local service = $.v1.service,
@@ -645,7 +652,16 @@ local meta = import "internal/meta.libsonnet";
         Metadata:: common.mixin.Metadata,
 
         mixin:: {
-          metadata:: common.mixin.metadata,
+          metadata:: common.mixin.metadata {
+            annotation:: {
+              PodAffinity(affinitySpec)::
+                common.mixin.metadata.Annotation(
+                  "scheduler.alpha.kubernetes.io/affinity", affinitySpec),
+              PodInitContainers(initSpec)::
+                common.mixin.metadata.Annotation(
+                  "pod.alpha.kubernetes.io/init-containers", initSpec),
+            },
+          },
 
           spec:: {
             local pod = $.v1.pod,
@@ -853,6 +869,107 @@ local meta = import "internal/meta.libsonnet";
           };
           local partial = meta.MixinPartial2(rule, createMixin);
           function(host=null, http=null) partial(host, http),
+      },
+    },
+  },
+
+  meta:: {
+    v1:: {
+      labelSelector:: {
+        DefaultMatchLabelReqs(labels):: {matchLabels: labels},
+        DefaultMatchExpressions(expressions):: {matchExpressions: expressions},
+      },
+    },
+  },
+
+  policy:: {
+    v1beta1:: {
+      ApiVersion:: { apiVersion: "policy/v1beta1" },
+
+      podDistruptionBudget:: {
+
+        Default(name, labels=null)::
+          $.policy.v1beta1.ApiVersion +
+          common.Kind("PodDisruptionBudget") +
+          common.Metadata($.v1.metadata.Default(name=name, labels=labels)) {
+            spec: {},
+          },
+
+        Metadata:: common.mixin.Metadata,
+        Spec(mixin):: {spec+: mixin},
+
+        spec:: {
+          Selector:: $.extensions.v1beta1.deployment.Selector,
+          MinAvailable(time):: {minAvailable: time},
+        },
+
+        mixin:: {
+          spec:: {
+            Selector:: meta.MixinPartial1(
+              $.extensions.v1beta1.deployment.spec.Selector,
+              $.extensions.v1beta1.deployment.Spec),
+            MinAvailable:: meta.MixinPartial1(
+              $.policy.v1beta1.podDistruptionBudget.spec.MinAvailable,
+              $.extensions.v1beta1.deployment.Spec),
+          },
+        },
+      },
+    },
+  },
+
+  apps:: {
+    v1beta1:: {
+      ApiVersion:: { apiVersion: "apps/v1beta1" },
+
+      statefulSet:: {
+        local statefulSet = self,
+
+        Default(
+          name, replicas, template, serviceName=name, volumeClaimTemplates=[],
+          selector=null
+        )::
+          $.apps.v1beta1.ApiVersion +
+          common.Kind("StatefulSet") +
+          common.Metadata($.v1.metadata.Default(name=name)) {
+            spec: statefulSet.spec.Default(
+              serviceName, replicas, template, volumeClaimTemplates, selector),
+          },
+
+        Metadata:: common.mixin.Metadata,
+        Spec(mixin):: {spec+: mixin},
+
+        spec:: {
+          Default(
+            serviceName, replicas, template, volumeClaimTemplates=[],
+            selector=null
+          ):: {
+            serviceName: serviceName,
+            replicas: replicas,
+            template: template,
+            volumeClaimTemplates: volumeClaimTemplates,
+            [if selector != null then "selector"]: selector,
+          },
+
+          ServiceName(serviceName):: {serviceName: serviceName},
+          Template(podTemplate):: {template+: podTemplate},
+          VolumeClaimTemplates(vcTemplates)::
+            {volumeClaimTemplates+: vcTemplates},
+          // Selector(selector):: {selector: selector},
+        },
+
+        mixin:: {
+          spec:: {
+            ServiceName:: meta.MixinPartial1(
+              $.apps.v1beta1.statefulSet.spec.ServiceName,
+              $.apps.v1beta1.statefulSet.Spec),
+            Template:: meta.MixinPartial1(
+              $.apps.v1beta1.statefulSet.spec.Template,
+              $.apps.v1beta1.statefulSet.Spec),
+            VolumeClaimTemplates:: meta.MixinPartial1(
+              $.apps.v1beta1.statefulSet.spec.VolumeClaimTemplates,
+              $.apps.v1beta1.statefulSet.Spec),
+          },
+        },
       },
     },
   },
