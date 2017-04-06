@@ -637,8 +637,8 @@ local meta = import "internal/meta.libsonnet";
         },
 
         // TODO: Consider making this a mixin.
-        Volumes(volumes):: {volumes: volumes},
-        Containers(containers):: {containers: containers},
+        Volumes(volumes):: {volumes+: volumes},
+        Containers(containers):: {containers+: containers},
         DnsPolicy:: CreateDnsPolicyFunction(),
         RestartPolicy:: CreateRestartPolicyFunction(),
       },
