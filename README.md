@@ -1,45 +1,63 @@
-# kube.libsonnet: concise, correct Kubernetes configurations, without the YAML
+# Backsplice: a simpler way to write concise, correct Kubernetes configurations
 
 By Heptio, Inc., 2017
 
-`kube.libsonnet` provides a simple alternative to writing 
-complex YAML for your Kubernetes configurations. It accomplishes
-this goal by using the data templating language
-[Jsonnet][jsonnet] to write against the
-[Kubernetes application API][v1]. This approach also makes it 
-easy to extend your configuration as your application scales up.
+*Backsplice* provides a simpler alternative to writing 
+complex YAML for your Kubernetes configurations. Instead, you 
+write template functions against the 
+[Kubernetes application API][v1] using the 
+data templating language [Jsonnet][jsonnet]
+. Components called *mixins* also help
+simplify the work that's required to extend your configuration 
+as your application scales up.
 
 ![Jsonnet syntax highlighting][jsonnet-demo]
 
-Other projects, such as [Kompose][Kompose],
-[OpenCompose][OpenCompose], and [compose2kube][compose2kube], simplify
-the process of writing a Kubernetes configuration by creating a simpler
-API that maps to the Kubernetes API. `kube.libsonnet` instead simplifies 
-the work required to build and customize the Kubernetes API objects 
-themselves. This approach results in concise, modular configurations, 
-without losing any of the options and features of the original 
-Kubernetes API.
+Other projects help simplify the work of writing a Kubernetes 
+configuration by creating a simpler API that wraps the Kubernetes 
+API. These projects include [Kompose][Kompose],
+[OpenCompose][OpenCompose], and [compose2kube][compose2kube]. 
 
-## Installing and running
+*Backsplice* instead streamlines the process of writing 
+configurations that create native Kubernetes objects. 
 
-First, you need Jsonnet:
+## Install and run
+
+First, install Jsonnet:
 
 `brew install jsonnet`
 
 Then, fork or clone this repository, and add the appropriate import 
-statements for the library to your Jsonnet code. For example 
-(from the tutorial):
+statements for the library to your Jsonnet code:
 
 ```c++
 local core = import "../../kube/core.libsonnet";
 local kubeUtil = import "../../kube/util.libsonnet";
 ```
 
-## Hello, stateless world!
+You might want to consider working in Visual Studio Code, using 
+an extension that
+provides syntax highlighting and a preview pane for your output
+in either YAML or JSON. See <link_to_repo>.
 
-Let's start by converting the Kubernetes 
-[nginx hello world tutorial][helloworld] to use `kube.libsonnet`. 
-Here is the original YAML:
+### Get started
+
+If you're not familiar with Jsonnet, check out the website and tutorial. 
+The *Backsplice* repository also includes a brief introduction <link>.
+
+You can also start writing `.libsonnet` or `.jsonnet` files based on 
+the examples in this readme and in the tutorial <link>. Then run the 
+following command:
+
+```bash
+jsonnet <filename.libsonnet>
+```
+
+## Write your config files with Backsplice
+
+The YAML for the Kubernetes 
+[nginx hello world tutorial][helloworld] looks 
+like this:
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -60,11 +78,11 @@ spec:
         - containerPort: 80
 ```
 
-And here is the equivalent implementation in Jsonnet with
-`kube.libsonnet` (see also [source][v1hellojsonnet]):
+Instead, you can write the following *Backsplice*:
 
 ```c++
-// hello.jsonnet; imports omitted
+local core = import "../../kube/core.libsonnet";
+local kubeUtil = import "../../kube/util.libsonnet";
 {
   local nginxContainer =
     container.Default("nginx", "nginx:1.7.9") +
@@ -74,74 +92,28 @@ And here is the equivalent implementation in Jsonnet with
 }
 ```
 
-Using the Jsonnet command line, we can easily generate a
-`deployment.json` file from the above, which can then be sent to the
-cluster directly by `kubectl`:
+Save the file as `helloworld.libsonnet`, then run:
 
 ```bash
-$ jsonnet hello.jsonnet -m .         # Generates `deployment.json`.
-$ kubectl create -f deployment.json  # Dispatch to run on cluster.
+jsonnet helloword.libsonnet
 ```
 
-This is nice, but sometimes the default `Deployment` object is not
-precisely what you want.
+This command creates the `deployment.json` file that the 
+*Backsplice* snippet defines.
 
-A core goal of `kube.libsonnet` is to maintain the flexibility and
-expressiveness of the original Kubernetes API objects. To give you
-some idea of how easy it is to modify these objects, let's
-change the deployment specification to use a rolling update strategy 
-and a custom selector (see also [source][v2hellojsonnet]). We use
-`kube.libsonnet`'s mixins to make the changes.
+You can now apply this deployment to your Kubernetes cluster
+by running the following command:
 
-```c++
-// hello.jsonnet; imports omitted
-{
-  local nginxContainer =
-    container.Default("nginx", "nginx:1.7.9") +
-    container.NamedPort("http", 80),
-
-  "deployment.json":
-    deployment.FromContainer("nginx-deployment", 2, nginxContainer) +
-    deployment.mixin.spec.RollingUpdateStrategy() +
-    deployment.mixin.spec.Selector({ "app": "nginx" }),
-}
+```bash
+kubectl apply -f deployment.json
 ```
 
-Here we customize the `strategy` and `selector` fields, but we
-can use this method to customize any field in the Kubernetes-standard
-[Deployment Spec API object][deploymentspec]. In fact, as
-the [tutorial][tutorial] demonstrates, _all_ `kube.libsonnet` 
-objects are customizable.
+For more examples and a fuller explanation, see the tutorial <link>
 
-If you look at the generated YAML, you can see the customized API
-objects.
+## Contributing
 
-```yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 2
-  strategy:
-    rollingUpdate:
-        maxSurge: 1,
-        maxUnavailable: 1
-    type: RollingUpdate
-  selector:
-    matchLabels:
-        app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.7.9
-        ports:
-        - containerPort: 80
-```
+Community contributions are welcome. You can submit a pull request, 
+file an issue, or get in touch with us <how? who? where?>
 
 ## More information
 
