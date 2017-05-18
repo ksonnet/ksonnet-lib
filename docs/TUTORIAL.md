@@ -1,20 +1,29 @@
 # Tutorial
 
-The *ksonnet* readme shows you how to cretate a default 
+The **ksonnet** [readme][readme] 
+shows you how to create a default 
 `deployment.json` file that lets you deploy an nginx container 
-to an existing Kubernetes cluster. This tutorial shows you:
+to an existing Kubernetes cluster. This tutorial shows you how to:
 
-* How to modify the deployment using *ksonnet* definitions
-* How to define other Kubernetes objects
-* How to use mixins to develop complex configurations
+* Modify the deployment using **ksonnet** definitions
+* Define other Kubernetes objects
+* Work with mixins to develop complex configurations
 
-This tutorial assumes that 
+## Prerequisites
+
+This tutorial assumes that you have performed the following 
+tasks. For details, see the [readme][readme].
+
+* Installed **Jsonnet**
+* Cloned the **ksonnet** repository locally
+* Installed and configured the VisualStudio Code extension 
+(optional)
+* Created a test Kubernetes cluster
 
 ## Modify the default deployment
 
-*ksonnet* lets you configure or modify any Kubernetes object. For 
-example, to customize the default `nginx` deployment, you can write 
-the following:
+**ksonnet** lets you configure or modify any Kubernetes object. For 
+example, to customize the default `nginx` deployment, you can write:
 
 ```c++
 local kubeCore = import "../../kube/core.libsonnet";
@@ -30,7 +39,7 @@ local kubeUtil = import "../../kube/util.libsonnet";
     deployment.mixin.spec.Selector({ "app": "nginx" }), // add custom selector
 }
 
-Save your file as something like `customDeploy.libsonnet` 
+Save the file as `customDeploy.libsonnet` 
 and run:
 
 ```bash
@@ -70,7 +79,7 @@ spec:
 
 ## Define other Kubernetes objects
 
-*ksonnet* lets you define any Kubernetes object. For example, 
+**ksonnet** lets you define any Kubernetes object. For example, 
 you can define a container:
 
 ```c++
@@ -106,7 +115,7 @@ The JSON output looks like this:
 Or you can include a liveness probe:
 
 ```c++
-local kubeCore = import "../../kubeCore.libsonnet";
+local kubeCore = import "../../kube/core.libsonnet";
 local container = kubeCore.v1.container;
 local probe = kubeCore.v1.probe;
 
@@ -149,8 +158,8 @@ The JSON output now looks like this:
 Now you can define a pod that runs this container:
 
 ```c++
-local kubeCore = import "../../kubeCore.libsonnet";
-local kubeUtil = import "../../kubeUtil.libsonnet";
+local kubeCore = import "../../kube/core.libsonnet";
+local kubeUtil = import "../../kube/util.libsonnet";
 
 local container = kubeCore.v1.container;
 local probe = kubeCore.v1.probe;
@@ -175,5 +184,7 @@ kubectl apply -f pod.json
 ```
 
 ## Work with mixins
+
+[readme]: https://github.com/ksonnet/ksonnet-lib/blob/master/README.md "ksonnet readme"
 
 

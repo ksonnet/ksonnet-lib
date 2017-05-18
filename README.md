@@ -2,7 +2,7 @@
 
 By Heptio, Inc., 2017
 
-*ksonnet* provides a simpler alternative to writing 
+**ksonnet** provides a simpler alternative to writing 
 complex YAML for your Kubernetes configurations. Instead, you 
 write template functions against the 
 [Kubernetes application API][v1] using the 
@@ -18,7 +18,7 @@ configuration by creating a simpler API that wraps the Kubernetes
 API. These projects include [Kompose][Kompose],
 [OpenCompose][OpenCompose], and [compose2kube][compose2kube]. 
 
-*ksonnet* instead streamlines the process of writing 
+**ksonnet** instead streamlines the process of writing 
 configurations that create native Kubernetes objects. 
 
 ## Install and run
@@ -31,22 +31,28 @@ Then, fork or clone this repository, and add the appropriate import
 statements for the library to your Jsonnet code:
 
 ```c++
-local core = import "../../kube/core.libsonnet";
+local kubeCore = import "../../kube/core.libsonnet";
 local kubeUtil = import "../../kube/util.libsonnet";
 ```
 
 You might want to consider working in Visual Studio Code, using 
 an extension that
 provides syntax highlighting and a preview pane for your output
-in either YAML or JSON. See <link_to_repo>.
+in either YAML or JSON. See 
+[this GitHub repository](https://github.com/heptio/vscode-jsonnet).
 
 ### Get started
 
-If you're not familiar with Jsonnet, check out the website and tutorial. 
-The *ksonnet* repository also includes a brief introduction <link>.
+If you're not familiar with **Jsonnet**, check out the 
+[website](http://jsonnet.org/index.html) and [tutorial]
+(http://jsonnet.org/docs/tutorial.html). For usage, see 
+the [command line tool]
+(http://jsonnet.org/implementation/commandline.html). 
+The current repository also includes an 
+[introduction to Jsonnet](https://github.com/ksonnet/ksonnet-lib/blob/master/docs/jsonnetIntro.md).
 
 You can also start writing `.libsonnet` or `.jsonnet` files based on 
-the examples in this readme and in the tutorial <link>. Then run the 
+the examples in this readme and in the [tutorial][tutorial]. Then run the 
 following command:
 
 ```bash
@@ -78,7 +84,7 @@ spec:
         - containerPort: 80
 ```
 
-Instead, you can write the following *ksonnet* code:
+Instead, you can write the following **ksonnet** code:
 
 ```c++
 local kubeCore = import "../../kube/core.libsonnet";
@@ -99,7 +105,7 @@ jsonnet helloword.libsonnet
 ```
 
 This command creates the `deployment.json` file that the 
-*ksonnet* snippet defines.
+**ksonnet** snippet defines.
 
 You can now apply this deployment to your Kubernetes cluster
 by running the following command:
@@ -108,15 +114,21 @@ by running the following command:
 kubectl apply -f deployment.json
 ```
 
-## The *ksonnet* files
+## The **ksonnet** libraries
 
-*ksonnet* comprises two files that contain different methods for 
+The **ksonnet** libraries provide sets of different methods for 
 creating and manipulating Kubernetes objects:
 
-* `kubeCore.libsonnet`: extends the object model and functions of `Jsonnet` to implement the Kubernetes API
-* `kubeUtil.libsonnet`: contains methods to help create complex Kubernetes objects out of smaller objects
+* `kube/core.libsonnet`: extends the object model and functions of `Jsonnet` to implement the Kubernetes API
+* `kube/util.libsonnet`: contains methods to help create complex Kubernetes objects out of smaller objects
 
 Kubernetes v1 and v1beta1 are supported.
 
-For more examples and a fuller explanation, see the tutorial <link>
+For more examples and a fuller explanation, see the [tutorial][tutorial].
+
+## Contributing
+
+(content TK from Jorge)
+
+[tutorial]: https://github.com/ksonnet/ksonnet-lib/blob/master/docs/TUTORIAL.md "ksonnet tutorial"
 

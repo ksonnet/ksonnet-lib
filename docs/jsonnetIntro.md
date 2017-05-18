@@ -1,27 +1,26 @@
-# 1: Jsonnet recap: references, variables, simple JSON templating
+# Introduction to Jsonnet
 
-Before we demonstrate the core abstractions of `kube.libsonnet`, it is
-worth spending time on a whirlwind tour of Jsonnet, to familiarize
-ourselves with the features we will use in this tutorial. (_If you
-already know Jsonnet, you will lose nothing by skipping to the [next
-section][k8s-prims]._)
+If you're not familiar with **Jsonnet**, this brief introduction can 
+help you get started with **ksonnet**. See also the **Jsonnet** 
+[tutorial](http://jsonnet.org/docs/tutorial.html).
 
-For the purposes of this tutorial, you can think of Jsonnet as a
-domain-specific language meant to make it easy to declare and template
+## References, variables, simple JSON templating
+
+You can think of Jsonnet as a domain-specific language 
+that can be extended to provide templating for other 
 languages. Think JSON, but with:
 
-* variables (both [lexically-scoped locals][jsonnetLocals] and
+* variables ([lexically-scoped locals][jsonnetLocals] and
   JsonPath-style [references][jsonnetReferences])
 * [functions][jsonnetFunctions]
-* the ability to define libraries and [import][jsonnetImports] them
 * some notion of [object-oriented inheritance between JSON
   objects][jsonnetOO]
-* and a bunch of the [syntax annoyances ironed out][jsonnetSyntax].
+* the ability to define libraries and [import][jsonnetImports] them
+* [cleaner syntax][jsonnetSyntax].
 
-For the purposes of this tutorial, you need only a very small subset
-of these concepts. They are:
+This introdution focuses on the first three items.
 
-### Local variables and references
+## Local variables and references
 
 In Jsonnet, it is possible to define lexically-scoped local variables:
 
@@ -77,7 +76,7 @@ JSON's design. Notice, for example, that if we re-order `foo` and
 }
 ```
 
-### Functions
+## Functions
 
 Jsonnet implements lexically-scoped functions, but they can be
 declared in a few ways, and it's worth pointing them out.
@@ -110,10 +109,10 @@ rendering it, Jsonnet will complain and crash.)
 }
 ```
 
-### Object-orientation (inheritance, mixins, _etc_.)
+## Object-orientation (inheritance, mixins)
 
 One of Jsonnet's most powerful features, which we use liberally in
-this tutorial and in `kube.libsonnet`, is its object model, which
+this tutorial and in **ksonnet**, is its object model, which
 implements a concise, [well-specified _algebra_][jsonnetAlgebra] for
 combining JSON-like objects.
 
@@ -205,3 +204,12 @@ generated JSON itself:
    "bar": "foobar"
 }
 ```
+
+[jsonnetTutorial]: http://jsonnet.org/docs/tutorial.html "Jsonnet tutorial"
+[jsonnetSyntax]: http://jsonnet.org/docs/tutorial.html#syntax_improvements "Jsonnet syntax improvements"
+[jsonnetFunctions]: http://jsonnet.org/docs/tutorial.html#functions "Jsonnet functions"
+[jsonnetLocals]: http://jsonnet.org/docs/tutorial.html#locals "Jsonnet local variables"
+[jsonnetReferences]: http://jsonnet.org/docs/tutorial.html#references "Jsonnet references"
+[jsonnetImports]: http://jsonnet.org/docs/tutorial.html#imports "Jsonnet imports"
+[jsonnetOO]: http://jsonnet.org/docs/tutorial.html#oo "Jsonnet OO"
+[jsonnetAlgebra]: http://jsonnet.org/language/spec.html#properties "Jsonnet inheritance algebra"
