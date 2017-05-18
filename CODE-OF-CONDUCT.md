@@ -1,4 +1,4 @@
-## Backsplice Community Code of Conduct
+## ksonnet Community Code of Conduct
 
 ### Contributor Code of Conduct
 
