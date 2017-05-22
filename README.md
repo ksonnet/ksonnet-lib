@@ -47,8 +47,12 @@ statements for the library to your Jsonnet code:
 
 ```javascript
 local core = import "../../kube/core.libsonnet";
-local kubeUtil = import "../../kube/util.libsonnet";
+local util = import "../../kube/util.libsonnet";
 ```
+
+All import paths are relative to the root of the 
+*ksonnet** repository. Remember to modify the paths 
+appropriately when you work in another environment.
 
 You might want to consider working in Visual Studio Code, using 
 an extension that
@@ -111,11 +115,15 @@ Instead, you can write the following **ksonnet** code:
 
 ```javascript
 local core = import "../../kube/core.libsonnet";
-local kubeUtil = import "../../kube/util.libsonnet";
+local util = import "../../kube/util.libsonnet";
+
+local container = core.v1.container;
+local deployment = util.app.v1beta1.deployment;
+
 {
   local nginxContainer =
     container.Default("nginx", "nginx:1.7.9") +
-    container.NamedPort("http", 80),
+    core.v1.container.NamedPort("http", 80),
 
   "deployment.json": deployment.FromContainer("nginx-deployment", 2, nginxContainer),
 }
@@ -124,7 +132,7 @@ local kubeUtil = import "../../kube/util.libsonnet";
 Save the file as `helloworld.libsonnet`, then run:
 
 ```bash
-jsonnet helloword.libsonnet
+jsonnet helloworld.libsonnet
 ```
 
 This command creates the `deployment.json` file that the 

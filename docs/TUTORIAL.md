@@ -20,6 +20,9 @@ tasks. For details, see the [readme][readme].
 (optional)
 * Created a test Kubernetes cluster
 
+NOTE: All import paths are relative to the root of the 
+*ksonnet** repository.
+
 ## Modify the default deployment
 
 **ksonnet** lets you configure or modify any Kubernetes object. For 
@@ -28,6 +31,10 @@ example, to customize the default `nginx` deployment, you can write:
 ```javascript
 local core = import "../../kube/core.libsonnet";
 local util = import "../../kube/util.libsonnet";
+
+local container = core.v1.container;
+local deployment = util.app.v1beta1.deployment;
+
 {
   local nginxContainer =
     container.Default("nginx", "nginx:1.7.9") +
@@ -198,7 +205,13 @@ For example, you could write the following code to define a
 container for your application:
 
 ```javascript
-local appContainer =
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
+
+local container = core.v1.container;
+
+{
+  local appContainer =
        container.Default(app.name, config.containerImage) +
        container.Command(command) +
        container.Ports([
@@ -227,12 +240,16 @@ local appContainer =
        container.Resources(config.resourceLimits) + {
            securityContext: securityContext.defaultCapabilities(),
        };
+}
 ```
 
 And your teammate could write the following code to define 
 the VolumeMounts:
 
 ```javascript
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
+
 Sidecar(containerNames)::
        local containerNameSet = std.set(containerNames);
        deployment.MapContainers(
@@ -248,7 +265,13 @@ Then, you write a deployment definition for the container that
 adds the VolumeMounts for logging using mixins:
 
 ```javascript
-deployment.FromContainer( // deployment
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
+
+local deployment = util.app.v1beta1.deployment;
+
+{
+  deployment.FromContainer( // deployment
        config.deploymentName,
        config.replicas,
        appContainer,
@@ -269,7 +292,7 @@ deployment.FromContainer( // deployment
        // logback.volume(),
    ]) +
    logback.Sidecar([app.name]); // sidecar added
-
+}
 ```
 
 [readme]: ../readme.md "ksonnet readme"
