@@ -1,8 +1,6 @@
-# kube.libsonnet: concise, correct Kubernetes configurations, without the YAML
+# ksonnet: concise, correct Kubernetes configurations, without the YAML
 
-By Heptio, Inc., 2017
-
-`kube.libsonnet` provides a simple alternative to writing 
+`ksonnet-lib` provides a simple alternative to writing 
 complex YAML for your Kubernetes configurations. It accomplishes
 this goal by using the data templating language
 [Jsonnet][jsonnet] to write against the
@@ -30,7 +28,7 @@ Then, fork or clone this repository, and add the appropriate import
 statements for the library to your Jsonnet code. For example 
 (from the tutorial):
 
-```c++
+```jsonnet
 local core = import "../../kube/core.libsonnet";
 local kubeUtil = import "../../kube/util.libsonnet";
 ```
@@ -63,7 +61,7 @@ spec:
 And here is the equivalent implementation in Jsonnet with
 `kube.libsonnet` (see also [source][v1hellojsonnet]):
 
-```c++
+```jsonnet
 // hello.jsonnet; imports omitted
 {
   local nginxContainer =
@@ -93,7 +91,7 @@ change the deployment specification to use a rolling update strategy
 and a custom selector (see also [source][v2hellojsonnet]). We use
 `kube.libsonnet`'s mixins to make the changes.
 
-```c++
+```jsonnet
 // hello.jsonnet; imports omitted
 {
   local nginxContainer =
@@ -168,12 +166,12 @@ See also the following resources:
 [compose2kube]: https://github.com/kelseyhightower/compose2kube "compose2kube"
 
 [helloworld]: https://kubernetes.io/docs/tutorials/stateless-application/run-stateless-application-deployment/ "Hello, Kubernetes!"
-[v1hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
-[v2hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
+[v1hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
+[v2hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
 [deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
-[hello-world]: https://github.com/heptio/kube.libsonnet#hello-stateless-world "Hello, stateless world!"
-[design]: https://github.com/heptio/kube.libsonnet/blob/master/docs/DESIGN.md "kube.libsonnet design document"
-[tutorial]: https://github.com/heptio/kube.libsonnet/blob/master/docs/TUTORIAL.md "kube.libsonnet tutorial"
-[gitlab-jsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.jsonnet "gitlab.jsonnet"
-[gitlab-libsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.libsonnet "gitlab.libsonent"
+[hello-world]: #hello-stateless-world "Hello, stateless world!"
+[design]: https://github.com/ksonnet/ksonnet-lib/blob/master/docs/DESIGN.md "kube.libsonnet design document"
+[tutorial]: https://github.com/ksonnet/ksonnet-lib/blob/master/docs/TUTORIAL.md "kube.libsonnet tutorial"
+[gitlab-jsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.jsonnet "gitlab.jsonnet"
+[gitlab-libsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.libsonnet "gitlab.libsonent"
 [jsonnet-demo]: docs/images/kube-demo.gif
