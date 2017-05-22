@@ -25,9 +25,9 @@ tasks. For details, see the [readme][readme].
 **ksonnet** lets you configure or modify any Kubernetes object. For 
 example, to customize the default `nginx` deployment, you can write:
 
-```c++
-local kubeCore = import "../../kube/core.libsonnet";
-local kubeUtil = import "../../kube/util.libsonnet";
+```javascript
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
 {
   local nginxContainer =
     container.Default("nginx", "nginx:1.7.9") +
@@ -38,6 +38,7 @@ local kubeUtil = import "../../kube/util.libsonnet";
     deployment.mixin.spec.RollingUpdateStrategy() + // add rolling update strategy
     deployment.mixin.spec.Selector({ "app": "nginx" }), // add custom selector
 }
+```
 
 Save the file as `customDeploy.libsonnet` 
 and run:
@@ -82,9 +83,9 @@ spec:
 **ksonnet** lets you define any Kubernetes object. For example, 
 you can define a container:
 
-```c++
-local kubeCore = import "../../kube/core.libsonnet";
-local container = kubeCore.v1.container;
+```javascript
+local core = import "../../kube/core.libsonnet";
+local container = core.v1.container;
 
 container.Default("nginx", "nginx:1.7.9") +
 container.NamedPort("http", 80)
@@ -114,10 +115,10 @@ The JSON output looks like this:
 
 Or you can include a liveness probe:
 
-```c++
-local kubeCore = import "../../kube/core.libsonnet";
-local container = kubeCore.v1.container;
-local probe = kubeCore.v1.probe;
+```javascript
+local core = import "../../kube/core.libsonnet";
+local container = core.v1.container;
+local probe = core.v1.probe;
 
 container.Default("nginx", "nginx:1.7.9") +
 container.NamedPort("http", 80) +
@@ -157,13 +158,13 @@ The JSON output now looks like this:
 
 Now you can define a pod that runs this container:
 
-```c++
-local kubeCore = import "../../kube/core.libsonnet";
-local kubeUtil = import "../../kube/util.libsonnet";
+```javascript
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
 
-local container = kubeCore.v1.container;
-local probe = kubeCore.v1.probe;
-local pod = kubeUtil.app.v1.pod;
+local container = core.v1.container;
+local probe = core.v1.probe;
+local pod = util.app.v1.pod;
 
 {
   local nginxContainer =
@@ -180,11 +181,97 @@ to deploy the pod to your cluster:
 
 ```bash
 jsonnet pod.libsonnet // create pod.json
-kubectl apply -f pod.json
+kubectl apply -f pod.json // apply pod definition to cluster
 ```
 
 ## Work with mixins
 
-[readme]: https://github.com/ksonnet/ksonnet-lib/blob/master/README.md "ksonnet readme"
+You've seen how to modify the default deployment by writing 
+**mixins** to add custom `strategy` and `selector` fields. 
+As the Jsonnet tutorial explains in more detail, mixins provide 
+dynamic inheritance, at runtime instead of compile time. This 
+approach means that different team members can define the 
+Kubernetes objects that they need. You can then mix them into 
+your master definition without having to copy all the details.
+
+For example, you could write the following code to define a 
+container for your application:
+
+```javascript
+local appContainer =
+       container.Default(app.name, config.containerImage) +
+       container.Command(command) +
+       container.Ports([
+           port.container.Default(8102),
+           port.container.Default(9102),
+       ]) +
+       container.LivenessProbe(probe.Http("/ping", 9102, 10, 2)) +
+       container.ReadinessProbe(probe.Http("/ready-to-serve", 9102, 10, 2)) +
+       container.Env([
+           environ.ValueFromFieldRef("POD_NAME", "metadata.name"),
+           environ.ValueFromFieldRef("POD_NAMESPACE", "metadata.namespace"),
+           environ.Variable("SERVICE_NAME", app.name),
+           environ.Variable("DUMMY_VAR_FOR_NO_OP_DEPLOYMENTS", config.dummyVar),
+           environ.Variable("DEPRECATED_DC_METRICS_TAG", cluster.metricsDC),
+           environ.Variable("DEPRECATED_SERVER_TYPE_METRICS_TAG", "job-manager"),
+       ]) +
+       container.VolumeMounts([
+           // TODO: Move the sidecars to mixins!
+           logs.analyticsVolumeMount("/var/analytics"),
+           logs.metricsVolumeMount("/var/metrics"),
+           logs.serviceVolumeMount("/var/log/service"),
+           pki.volumeMount(),
+           // appconfd.volumeMount(),
+           // logback.volumeMount(),
+       ]) +
+       container.Resources(config.resourceLimits) + {
+           securityContext: securityContext.defaultCapabilities(),
+       };
+```
+
+And your teammate could write the following code to define 
+the VolumeMounts:
+
+```javascript
+Sidecar(containerNames)::
+       local containerNameSet = std.set(containerNames);
+       deployment.MapContainers(
+           function(podContainer)
+               if std.length(std.setInter([podContainer.name], containerNameSet)) > 0
+               then podContainer + container.VolumeMounts([self.volumeMount()])
+               else podContainer
+       ) +
+       deployment.mixin.podTemplate.Volumes([self.volume()]),
+```
+
+Then, you write a deployment definition for the container that 
+adds the VolumeMounts for logging using mixins:
+
+```javascript
+deployment.FromContainer( // deployment
+       config.deploymentName,
+       config.replicas,
+       appContainer,
+       podLabels=appLabels) +
+   deployment.mixin.metadata.Namespace(namespace.name) +
+   deployment.mixin.spec.RevisionHistoryLimit(2) +
+   deployment.mixin.spec.Selector(appLabels) +
+   deployment.mixin.podTemplate.NodeSelector({
+       "box.com/pool": config.poolLabel,
+   }) +
+   deployment.mixin.podTemplate.Containers(logtailer.containers) +
+   deployment.mixin.podTemplate.Volumes(logtailer.volumes + [
+       logs.analyticsVolume(namespace.name),
+       logs.serviceVolume(namespace.name),
+       pki.volume(),
+       logtailer.metricsVolume(namespace.name),
+       // appconfd.volume(),
+       // logback.volume(),
+   ]) +
+   logback.Sidecar([app.name]); // sidecar added
+
+```
+
+[readme]: ../readme.md "ksonnet readme"
 
 

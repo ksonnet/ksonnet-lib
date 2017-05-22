@@ -1,3 +1,6 @@
+// This file rewrites the Cockroachdb Helm chart in ksonnet.
+// Compare with https://github.com/kubernetes/charts/blob/master/stable/cockroachdb/templates/cockroachdb-petset.yaml
+
 local chart = import "../chart.libsonnet";
 local maintainer = chart.maintainer;
 

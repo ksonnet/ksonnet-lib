@@ -2,11 +2,11 @@
 
 If you're not familiar with **Jsonnet**, this brief introduction can 
 help you get started with **ksonnet**. See also the **Jsonnet** 
-[tutorial](http://jsonnet.org/docs/tutorial.html).
+[tutorial][jsonnetTutorial].
 
 ## References, variables, simple JSON templating
 
-You can think of Jsonnet as a domain-specific language 
+You can think of **Jsonnet** as a domain-specific language 
 that can be extended to provide templating for other 
 languages. Think JSON, but with:
 
@@ -22,9 +22,9 @@ This introdution focuses on the first three items.
 
 ## Local variables and references
 
-In Jsonnet, it is possible to define lexically-scoped local variables:
+In Jsonnet, you can define lexically-scoped local variables:
 
-```c++
+```javascript
 {
   local foo = "bar",
   baz: foo,
@@ -37,11 +37,11 @@ which produces:
 { "baz": "bar" }
 ```
 
-Jsonnet additionally exposes a `self` to access properties of the
-current object, and a JsonPath-style `$`, which refers to the "root
-object" (or: the grandparent who is farthest away from the `$`):
+**Jsonnet** also exposes a `self` to access properties of the
+current object, and a JsonPath-style `$`, which refers to the root
+object (the grandparent that is farthest away from the `$`):
 
-```c++
+```javascript
 {
   foo: "bar",
   baz: self.foo,
@@ -64,7 +64,7 @@ _order-independent_, which is a decision that largely falls out of
 JSON's design. Notice, for example, that if we re-order `foo` and
 `baz`, it does not affect the output of Jsonnet:
 
-```c++
+```javascript
 {
   baz: self.foo,
   cow: {
@@ -89,7 +89,7 @@ function must be either `local` or hidden with `::`, because Jsonnet
 doesn't know how to render a function as JSON data. (Instead of
 rendering it, Jsonnet will complain and crash.)
 
-```c++
+```javascript
 {
   local function1(arg1) = { foo: arg1 },
   function2(arg1="cluck"):: { bar: arg1 },
@@ -122,7 +122,7 @@ _base_, and the second is called the _child_) that are combined with
 the `+`. The child (which is said to _inherit_ from the parent)
 overwrites the `bar` property that was defined in the parent:
 
-```c++
+```javascript
 
 {
   // Parent object.
@@ -145,7 +145,7 @@ It is sometimes convenient for a child to reference members of the
 parent, so Jsonnet also exposes `super`, which behaves a lot like
 `self`, except in reference to the parent:
 
-```c++
+```javascript
 {
   foo: "foo",
 } + {
@@ -165,7 +165,7 @@ meaning that if you have an object that refers to `super.bar`, then it
 can dynamically be made to inherit from _any object_ that has a `bar`
 property. For example:
 
-```c++
+```javascript
 local fooTheBar = { bar: super.bar + "foo" };
 {
   bar: "bar",
@@ -191,7 +191,7 @@ grandchildren, _etc_.), and are useful for holding data you'd like to
 use to construct other properties, but not expose as part of the
 generated JSON itself:
 
-```c++
+```javascript
 {
   foo:: "foo",
 } + {
