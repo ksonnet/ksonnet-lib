@@ -12,8 +12,6 @@ physical universe.
 
 ## Goals
 
-[THIS IS NOT DONE YET, OR EVEN REALLY STARTED, SORRY]
-
 More particularly, we would like to:
 
 * Allow users to template common patterns, without making it hard to
@@ -34,7 +32,7 @@ Non-goals:
 
 
 This pattern of using `+` to incrementally build up Kubernetes API
-objects is very common, and used throughout `kube.libsonnet`. This
+objects is very common, and used throughout `ksonnet-lib`. This
 pattern has several distinct advantages:
 
 * **Makes it very likely that you will generate a correct
