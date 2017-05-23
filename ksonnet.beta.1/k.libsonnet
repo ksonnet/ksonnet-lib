@@ -1,23 +1,10 @@
 local apps = import "apps.v1beta1.libsonnet";
 local core = import "core.v1.libsonnet";
 local extensions = import "extensions.v1beta1.libsonnet";
+local util = import "util.libsonnet";
 
 {
   apps:: apps + {
-    v1:: apps.v1 + {
-      container:: apps.v1.container + {
-        default(name, image)::
-          super.default(name) +
-          super.image(image),
-        helpers:: {
-          namedPort(name, port)::
-            local portObj =
-              apps.v1.containerPort.name(name) +
-              apps.v1.containerPort.containerPort(port);
-            apps.v1.container.ports(portObj),
-        }
-      },
-    },
     v1beta1:: apps.v1beta1 + {
       deployment:: apps.v1beta1.deployment + {
         default(name, containers, namespace="default")::
@@ -64,6 +51,22 @@ local extensions = import "extensions.v1beta1.libsonnet";
     },
   },
 
-  core:: core,
+  core:: core + {
+    v1:: core.v1 + {
+      container:: core.v1.container + {
+        default(name, image)::
+          super.default(name) +
+          super.image(image),
+        helpers:: {
+          namedPort(name, port)::
+            local portObj =
+              core.v1.containerPort.name(name) +
+              core.v1.containerPort.containerPort(port);
+            core.v1.container.ports(portObj),
+        }
+      },
+    },
+  },
   extensions:: extensions,
+  util:: util,
 }
