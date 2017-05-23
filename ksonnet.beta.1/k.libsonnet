@@ -4,8 +4,8 @@ local extensions = import "extensions.v1beta1.libsonnet";
 
 {
   apps:: apps + {
-    v1+:: {
-      container+:: {
+    v1:: apps.v1 + {
+      container:: apps.v1.container + {
         default(name, image)::
           super.default(name) +
           super.image(image),
@@ -18,15 +18,15 @@ local extensions = import "extensions.v1beta1.libsonnet";
         }
       },
     },
-    v1beta1+:: {
-      deployment+:: {
+    v1beta1:: apps.v1beta1 + {
+      deployment:: apps.v1beta1.deployment + {
         default(name, containers, namespace="default")::
           super.default(name, namespace) + {
             spec+: {
               template: {spec: apps.v1.podSpec.default(containers)},
             },
           },
-        mixin+:: {
+        mixin:: apps.v1beta1.deployment.mixin + {
           podSpec:: {
             local spec(mixin) = {
               spec+: {
