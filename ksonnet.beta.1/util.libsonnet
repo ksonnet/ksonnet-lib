@@ -19,10 +19,10 @@
       true,
   // Remove all fields that have empty content
   pruneObj(obj):: {
-    [x]: $.util.prune(obj[x])
-    for x in std.objectFields(obj) if self.isContent(self.prune(obj[x]))
+    [x]: $.prune(obj[x])
+    for x in std.objectFields(obj) if self.isContent($.prune(obj[x]))
   },
   // Remove all members that have empty content
   pruneArray(arr)::
-    [ $.util.prune(x) for x in arr if self.isContent($.util.prune(x)) ]
+    [ $.prune(x) for x in arr if self.isContent($.prune(x)) ]
 }
