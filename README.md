@@ -63,10 +63,9 @@ in either YAML or JSON. See
 ### Get started
 
 If you're not familiar with **Jsonnet**, check out the 
-[website](http://jsonnet.org/index.html) and [tutorial]
-(http://jsonnet.org/docs/tutorial.html). For usage, see 
-the [command line tool]
-(http://jsonnet.org/implementation/commandline.html). 
+[website](http://jsonnet.org/index.html) and 
+[their tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see 
+the [command line tool](http://jsonnet.org/implementation/commandline.html). 
 This repository also includes an 
 [introduction to Jsonnet](docs/jsonnetIntro.md).
 
@@ -187,6 +186,20 @@ Have any questions or long-form feedback? You can always find us here:
 * We monitor the [ksonnet
 tag](https://stackoverflow.com/questions/tagged/ksonnet) on Stack
 Overflow.
+
+[jsonnet]: http://jsonnet.org/ "Jsonnet"
+[v1]: https://kubernetes.io/docs/api-reference/v1/definitions/ "V1 API objects"
+[v1Container]: https://kubernetes.io/docs/api-reference/v1/definitions/#_v1_container "v1.Container"
+[Kompose]: https://github.com/kubernetes-incubator/kompose "Kompose"
+[OpenCompose]: https://github.com/redhat-developer/opencompose "OpenCompose"
+[compose2kube]: https://github.com/kelseyhightower/compose2kube "compose2kube"
+
+[helloworld]: https://kubernetes.io/docs/tutorials/stateless-application/run-stateless-application-deployment/ "Hello, Kubernetes!"
+[v1hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
+[v2hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
+[deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
+
+[jsonnet-demo]: docs/images/kube-demo.gif
 
 [tutorial]: docs/TUTORIAL.md "ksonnet tutorial"
 [cockroachks]: examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
