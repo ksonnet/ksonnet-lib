@@ -592,12 +592,22 @@ local meta = import "internal/meta.libsonnet";
         value: value,
       },
 
+      // TODO: Rename this `ValueFromConfigMap`.
       ValueFrom(name, configMapName, configMapKey):: {
         name: name,
         valueFrom: {
           configMapKeyRef: {
             name: configMapName,
             key: configMapKey,
+          },
+        },
+      },
+
+      ValueFromFieldRef(name, fieldPath):: {
+        name: name,
+        valueFrom: {
+          fieldRef: {
+              fieldPath: fieldPath,
           },
         },
       },
@@ -637,8 +647,8 @@ local meta = import "internal/meta.libsonnet";
         },
 
         // TODO: Consider making this a mixin.
-        Volumes(volumes):: {volumes: volumes},
-        Containers(containers):: {containers: containers},
+        Volumes(volumes):: {volumes+: volumes},
+        Containers(containers):: {containers+: containers},
         DnsPolicy:: CreateDnsPolicyFunction(),
         RestartPolicy:: CreateRestartPolicyFunction(),
       },
@@ -724,6 +734,10 @@ local meta = import "internal/meta.libsonnet";
             template: podTemplate,
           },
 
+          RevisionHistoryLimit(limit)::
+            // base.Verify(bases.Service) +
+            {revisionHistoryLimit: limit},
+
           NodeSelector(labels)::
             // base.Verify(bases.Service) +
             {nodeSelector: labels},
@@ -746,20 +760,23 @@ local meta = import "internal/meta.libsonnet";
           podTemplate:: {
             local pod = $.v1.pod,
 
-            Volumes:: meta.MixinPartial1(pod.spec.Volumes, podMixin),
-            Containers:: meta.MixinPartial1(pod.spec.Containers, podMixin),
+            NodeSelector:: meta.MixinPartial1(
+              $.extensions.v1beta1.deployment.spec.NodeSelector,
+              self.Spec),
+            Volumes:: meta.MixinPartial1(pod.spec.Volumes, self.Spec),
+            Containers:: meta.MixinPartial1(pod.spec.Containers, self.Spec),
 
             // TODO: Consider moving this default to some common
             // place, so it's not duplicated.
             DnsPolicy::
               local partial =
-                meta.MixinPartial1(pod.spec.DnsPolicy, podMixin);
+                meta.MixinPartial1(pod.spec.DnsPolicy, self.Spec);
               function(policy="ClusterFirst") partial(policy),
 
             RestartPolicy(policy="Always")::
-              podMixin(pod.spec.RestartPolicy(policy=policy)),
+              self.Spec(pod.spec.RestartPolicy(policy=policy)),
 
-            local podMixin(mixin) = {
+            Spec(mixin):: {
               // TODO: Add base verification here.
               spec+: {
                 template+: {
@@ -772,6 +789,8 @@ local meta = import "internal/meta.libsonnet";
           spec:: {
             local deployment = $.extensions.v1beta1.deployment,
 
+            RevisionHistoryLimit:: meta.MixinPartial1(
+              deployment.spec.RevisionHistoryLimit, deployment.Spec),
             NodeSelector:: meta.MixinPartial1(
               deployment.spec.NodeSelector, deployment.Spec),
             Selector::

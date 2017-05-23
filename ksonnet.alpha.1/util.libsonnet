@@ -70,6 +70,19 @@ local core = import "./core.libsonnet";
           core.extensions.v1beta1.deployment.Metadata(
             core.v1.metadata.Labels(labels)),
 
+        MapContainers(f):: {
+          local podContainers = super.spec.template.spec.containers,
+          spec+: {
+            template+: {
+              spec+: {
+                // IMPORTANT: This overwrites the `containers` field
+                // for this deployment.
+                containers: std.map(f, podContainers),
+              },
+            },
+          },
+        },
+
         FromContainer(
           name,
           replicas,
