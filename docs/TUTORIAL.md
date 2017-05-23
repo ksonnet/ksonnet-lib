@@ -209,8 +209,18 @@ local core = import "../../kube/core.libsonnet";
 local util = import "../../kube/util.libsonnet";
 
 local container = core.v1.container;
+local port = core.v1.port;
+local probe = core.v1.probe;
+local environ = core.v1.env;
 
 {
+  local app = {
+    name: "foo",
+  },
+  local config = {
+    containerImage: "nginx",
+  },
+  local command = "echo hello",
   local appContainer =
        container.Default(app.name, config.containerImage) +
        container.Command(command) +
@@ -219,27 +229,9 @@ local container = core.v1.container;
            port.container.Default(9102),
        ]) +
        container.LivenessProbe(probe.Http("/ping", 9102, 10, 2)) +
-       container.ReadinessProbe(probe.Http("/ready-to-serve", 9102, 10, 2)) +
-       container.Env([
-           environ.ValueFromFieldRef("POD_NAME", "metadata.name"),
-           environ.ValueFromFieldRef("POD_NAMESPACE", "metadata.namespace"),
-           environ.Variable("SERVICE_NAME", app.name),
-           environ.Variable("DUMMY_VAR_FOR_NO_OP_DEPLOYMENTS", config.dummyVar),
-           environ.Variable("DEPRECATED_DC_METRICS_TAG", cluster.metricsDC),
-           environ.Variable("DEPRECATED_SERVER_TYPE_METRICS_TAG", "job-manager"),
-       ]) +
-       container.VolumeMounts([
-           // TODO: Move the sidecars to mixins!
-           logs.analyticsVolumeMount("/var/analytics"),
-           logs.metricsVolumeMount("/var/metrics"),
-           logs.serviceVolumeMount("/var/log/service"),
-           pki.volumeMount(),
-           // appconfd.volumeMount(),
-           // logback.volumeMount(),
-       ]) +
-       container.Resources(config.resourceLimits) + {
-           securityContext: securityContext.defaultCapabilities(),
-       };
+       container.ReadinessProbe(probe.Http("/ready", 9102, 10, 2)),
+
+  foo: appContainer,
 }
 ```
 
@@ -250,15 +242,23 @@ the VolumeMounts:
 local core = import "../../kube/core.libsonnet";
 local util = import "../../kube/util.libsonnet";
 
-Sidecar(containerNames)::
-       local containerNameSet = std.set(containerNames);
-       deployment.MapContainers(
-           function(podContainer)
-               if std.length(std.setInter([podContainer.name], containerNameSet)) > 0
-               then podContainer + container.VolumeMounts([self.volumeMount()])
-               else podContainer
-       ) +
-       deployment.mixin.podTemplate.Volumes([self.volume()]),
+local container = core.v1.container;
+local port = core.v1.port;
+local probe = core.v1.probe;
+local environ = core.v1.env;
+local deployment = core.v1.deployment;
+
+{
+  Sidecar(containerNames)::
+        local containerNameSet = std.set(containerNames);
+        deployment.MapContainers(
+            function(podContainer)
+                if std.length(std.setInter([podContainer.name], containerNameSet)) > 0
+                then podContainer + container.VolumeMounts([self.volumeMount()])
+                else podContainer
+        ) +
+        deployment.mixin.podTemplate.Volumes([self.volume()]),
+}
 ```
 
 Then, you write a deployment definition for the container that 
