@@ -49,7 +49,7 @@ statements for the library to your Jsonnet code:
 local k = import "ksonnet.beta.1/k.libsonnet";
 ```
 
-As Jsonnet [does not yetsupport](https://github.com/google/jsonnet/issues/9)
+As Jsonnet [does not yet support](https://github.com/google/jsonnet/issues/9)
 `go get`-style importing from HTTP, import paths are relative to the root of the
 **ksonnet** repository. Remember to modify the paths appropriately
 when you work in another environment so that they point at your clone.
@@ -216,6 +216,6 @@ Overflow.
 
 [jsonnet-demo]: docs/images/kube-demo.gif
 
-[tutorial]: docs/TUTORIAL.md "ksonnet tutorial"
+[tutorial]: http://ksonnet.heptio.com/docs/tutorial "ksonnet tutorial"
 [cockroachks]: examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
 [cockroachch]: https://github.com/kubernetes/charts/blob/master/stable/cockroachdb/templates/cockroachdb-petset.yaml "cockroachdb YAML"
