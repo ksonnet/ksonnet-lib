@@ -32,3 +32,6 @@ tmp/
 
 # Project-specific working space
 /charts/
+
+#stray unwanted in fork
+.DS_Store

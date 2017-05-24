@@ -1,45 +1,95 @@
-# kube.libsonnet: concise, correct Kubernetes configurations, without the YAML
+# ksonnet: a simpler way to write concise, correct Kubernetes configurations
 
 By Heptio, Inc., 2017
 
-`kube.libsonnet` provides a simple alternative to writing 
-complex YAML for your Kubernetes configurations. It accomplishes
-this goal by using the data templating language
-[Jsonnet][jsonnet] to write against the
-[Kubernetes application API][v1]. This approach also makes it 
-easy to extend your configuration as your application scales up.
+**ksonnet** provides a simpler alternative to writing 
+complex YAML for your Kubernetes configurations. Instead, you 
+write template functions against the 
+[Kubernetes application API][v1] using the 
+data templating language [Jsonnet][jsonnet]
+. Components called **mixins** also help
+simplify the work that's required to extend your configuration 
+as your application scales up.
 
 ![Jsonnet syntax highlighting][jsonnet-demo]
 
-Other projects, such as [Kompose][Kompose],
-[OpenCompose][OpenCompose], and [compose2kube][compose2kube], simplify
-the process of writing a Kubernetes configuration by creating a simpler
-API that maps to the Kubernetes API. `kube.libsonnet` instead simplifies 
-the work required to build and customize the Kubernetes API objects 
-themselves. This approach results in concise, modular configurations, 
-without losing any of the options and features of the original 
-Kubernetes API.
+Other projects help simplify the work of writing a Kubernetes 
+configuration by creating a simpler API that wraps the Kubernetes 
+API. These projects include [Kompose][Kompose],
+[OpenCompose][OpenCompose], and [compose2kube][compose2kube]. 
 
-## Installing and running
+**ksonnet** instead streamlines the process of writing 
+configurations that create native Kubernetes objects. 
 
-First, you need Jsonnet:
+## Install
+
+First, install Jsonnet.
+
+### Mac OS X
+
+If you do not have Homebrew installed, [install it now](https://brew.sh/).
+
+Then run:
 
 `brew install jsonnet`
 
-Then, fork or clone this repository, and add the appropriate import 
-statements for the library to your Jsonnet code. For example 
-(from the tutorial):
+### Linux
 
-```c++
+You must build the binary. For details, [see the GitHub 
+repository](https://github.com/google/jsonnet).
+
+## Run
+
+Fork or clone this repository. 
+
+Then add the appropriate import 
+statements for the library to your Jsonnet code:
+
+```javascript
 local core = import "../../kube/core.libsonnet";
-local kubeUtil = import "../../kube/util.libsonnet";
+local util = import "../../kube/util.libsonnet";
 ```
 
-## Hello, stateless world!
+All import paths are relative to the root of the 
+*ksonnet** repository. Remember to modify the paths 
+appropriately when you work in another environment.
 
-Let's start by converting the Kubernetes 
-[nginx hello world tutorial][helloworld] to use `kube.libsonnet`. 
-Here is the original YAML:
+You might want to consider working in Visual Studio Code, using 
+an extension that
+provides syntax highlighting and a preview pane for your output
+in either YAML or JSON. See 
+[this GitHub repository](https://github.com/heptio/vscode-jsonnet).
+
+### Get started
+
+If you're not familiar with **Jsonnet**, check out the 
+[website](http://jsonnet.org/index.html) and 
+[their tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see 
+the [command line tool](http://jsonnet.org/implementation/commandline.html). 
+This repository also includes an 
+[introduction to Jsonnet](docs/jsonnetIntro.md).
+
+You can also start writing `.libsonnet` or `.jsonnet` files based on 
+the examples in this readme and in the [tutorial][tutorial]. Then run the 
+following command:
+
+```bash
+jsonnet <filename.libsonnet>
+```
+
+This command produces a JSON file that you can then run the 
+appropriate `kubectl` 
+commands against, with the following syntax:
+
+```bash
+kubectl <command> -<options> <filename.json>
+```
+
+## Write your config files with ksonnet
+
+The YAML for the Kubernetes 
+[nginx hello world tutorial][helloworld] looks 
+like this:
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -60,105 +110,82 @@ spec:
         - containerPort: 80
 ```
 
-And here is the equivalent implementation in Jsonnet with
-`kube.libsonnet` (see also [source][v1hellojsonnet]):
+Instead, you can write the following **ksonnet** code:
 
-```c++
-// hello.jsonnet; imports omitted
+```javascript
+local core = import "../../kube/core.libsonnet";
+local util = import "../../kube/util.libsonnet";
+
+local container = core.v1.container;
+local deployment = util.app.v1beta1.deployment;
+
 {
   local nginxContainer =
     container.Default("nginx", "nginx:1.7.9") +
-    container.NamedPort("http", 80),
+    core.v1.container.NamedPort("http", 80),
 
   "deployment.json": deployment.FromContainer("nginx-deployment", 2, nginxContainer),
 }
 ```
 
-Using the Jsonnet command line, we can easily generate a
-`deployment.json` file from the above, which can then be sent to the
-cluster directly by `kubectl`:
+Save the file as `helloworld.libsonnet`, then run:
 
 ```bash
-$ jsonnet hello.jsonnet -m .         # Generates `deployment.json`.
-$ kubectl create -f deployment.json  # Dispatch to run on cluster.
+jsonnet helloworld.libsonnet
 ```
 
-This is nice, but sometimes the default `Deployment` object is not
-precisely what you want.
+This command creates the `deployment.json` file that the 
+**ksonnet** snippet defines.
 
-A core goal of `kube.libsonnet` is to maintain the flexibility and
-expressiveness of the original Kubernetes API objects. To give you
-some idea of how easy it is to modify these objects, let's
-change the deployment specification to use a rolling update strategy 
-and a custom selector (see also [source][v2hellojsonnet]). We use
-`kube.libsonnet`'s mixins to make the changes.
+You can now apply this deployment to your Kubernetes cluster
+by running the following command:
 
-```c++
-// hello.jsonnet; imports omitted
-{
-  local nginxContainer =
-    container.Default("nginx", "nginx:1.7.9") +
-    container.NamedPort("http", 80),
-
-  "deployment.json":
-    deployment.FromContainer("nginx-deployment", 2, nginxContainer) +
-    deployment.mixin.spec.RollingUpdateStrategy() +
-    deployment.mixin.spec.Selector({ "app": "nginx" }),
-}
+```bash
+kubectl apply -f deployment.json
 ```
 
-Here we customize the `strategy` and `selector` fields, but we
-can use this method to customize any field in the Kubernetes-standard
-[Deployment Spec API object][deploymentspec]. In fact, as
-the [tutorial][tutorial] demonstrates, _all_ `kube.libsonnet` 
-objects are customizable.
+For a full-scale example, compare the [**ksonnet** definition for 
+the CockroachDB Helm chart][cockroachks] with the 
+[original YAML][cockroachch].
 
-If you look at the generated YAML, you can see the customized API
-objects.
+## The **ksonnet** libraries
 
-```yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 2
-  strategy:
-    rollingUpdate:
-        maxSurge: 1,
-        maxUnavailable: 1
-    type: RollingUpdate
-  selector:
-    matchLabels:
-        app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.7.9
-        ports:
-        - containerPort: 80
-```
+The **ksonnet** libraries provide sets of different methods for 
+creating and manipulating Kubernetes objects:
 
-## More information
+* `kube/core.libsonnet`: extends the object model and functions of `Jsonnet` to implement the Kubernetes API
+* `kube/util.libsonnet`: contains methods to help create complex Kubernetes objects out of smaller objects
 
-See also the following resources:
+Kubernetes v1 and v1beta1 are supported.
 
-* **[Tutorial][tutorial]**. A more in-depth tutorial that explains the
-  core abstractions and tools exposed by `kube.libsonnet`.
-* **[gitlab.jsonnet][gitlab-jsonnet] and
-  [gitlab.libsonnet][gitlab-libsonnet]**. A real-world example
-  of a Kubernetes configuration written with `kube.libsonent`. The first
-  file is the main entry point for Jsonnet. It compiles GitLab's
-  deployments, services, _etc._, to JSON so that `kubectl` can pick
-  them up. The second file contains the logic that defines
-  each component.
-* **[Design document][design]**, (_highly incomplete_) Explains the
-  goals and rationale behind the core design decisions.
+For more examples and a fuller explanation, see the [tutorial][tutorial].
 
+## Contributing
+
+Thanks for taking the time to join our community and start 
+contributing!
+
+### Before you start
+
+* Please familiarize yourself with the [Code of
+Conduct](CODE-OF-CONDUCT.md) before contributing.
+* See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on the 
+developer certificate of origin that we require.
+
+### Pull requests
+
+* We welcome pull requests. Feel free to dig through the
+[issues](https://github.com/ksonnet/ksonnet-lib/issues) and jump in.
+
+## Contact us
+
+Have any questions or long-form feedback? You can always find us here:
+
+* Our [Slack channel](https://ksonnet.slack.com).
+* Our [mailing list](https://groups.google.com/forum/#!forum/ksonnet).
+* We monitor the [ksonnet
+tag](https://stackoverflow.com/questions/tagged/ksonnet) on Stack
+Overflow.
 
 [jsonnet]: http://jsonnet.org/ "Jsonnet"
 [v1]: https://kubernetes.io/docs/api-reference/v1/definitions/ "V1 API objects"
@@ -171,9 +198,9 @@ See also the following resources:
 [v1hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
 [v2hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
 [deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
-[hello-world]: https://github.com/heptio/kube.libsonnet#hello-stateless-world "Hello, stateless world!"
-[design]: https://github.com/heptio/kube.libsonnet/blob/master/docs/DESIGN.md "kube.libsonnet design document"
-[tutorial]: https://github.com/heptio/kube.libsonnet/blob/master/docs/TUTORIAL.md "kube.libsonnet tutorial"
-[gitlab-jsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.jsonnet "gitlab.jsonnet"
-[gitlab-libsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/kubernetes-gitlab-demo/gitlab-jsonnet/gitlab.libsonnet "gitlab.libsonent"
+
 [jsonnet-demo]: docs/images/kube-demo.gif
+
+[tutorial]: docs/TUTORIAL.md "ksonnet tutorial"
+[cockroachks]: examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
+[cockroachch]: https://github.com/kubernetes/charts/blob/master/stable/cockroachdb/templates/cockroachdb-petset.yaml "cockroachdb YAML"
