@@ -1,6 +1,4 @@
-# ksonnet: a simpler way to write concise, correct Kubernetes configurations
-
-By Heptio, Inc., 2017
+# ksonnet: Simplify working with Kubernetes
 
 **ksonnet** (currently in beta testing) provides a simpler alternative
 to writing complex YAML for your Kubernetes configurations. Instead,
@@ -47,7 +45,7 @@ git clone git@github.com:ksonnet/ksonnet-lib.git
 Then add the appropriate import
 statements for the library to your Jsonnet code:
 
-```javascript
+```jsonnet
 local k = import "ksonnet.beta.1/k.libsonnet";
 ```
 
@@ -58,7 +56,7 @@ when you work in another environment so that they point at your clone.
 
 Additionally, since Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports it is common to "unpack" an import with a series of `local` definitions, as so:
 
-```javascript
+```jsonnet
 local container = k.core.v1.container;
 local deployment = k.extensions.v1beta1.deployment;
 ```
@@ -124,7 +122,7 @@ spec:
 
 Instead, you can write the following **ksonnet** code:
 
-```javascript
+```jsonnet
 local k = import "../../ksonnet.beta.1/k.libsonnet";
 
 local container = k.core.v1.container;
