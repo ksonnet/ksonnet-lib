@@ -1,6 +1,0 @@
-.env
-gitlab-all.yml
-gitlab-full.yml
-load-balancer-full.yml
-gitlab-ingress.yml
-gitlab-*-*.yml

@@ -1,8 +1,0 @@
-{
-   "chicken": {
-      "bar": "cluck"
-   },
-   "cow": {
-      "foo": "moo"
-   }
-}
