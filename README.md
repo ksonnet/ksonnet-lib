@@ -2,24 +2,22 @@
 
 By Heptio, Inc., 2017
 
-**ksonnet** provides a simpler alternative to writing 
-complex YAML for your Kubernetes configurations. Instead, you 
-write template functions against the 
-[Kubernetes application API][v1] using the 
-data templating language [Jsonnet][jsonnet]
-. Components called **mixins** also help
-simplify the work that's required to extend your configuration 
-as your application scales up.
+**ksonnet** (currently in beta testing) provides a simpler alternative
+to writing complex YAML for your Kubernetes configurations. Instead,
+you write template functions against the [Kubernetes application
+API][v1] using the data templating language [Jsonnet][jsonnet] .
+Components called **mixins** also help simplify the work that's
+required to extend your configuration as your application scales up.
 
 ![Jsonnet syntax highlighting][jsonnet-demo]
 
-Other projects help simplify the work of writing a Kubernetes 
-configuration by creating a simpler API that wraps the Kubernetes 
+Other projects help simplify the work of writing a Kubernetes
+configuration by creating a simpler API that wraps the Kubernetes
 API. These projects include [Kompose][Kompose],
-[OpenCompose][OpenCompose], and [compose2kube][compose2kube]. 
+[OpenCompose][OpenCompose], and [compose2kube][compose2kube].
 
-**ksonnet** instead streamlines the process of writing 
-configurations that create native Kubernetes objects. 
+**ksonnet** instead streamlines the process of writing
+configurations that create native Kubernetes objects.
 
 ## Install
 
@@ -35,50 +33,64 @@ Then run:
 
 ### Linux
 
-You must build the binary. For details, [see the GitHub 
+You must build the binary. For details, [see the GitHub
 repository](https://github.com/google/jsonnet).
 
 ## Run
 
-Fork or clone this repository. 
+Fork or clone this repository, using a command such as:
 
-Then add the appropriate import 
+```shell
+git clone git@github.com:ksonnet/ksonnet-lib.git
+```
+
+Then add the appropriate import
 statements for the library to your Jsonnet code:
 
 ```javascript
-local core = import "../../kube/core.libsonnet";
-local util = import "../../kube/util.libsonnet";
+local k = import "ksonnet.beta.1/k.libsonnet";
 ```
 
-All import paths are relative to the root of the 
-*ksonnet** repository. Remember to modify the paths 
-appropriately when you work in another environment.
+As Jsonnet [does not yetsupport](https://github.com/google/jsonnet/issues/9)
+`go get`-style importing from HTTP, import paths are relative to the root of the
+**ksonnet** repository. Remember to modify the paths appropriately
+when you work in another environment so that they point at your clone.
 
-You might want to consider working in Visual Studio Code, using 
-an extension that
-provides syntax highlighting and a preview pane for your output
-in either YAML or JSON. See 
-[this GitHub repository](https://github.com/heptio/vscode-jsonnet).
+Additionally, since Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports it is common to "unpack" an import with a series of `local` definitions, as so:
+
+```javascript
+local container = k.core.v1.container;
+local deployment = k.extensions.v1beta1.deployment;
+```
+
+### Tools
+
+Developed in tandem with `ksonnet-lib` is
+[`vscode-jsonnet`](https://github.com/heptio/vscode-jsonnet), a static
+analysis toolset written as a [Visual Studio
+Code](https://code.visualstudio.com/) plugin, meant to provide
+features such as autocomplete, syntax highlighting, and static
+analysis.
 
 ### Get started
 
-If you're not familiar with **Jsonnet**, check out the 
-[website](http://jsonnet.org/index.html) and 
-[their tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see 
-the [command line tool](http://jsonnet.org/implementation/commandline.html). 
-This repository also includes an 
+If you're not familiar with **Jsonnet**, check out the
+[website](http://jsonnet.org/index.html) and
+[their tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see
+the [command line tool](http://jsonnet.org/implementation/commandline.html).
+This repository also includes an
 [introduction to Jsonnet](docs/jsonnetIntro.md).
 
-You can also start writing `.libsonnet` or `.jsonnet` files based on 
-the examples in this readme and in the [tutorial][tutorial]. Then run the 
+You can also start writing `.libsonnet` or `.jsonnet` files based on
+the examples in this readme and in the [tutorial][tutorial]. Then run the
 following command:
 
 ```bash
 jsonnet <filename.libsonnet>
 ```
 
-This command produces a JSON file that you can then run the 
-appropriate `kubectl` 
+This command produces a JSON file that you can then run the
+appropriate `kubectl`
 commands against, with the following syntax:
 
 ```bash
@@ -87,8 +99,8 @@ kubectl <command> -<options> <filename.json>
 
 ## Write your config files with ksonnet
 
-The YAML for the Kubernetes 
-[nginx hello world tutorial][helloworld] looks 
+The YAML for the Kubernetes
+[nginx hello world tutorial][helloworld] looks
 like this:
 
 ```yaml
@@ -113,19 +125,17 @@ spec:
 Instead, you can write the following **ksonnet** code:
 
 ```javascript
-local core = import "../../kube/core.libsonnet";
-local util = import "../../kube/util.libsonnet";
+local k = import "../../ksonnet.beta.1/k.libsonnet";
 
-local container = core.v1.container;
-local deployment = util.app.v1beta1.deployment;
+local container = k.core.v1.container;
+local deployment = k.apps.v1beta1.deployment;
 
-{
-  local nginxContainer =
-    container.Default("nginx", "nginx:1.7.9") +
-    core.v1.container.NamedPort("http", 80),
+local nginxContainer =
+  container.default("nginx", "nginx:1.7.9") +
+  container.helpers.namedPort("http", 80);
 
-  "deployment.json": deployment.FromContainer("nginx-deployment", 2, nginxContainer),
-}
+deployment.default("nginx-deployment", nginxContainer) +
+deployment.mixin.spec.replicas(2)
 ```
 
 Save the file as `helloworld.libsonnet`, then run:
@@ -134,7 +144,7 @@ Save the file as `helloworld.libsonnet`, then run:
 jsonnet helloworld.libsonnet
 ```
 
-This command creates the `deployment.json` file that the 
+This command creates the `deployment.json` file that the
 **ksonnet** snippet defines.
 
 You can now apply this deployment to your Kubernetes cluster
@@ -144,32 +154,39 @@ by running the following command:
 kubectl apply -f deployment.json
 ```
 
-For a full-scale example, compare the [**ksonnet** definition for 
-the CockroachDB Helm chart][cockroachks] with the 
+For a full-scale example, compare the [**ksonnet** definition for
+the CockroachDB Helm chart][cockroachks] with the
 [original YAML][cockroachch].
 
 ## The **ksonnet** libraries
 
-The **ksonnet** libraries provide sets of different methods for 
-creating and manipulating Kubernetes objects:
+The **ksonnet** project organizes libraries by the level of
+abstraction they approach. For most users, the right entry point is:
 
-* `kube/core.libsonnet`: extends the object model and functions of `Jsonnet` to implement the Kubernetes API
-* `kube/util.libsonnet`: contains methods to help create complex Kubernetes objects out of smaller objects
+* `ksonnet.beta.1/k.libsonnet`: higher-level abstractions and methods
+  to help create complex Kubernetes objects out of smaller objects
 
-Kubernetes v1 and v1beta1 are supported.
+`k.libsonnet` is built on top of several lower-level utility libraries
+that extends the object model and functions of `Jsonnet` to implement
+the Kubernetes API. These are generated directly from the swagger
+spec, and are organized by the API groups they belong to:
+
+* `ksonnet.beta.1/apps.v1beta1.libsonnet`
+* `ksonnet.beta.1/core.v1.libsonnet`
+* `ksonnet.beta.1/extensions.v1beta1.libsonnet`
 
 For more examples and a fuller explanation, see the [tutorial][tutorial].
 
 ## Contributing
 
-Thanks for taking the time to join our community and start 
+Thanks for taking the time to join our community and start
 contributing!
 
 ### Before you start
 
 * Please familiarize yourself with the [Code of
 Conduct](CODE-OF-CONDUCT.md) before contributing.
-* See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on the 
+* See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on the
 developer certificate of origin that we require.
 
 ### Pull requests
