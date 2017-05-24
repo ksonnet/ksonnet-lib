@@ -73,14 +73,12 @@ analysis.
 ### Get started
 
 If you're not familiar with **Jsonnet**, check out the
-[website](http://jsonnet.org/index.html) and
-[their tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see
-the [command line tool](http://jsonnet.org/implementation/commandline.html).
-This repository also includes an
-[introduction to Jsonnet](docs/jsonnetIntro.md).
+[website](http://jsonnet.org/index.html) and [their
+tutorial](http://jsonnet.org/docs/tutorial.html). For usage, see the [command
+line tool](http://jsonnet.org/implementation/commandline.html).
 
 You can also start writing `.libsonnet` or `.jsonnet` files based on
-the examples in this readme and in the [tutorial][tutorial]. Then run the
+the examples in this readme. Then run the
 following command:
 
 ```bash
@@ -173,8 +171,6 @@ spec, and are organized by the API groups they belong to:
 * `ksonnet.beta.1/core.v1.libsonnet`
 * `ksonnet.beta.1/extensions.v1beta1.libsonnet`
 
-For more examples and a fuller explanation, see the [tutorial][tutorial].
-
 ## Contributing
 
 Thanks for taking the time to join our community and start
@@ -183,8 +179,8 @@ contributing!
 ### Before you start
 
 * Please familiarize yourself with the [Code of
-Conduct](CODE-OF-CONDUCT.md) before contributing.
-* See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on the
+Conduct](https://github.com/ksonnet/ksonnet-lib/blob/master/CODE-OF-CONDUCT.md) before contributing.
+* See [CONTRIBUTING.md](https://github.com/ksonnet/ksonnet-lib/blob/master/CONTRIBUTING.md) for instructions on the
 developer certificate of origin that we require.
 
 ### Pull requests
@@ -196,7 +192,7 @@ developer certificate of origin that we require.
 
 Have any questions or long-form feedback? You can always find us here:
 
-* Our [Slack channel](https://ksonnet.slack.com).
+* Our [Slack channel](https://ksonnet.slack.com) [working having an auto-invite system!)
 * Our [mailing list](https://groups.google.com/forum/#!forum/ksonnet).
 * We monitor the [ksonnet
 tag](https://stackoverflow.com/questions/tagged/ksonnet) on Stack
@@ -210,12 +206,11 @@ Overflow.
 [compose2kube]: https://github.com/kelseyhightower/compose2kube "compose2kube"
 
 [helloworld]: https://kubernetes.io/docs/tutorials/stateless-application/run-stateless-application-deployment/ "Hello, Kubernetes!"
-[v1hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
-[v2hellojsonnet]: https://github.com/heptio/kube.libsonnet/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
+[v1hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
+[v2hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
 [deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
 
 [jsonnet-demo]: docs/images/kube-demo.gif
 
-[tutorial]: http://ksonnet.heptio.com/docs/tutorial "ksonnet tutorial"
-[cockroachks]: examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
+[cockroachks]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
 [cockroachch]: https://github.com/kubernetes/charts/blob/master/stable/cockroachdb/templates/cockroachdb-petset.yaml "cockroachdb YAML"
