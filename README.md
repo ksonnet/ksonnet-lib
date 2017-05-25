@@ -150,10 +150,6 @@ by running the following command:
 kubectl apply -f deployment.json
 ```
 
-For a full-scale example, compare the [**ksonnet** definition for
-the CockroachDB Helm chart][cockroachks] with the
-[original YAML][cockroachch].
-
 ## The **ksonnet** libraries
 
 The **ksonnet** project organizes libraries by the level of
@@ -211,6 +207,3 @@ Overflow.
 [deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
 
 [jsonnet-demo]: docs/images/kube-demo.gif
-
-[cockroachks]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/charts/cockroachdb/cockroachdb.jsonnet "cockroachdb ksonnet"
-[cockroachch]: https://github.com/kubernetes/charts/blob/master/stable/cockroachdb/templates/cockroachdb-petset.yaml "cockroachdb YAML"
