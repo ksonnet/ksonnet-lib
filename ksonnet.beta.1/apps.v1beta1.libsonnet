@@ -12,15 +12,14 @@
   v1:: {
     aPIResource:: {
       local kind = {kind: "APIResource"},
-      default(name, singularName, namespaced, kind, verbs)::
+      default(name, singularName, namespaced, verbs)::
         kind +
       {
-        kind: kind,
         name: name,
         namespaced: namespaced,
         shortNames: [],
         singularName: singularName,
-        verbs: verbs,
+        verbs: if std.type(verbs) == "array" then {verbs: verbs} else {verbs: [verbs]},
       },
       // name is the plural name of the resource.
       name(name):: {name: name},
@@ -40,7 +39,7 @@
         kind +
       {
         groupVersion: groupVersion,
-        resources: resources,
+        resources: if std.type(resources) == "array" then {resources: resources} else {resources: [resources]},
       },
       // groupVersion is the group and version this APIResourceList is for.
       groupVersion(groupVersion):: {groupVersion: groupVersion},
@@ -146,7 +145,7 @@
     cephFSVolumeSource:: {
       default(monitors)::
       {
-        monitors: monitors,
+        monitors: if std.type(monitors) == "array" then {monitors: monitors} else {monitors: [monitors]},
         secretRef: {},
       },
       // Required: Monitors is a collection of Ceph monitors More info: https://releases.k8s.io/HEAD/examples/volumes/cephfs/README.md#how-to-use-it
@@ -516,7 +515,7 @@
       default(targetWWNs, lun)::
       {
         lun: lun,
-        targetWWNs: targetWWNs,
+        targetWWNs: if std.type(targetWWNs) == "array" then {targetWWNs: targetWWNs} else {targetWWNs: [targetWWNs]},
       },
       // Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
       fsType(fsType):: {fsType: fsType},
@@ -722,7 +721,7 @@
     initializers:: {
       default(pending)::
       {
-        pending: pending,
+        pending: if std.type(pending) == "array" then {pending: pending} else {pending: [pending]},
         result: {},
       },
       // Pending is a list of initializers that must execute in order before this object is visible. When the last pending initializer is removed, and no failing result is set, the initializers struct will be set to nil and the object is considered as initialized and visible to all clients.
@@ -846,7 +845,7 @@
     nodeSelector:: {
       default(nodeSelectorTerms)::
       {
-        nodeSelectorTerms: nodeSelectorTerms,
+        nodeSelectorTerms: if std.type(nodeSelectorTerms) == "array" then {nodeSelectorTerms: nodeSelectorTerms} else {nodeSelectorTerms: [nodeSelectorTerms]},
       },
       // Required. A list of node selector terms. The terms are ORed.
       nodeSelectorTerms(nodeSelectorTerms):: if std.type(nodeSelectorTerms) == "array" then {nodeSelectorTerms+: nodeSelectorTerms} else {nodeSelectorTerms+: [nodeSelectorTerms]},
@@ -868,7 +867,7 @@
     nodeSelectorTerm:: {
       default(matchExpressions)::
       {
-        matchExpressions: matchExpressions,
+        matchExpressions: if std.type(matchExpressions) == "array" then {matchExpressions: matchExpressions} else {matchExpressions: [matchExpressions]},
       },
       // Required. A list of node selector requirements. The requirements are ANDed.
       matchExpressions(matchExpressions):: if std.type(matchExpressions) == "array" then {matchExpressions+: matchExpressions} else {matchExpressions+: [matchExpressions]},
@@ -949,12 +948,10 @@
     },
     ownerReference:: {
       local kind = {kind: "OwnerReference"},
-      default(apiVersion, kind, name, uid)::
+      default(name, uid)::
         apiVersion +
         kind +
       {
-        apiVersion: apiVersion,
-        kind: kind,
         name: name,
         uid: uid,
       },
@@ -1160,7 +1157,7 @@
       default(containers)::
       {
         affinity: {},
-        containers: containers,
+        containers: if std.type(containers) == "array" then {containers: containers} else {containers: [containers]},
         hostMappings: [],
         imagePullSecrets: [],
         initContainers: [],
@@ -1371,7 +1368,7 @@
     projectedVolumeSource:: {
       default(sources)::
       {
-        sources: sources,
+        sources: if std.type(sources) == "array" then {sources: sources} else {sources: [sources]},
       },
       // Mode bits to use on created files by default. Must be a value between 0 and 0777. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
       defaultMode(defaultMode):: {defaultMode: defaultMode},
@@ -1399,7 +1396,7 @@
       default(monitors, image)::
       {
         image: image,
-        monitors: monitors,
+        monitors: if std.type(monitors) == "array" then {monitors: monitors} else {monitors: [monitors]},
         secretRef: {},
       },
       // Filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#rbd
@@ -2097,7 +2094,7 @@
         kind +
         defaultMetadata(name, namespace) +
       {
-        items: items,
+        items: if std.type(items) == "array" then {items: items} else {items: [items]},
       },
       // Items is the list of Deployments.
       items(items):: if std.type(items) == "array" then {items+: items} else {items+: [items]},
@@ -2345,7 +2342,7 @@
         kind +
         defaultMetadata(name, namespace) +
       {
-        items: items,
+        items: if std.type(items) == "array" then {items: items} else {items: [items]},
       },
       // 
       items(items):: if std.type(items) == "array" then {items+: items} else {items+: [items]},
