@@ -168,10 +168,33 @@ func makeConstructor(parent *namespace, model k8s.Model) *constructor {
 	// number may be 0).
 	requiredParams := []constructorParam{}
 	for _, propertyName := range model.Required {
+		// Skip special methods like `apiVersion` and `kind`.
+		if _, ok := specialResourcePropertiesSet[propertyName]; ok {
+			continue
+		}
+
 		requiredParam :=
 			constructorParam{propertyName, model.Properties[propertyName]}
 		requiredParams = append(requiredParams, requiredParam)
-		assignments[requiredParam.id] = requiredParam.id
+
+		// Autobox constructor parameters where type == "array". For
+		// example, something like `deployment.default` might take a
+		// container or array of containers as argument. In the case of
+		// the former, we just turn it into an array.
+		property := model.Properties[requiredParam.id]
+		var rhs string
+		if property.Type != nil && (*property.Type == "array") {
+			rhs = fmt.Sprintf(
+				"if std.type(%s) == \"array\" then {%s: %s} else {%s: [%s]}", requiredParam.id,
+				requiredParam.id,
+				requiredParam.id,
+				requiredParam.id,
+				requiredParam.id)
+		} else {
+			rhs = requiredParam.id
+		}
+
+		assignments[requiredParam.id] = rhs
 	}
 
 	return &constructor{
