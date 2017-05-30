@@ -185,8 +185,7 @@ func makeConstructor(parent *namespace, model k8s.Model) *constructor {
 		var rhs string
 		if property.Type != nil && (*property.Type == "array") {
 			rhs = fmt.Sprintf(
-				"if std.type(%s) == \"array\" then {%s: %s} else {%s: [%s]}", requiredParam.id,
-				requiredParam.id,
+				"if std.type(%s) == \"array\" then %s else [%s]",
 				requiredParam.id,
 				requiredParam.id,
 				requiredParam.id)
