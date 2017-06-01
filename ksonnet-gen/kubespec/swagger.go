@@ -1,0 +1,67 @@
+package kubespec
+
+// APISpec represents an OpenAPI specification of an API.
+type APISpec struct {
+	SwaggerVersion string            `json:"swagger"`
+	Info           *SchemaInfo       `json:"info"`
+	Definitions    SchemaDefinitions `json:"definitions"`
+
+	// Fields we currently ignore:
+	//   - paths
+	//   - securityDefinitions
+	//   - security
+}
+
+// SchemaInfo contains information about the the API represented with
+// `APISpec`. For example, `title` might be `"Kubernetes"`, and
+// `version` might be `"v1.7.0"`.
+type SchemaInfo struct {
+	Title   string `json:"title"`
+	Version string `json:"version"`
+}
+
+// SchemaDefinition is an API object definition. For example, this
+// might contain a name (e.g., `v1.APIGroup`), a set of properties
+// (e.g., `apiVersion`, `kind`, and so on), and the names of required
+// properties.
+type SchemaDefinition struct {
+	Type        SchemaType `json:"type"`
+	Description string     `json:"description"` // nullable.
+	Required    []string   `json:"required"`    // nullable.
+	Properties  Properties `json:"properties"`  // nullable.
+}
+
+// SchemaDefinitions is a named collection of `SchemaDefinition`s,
+// represented as a collection mapping definition name ->
+// `SchemaDefinition`.
+type SchemaDefinitions map[DefinitionName]*SchemaDefinition
+
+// Property represents an object property for some API object. For
+// example, `v1.APIGroup` might contain a property called
+// `apiVersion`, which would be specifid by a `Property`.
+type Property struct {
+	Description string     `json:"description"`
+	Type        SchemaType `json:"type"`
+	Items       Items      `json:"items"` // nil unless Type == "array".
+}
+
+// Properties is a named collection of `Properties`s, represented as a
+// collection mapping definition name -> `Properties`.
+type Properties map[PropertyName]*Property
+
+// Items represents the type of an element in an array. Usually this
+// is used to fully specify a `Property` object whose `type` field is
+// `"array"`.
+type Items map[string]string
+
+// SchemaType represents the type of some object in an API spec. For
+// example, a property might have type `string`.
+type SchemaType *string
+
+// PropertyName represents the name of a property. For example,
+// `apiVersion` or `kind`.
+type PropertyName string
+
+// DefinitionName represents the name of a definition. For example,
+// `v1.APIGroup`.
+type DefinitionName string
