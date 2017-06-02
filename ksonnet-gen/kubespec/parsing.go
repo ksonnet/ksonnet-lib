@@ -7,7 +7,7 @@ import (
 )
 
 //-----------------------------------------------------------------------------
-// Utility methods for `DefinitionName`.
+// Utility methods for `DefinitionName` and `ObjectRef`.
 //-----------------------------------------------------------------------------
 
 // Parse will parse a `DefinitionName` into a structured
@@ -83,6 +83,20 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 
 	log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 	return nil
+}
+
+// Name parses a `DefinitionName` from an `ObjectRef`. `ObjectRef`s
+// that refer to a definition contain two parts: (1) a special prefix,
+// and (2) a `DefinitionName`, so this function simply strips the
+// prefix off.
+func (or *ObjectRef) Name() *DefinitionName {
+	defn := "#/definitions/"
+	ref := string(*or)
+	if !strings.HasPrefix(ref, defn) {
+		log.Fatalln(ref)
+	}
+	name := DefinitionName(strings.TrimPrefix(ref, defn))
+	return &name
 }
 
 //-----------------------------------------------------------------------------

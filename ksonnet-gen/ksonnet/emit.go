@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 )
@@ -41,7 +40,8 @@ func newRoot(spec *kubespec.APISpec) *root {
 	}
 
 	for defName, def := range spec.Definitions {
-		root.addDefinition(defName, def)
+		parsedName := defName.Parse()
+		root.addDefinition(parsedName, def)
 	}
 
 	return &root
@@ -68,9 +68,8 @@ func (root *root) emit(m *marshaller) ([]byte, error) {
 }
 
 func (root *root) addDefinition(
-	name kubespec.DefinitionName, def *kubespec.SchemaDefinition,
+	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
 ) {
-	parsedName := name.Parse()
 	isTopLevel := len(def.TopLevelSpecs) > 0
 	apiObject, err := root.getOrCreateAPIObject(parsedName, isTopLevel)
 	if err != nil {
@@ -339,10 +338,80 @@ func (ao *apiObject) emit(m *marshaller, root *root) error {
 	m.indent()
 
 	for _, pm := range ao.propertyMethods.toSortedSlice() {
-		if isSpecialProperty(pm.name) {
+		// Skip special properties and fields that `$ref` another API
+		// object type, since those will go in the `mixin` namespace.
+		if isSpecialProperty(pm.name) || pm.Ref != nil {
 			continue
 		}
 		pm.emit(m, root)
+	}
+
+	// Emit the properties that `$ref` another API object type in the
+	// `mixin:: {` namespace.
+	m.bufferLine("mixin:: {")
+	m.indent()
+
+	for _, pm := range ao.propertyMethods.toSortedSlice() {
+		// TODO: Emit mixin code also for arrays whose elements are
+		// `$ref`.
+		if pm.Ref == nil {
+			continue
+		}
+		pm.emit(m, root)
+	}
+
+	m.dedent()
+	m.bufferLine("},")
+
+	m.dedent()
+	m.bufferLine("},")
+	return nil
+}
+
+// `emitAsRefMixins` recursively emits an API object as a collection
+// of mixin methods, particularly when another API object has a
+// property that uses `$ref` to reference the current API object.
+//
+// For example, `v1beta1.Deployment` has a field, `spec`, which is of
+// type `v1beta1.DeploymentSpec`. In this case, we'd like to
+// recursively capture all the properties of `v1beta1.DeploymentSpec`
+// and create mixin methods, so that we can do something like
+// `someDeployment + deployment.mixin.spec.minReadySeconds(3)`.
+func (ao *apiObject) emitAsRefMixins(
+	m *marshaller, pm *propertyMethod, parentMixinName *string, root *root,
+) error {
+	mixinName := fmt.Sprintf("__%sMixin", pm.name)
+	var mixinText string
+	if parentMixinName == nil {
+		mixinText = fmt.Sprintf(
+			"local %s(%s) = {%s+: %s},", mixinName, pm.name, pm.name, pm.name)
+	} else {
+		mixinText = fmt.Sprintf(
+			"local %s(%s) = %s({%s+: %s}),",
+			mixinName, pm.name, *parentMixinName, pm.name, pm.name)
+	}
+
+	// NOTE: No need to call `toJsonnetName`, since only `ObjectKind`
+	// begins with a capital letter.
+	jsonnetName := kubespec.ObjectKind(pm.name)
+	if _, ok := ao.parent.apiObjects[jsonnetName]; ok {
+		log.Fatalf(
+			"Tried to lowercase first character of object kind '%s', but lowercase name was already present in version '%s'",
+			jsonnetName,
+			ao.parent.version)
+	}
+
+	line := fmt.Sprintf("%s:: {", jsonnetName)
+	m.bufferLine(line)
+	m.indent()
+
+	m.bufferLine(mixinText)
+
+	for _, pm := range ao.propertyMethods.toSortedSlice() {
+		if isSpecialProperty(pm.name) {
+			continue
+		}
+		pm.emitAsRefMixin(m, mixinName, root)
 	}
 
 	m.dedent()
@@ -412,32 +481,78 @@ func newPropertyMethod(
 }
 
 func (pm *propertyMethod) emit(m *marshaller, root *root) {
+	pm.emitHelper(m, nil, root)
+}
+
+// `emitAsRefMixin` will emit a property as a mixin method, so that it
+// can be "mixed in" to alter an existing object.
+//
+// For example if we ahve a fully-formed deployment object,
+// `someDeployment`, we'd like to be able to do something like
+// `someDeployment + deployment.mixin.spec.minReadySeconds(3)` to "mix
+// in" a change to the `spec.minReadySeconds` field.
+//
+// This method will take the `propertyMethod`, which specifies a
+// property method, and use it to emit such a "mixin method".
+func (pm *propertyMethod) emitAsRefMixin(
+	m *marshaller, parentMixinName string, root *root,
+) {
+	pm.emitHelper(m, &parentMixinName, root)
+}
+
+// `emitHelper` emits the Jsonnet program text for a `propertyMethod`,
+// handling both the case that it's a mixin (i.e., `parentMixinName !=
+// nil`), and the case that it's a "normal", non-mixin property method
+// (i.e., `parentMixinName == nil`).
+//
+// NOTE: To get `emitHelper` to emit this property as a mixin, it is
+// REQUIRED for `parentMixinName` to be non-nil; likewise, to get
+// `emitHelper` to emit this property as a normal, non-mixin property
+// method, it is necessary for `parentMixinName == nil`.
+func (pm *propertyMethod) emitHelper(
+	m *marshaller, parentMixinName *string, root *root,
+) {
 	paramName := pm.name
 	fieldName := pm.name
 	signature := fmt.Sprintf("%s(%s)::", pm.name, paramName)
 
 	if pm.Ref != nil {
-		defn := "#/definitions/"
-		ref := string(*pm.Ref)
-		if !strings.HasPrefix(ref, defn) {
-			log.Fatalln(ref)
+		parsedRefPath := pm.Ref.Name().Parse()
+		apiObject, err := root.getAPIObject(parsedRefPath)
+		if err != nil {
+			log.Fatalf("Failed to emit ref mixin:\n%v", err)
 		}
-		// TODO: Emit code for property methods that take refs as args,
-		// and generate mixins.
+		apiObject.emitAsRefMixins(m, pm, parentMixinName, root)
 	} else if pm.Type != nil {
 		paramType := *pm.Type
 
 		var body string
 		switch paramType {
 		case "array":
-			body = fmt.Sprintf(
-				"if std.type(%s) == \"array\" then {%s+: %s} else {%s: [%s]}",
-				paramName, fieldName, paramName, fieldName, paramName,
-			)
+			if parentMixinName == nil {
+				body = fmt.Sprintf(
+					"if std.type(%s) == \"array\" then {%s+: %s} else {%s: [%s]}",
+					paramName, fieldName, paramName, fieldName, paramName,
+				)
+			} else {
+				body = fmt.Sprintf(
+					"if std.type(%s) == \"array\" then %s({%s+: %s}) else %s({%s: [%s]})",
+					paramName, *parentMixinName, fieldName, paramName, *parentMixinName,
+					fieldName, paramName,
+				)
+			}
 		case "integer", "string", "boolean":
-			body = fmt.Sprintf("{%s: %s}", paramName, fieldName)
+			if parentMixinName == nil {
+				body = fmt.Sprintf("{%s: %s}", paramName, fieldName)
+			} else {
+				body = fmt.Sprintf("%s({%s: %s})", *parentMixinName, paramName, fieldName)
+			}
 		case "object":
-			body = fmt.Sprintf("{%s+: %s}", paramName, fieldName)
+			if parentMixinName == nil {
+				body = fmt.Sprintf("{%s+: %s}", paramName, fieldName)
+			} else {
+				body = fmt.Sprintf("%s({%s+: %s})", *parentMixinName, paramName, fieldName)
+			}
 		default:
 			log.Fatalf("Unrecognized type '%s'", paramType)
 		}
