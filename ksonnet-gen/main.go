@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -29,7 +30,10 @@ func main() {
 		log.Fatalf("Could not deserialize schema:\n%v", err)
 	}
 
-	ksonnet.Emit(&s)
+	// Print names of definitions.
+	for defName := range s.Definitions {
+		fmt.Println(defName)
+	}
 }
 
 func init() {
