@@ -2,6 +2,7 @@ package ksonnet
 
 import (
 	"log"
+	"os/exec"
 	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
@@ -26,4 +27,12 @@ func toJsonnetName(ok kubespec.ObjectKind) kubespec.ObjectKind {
 
 	upper := strings.ToLower(kindString[:1])
 	return kubespec.ObjectKind(upper + kindString[1:])
+}
+
+func getSHARevision() string {
+	sha, err := exec.Command("sh", "-c", "git rev-parse HEAD").Output()
+	if err != nil {
+		log.Fatalf("Could not find SHA of HEAD:\n%v", err)
+	}
+	return strings.TrimSpace(string(sha))
 }
