@@ -342,7 +342,7 @@ var namespaces = []string{
 func TestNamespaceParser(t *testing.T) {
 	for _, namespace := range namespaces {
 		dn := DefinitionName(namespace)
-		parsed := ParseDefinitionName(dn)
+		parsed := dn.Parse()
 		unparsed := parsed.Unparse()
 		if dn != unparsed {
 			t.Errorf("Expected '%s' got '%s'", string(dn), unparsed)

@@ -43,19 +43,31 @@ const (
 type ParsedDefinitionName struct {
 	PackageType Package
 	Codebase    string
-	Group       *string
-	Version     *string
-	Kind        string
+	Group       *GroupName
+	Version     *VersionString
+	Kind        ObjectKind
 }
 
-// ParseDefinitionName will parse a `DefinitionName` into a structured
+// GroupName represetents a Kubernetes group name (e.g., apps,
+// extensions, etc.)
+type GroupName string
+
+// ObjectKind represents the `kind` of a Kubernetes API object (e.g.,
+// Service, Deployment, etc.)
+type ObjectKind string
+
+// VersionString is the string representation of an API version (e.g.,
+// v1, v1beta1, etc.)
+type VersionString string
+
+// Parse will parse a `DefinitionName` into a structured
 // `ParsedDefinitionName`.
-func ParseDefinitionName(dn DefinitionName) *ParsedDefinitionName {
-	split := strings.Split(string(dn), ".")
+func (dn *DefinitionName) Parse() *ParsedDefinitionName {
+	split := strings.Split(string(*dn), ".")
 	if len(split) < 6 {
-		log.Fatalf("Failed to parse definition name '%s'", string(dn))
+		log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 	} else if split[0] != "io" || split[1] != "k8s" || split[3] != "pkg" {
-		log.Fatalf("Failed to parse definition name '%s'", string(dn))
+		log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 	}
 
 	codebase := split[2]
@@ -63,37 +75,41 @@ func ParseDefinitionName(dn DefinitionName) *ParsedDefinitionName {
 	if split[4] == "api" {
 		// Name is something like: `io.k8s.kubernetes.pkg.api.v1.LimitRangeSpec`.
 		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
+			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 		}
+		versionString := VersionString(split[5])
 		return &ParsedDefinitionName{
 			PackageType: Core,
 			Codebase:    codebase,
 			Group:       nil,
-			Version:     &split[5],
-			Kind:        split[6],
+			Version:     &versionString,
+			Kind:        ObjectKind(split[6]),
 		}
 	} else if split[4] == "apis" {
 		// Name is something like: `io.k8s.kubernetes.pkg.apis.batch.v1.JobList`.
 		if len(split) < 8 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
+			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 		}
+		groupName := GroupName(split[5])
+		versionString := VersionString(split[6])
 		return &ParsedDefinitionName{
 			PackageType: APIs,
 			Codebase:    codebase,
-			Group:       &split[5],
-			Version:     &split[6],
-			Kind:        split[7],
+			Group:       &groupName,
+			Version:     &versionString,
+			Kind:        ObjectKind(split[7]),
 		}
 	} else if split[4] == "util" {
 		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
+			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 		}
+		versionString := VersionString(split[5])
 		return &ParsedDefinitionName{
 			PackageType: Util,
 			Codebase:    codebase,
 			Group:       nil,
-			Version:     &split[5],
-			Kind:        split[6],
+			Version:     &versionString,
+			Kind:        ObjectKind(split[6]),
 		}
 	} else if split[4] == "runtime" {
 		// Name is something like: `io.k8s.apimachinery.pkg.runtime.RawExtension`.
@@ -102,7 +118,7 @@ func ParseDefinitionName(dn DefinitionName) *ParsedDefinitionName {
 			Codebase:    codebase,
 			Group:       nil,
 			Version:     nil,
-			Kind:        split[5],
+			Kind:        ObjectKind(split[5]),
 		}
 	} else if split[4] == "version" {
 		// Name is something like: `io.k8s.apimachinery.pkg.version.Info`.
@@ -111,11 +127,11 @@ func ParseDefinitionName(dn DefinitionName) *ParsedDefinitionName {
 			Codebase:    codebase,
 			Group:       nil,
 			Version:     nil,
-			Kind:        split[5],
+			Kind:        ObjectKind(split[5]),
 		}
 	}
 
-	log.Fatalf("Failed to parse definition name '%s'", string(dn))
+	log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 	return nil
 }
 
