@@ -6,59 +6,9 @@ import (
 	"strings"
 )
 
-// Package represents the type of the definition, either `APIs`, which
-// have API groups (e.g., extensions, apps, meta, and so on), or
-// `Core`, which does not.
-type Package int
-
-const (
-	// Core is a package that contains the Kubernetes Core objects.
-	Core Package = iota
-
-	// APIs is a set of non-core packages grouped loosely by semantic
-	// functionality (e.g., apps, extensions, and so on).
-	APIs
-
-	//
-	// Internal packages.
-	//
-
-	// Util is a package that contains utilities used for both testing
-	// and running Kubernetes.
-	Util
-
-	// Runtime is a package that contains various utilities used in the
-	// Kubernetes runtime.
-	Runtime
-
-	// Version is a package that supplies version information collected
-	// at build time.
-	Version
-)
-
-// ParsedDefinitionName is a parsed version of a fully-qualified
-// OpenAPI spec name. For example,
-// `io.k8s.kubernetes.pkg.api.v1.Container` would parse into an
-// instance of the struct below.
-type ParsedDefinitionName struct {
-	PackageType Package
-	Codebase    string
-	Group       *GroupName
-	Version     *VersionString
-	Kind        ObjectKind
-}
-
-// GroupName represetents a Kubernetes group name (e.g., apps,
-// extensions, etc.)
-type GroupName string
-
-// ObjectKind represents the `kind` of a Kubernetes API object (e.g.,
-// Service, Deployment, etc.)
-type ObjectKind string
-
-// VersionString is the string representation of an API version (e.g.,
-// v1, v1beta1, etc.)
-type VersionString string
+//-----------------------------------------------------------------------------
+// Utility methods for `DefinitionName`.
+//-----------------------------------------------------------------------------
 
 // Parse will parse a `DefinitionName` into a structured
 // `ParsedDefinitionName`.
@@ -134,6 +84,64 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 	log.Fatalf("Failed to parse definition name '%s'", string(*dn))
 	return nil
 }
+
+//-----------------------------------------------------------------------------
+// Parsed definition name.
+//-----------------------------------------------------------------------------
+
+// Package represents the type of the definition, either `APIs`, which
+// have API groups (e.g., extensions, apps, meta, and so on), or
+// `Core`, which does not.
+type Package int
+
+const (
+	// Core is a package that contains the Kubernetes Core objects.
+	Core Package = iota
+
+	// APIs is a set of non-core packages grouped loosely by semantic
+	// functionality (e.g., apps, extensions, and so on).
+	APIs
+
+	//
+	// Internal packages.
+	//
+
+	// Util is a package that contains utilities used for both testing
+	// and running Kubernetes.
+	Util
+
+	// Runtime is a package that contains various utilities used in the
+	// Kubernetes runtime.
+	Runtime
+
+	// Version is a package that supplies version information collected
+	// at build time.
+	Version
+)
+
+// ParsedDefinitionName is a parsed version of a fully-qualified
+// OpenAPI spec name. For example,
+// `io.k8s.kubernetes.pkg.api.v1.Container` would parse into an
+// instance of the struct below.
+type ParsedDefinitionName struct {
+	PackageType Package
+	Codebase    string
+	Group       *GroupName
+	Version     *VersionString
+	Kind        ObjectKind
+}
+
+// GroupName represetents a Kubernetes group name (e.g., apps,
+// extensions, etc.)
+type GroupName string
+
+// ObjectKind represents the `kind` of a Kubernetes API object (e.g.,
+// Service, Deployment, etc.)
+type ObjectKind string
+
+// VersionString is the string representation of an API version (e.g.,
+// v1, v1beta1, etc.)
+type VersionString string
 
 // Unparse transforms a `ParsedDefinitionName` back into its
 // corresponding string, e.g.,
