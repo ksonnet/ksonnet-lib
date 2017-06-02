@@ -1,52 +1,35 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
 
-	k8s "github.com/ksonnet/ksonnet-lib/ksonnet-gen/k8sSwagger"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 )
 
-var usage = "Usage: ksonnet-gen [path to k8s swagger-spec folder] [output dir]"
+var usage = "Usage: ksonnet-gen [path to k8s OpenAPI swagger.json] [output dir]"
 
 func main() {
 	if len(os.Args) != 3 {
 		log.Fatal(usage)
 	}
 
-	writeOutAppSpec("v1.json", "core.v1.libsonnet")
-	writeOutAppSpec("apps_v1beta1.json", "apps.v1beta1.libsonnet")
-	writeOutAppSpec("extensions_v1beta1.json", "extensions.v1beta1.libsonnet")
-}
-
-func writeOutAppSpec(sourceFilename, destFilename string) {
-	filename := fmt.Sprintf("%s/%s", os.Args[1], sourceFilename)
-	text, err := ioutil.ReadFile(filename)
+	swaggerPath := os.Args[1]
+	text, err := ioutil.ReadFile(swaggerPath)
 	if err != nil {
-		log.Fatalf("Could not read file at '%s'", filename)
+		log.Fatalf("Could not read file at '%s':\n%v", swaggerPath, err)
 	}
 
-	appSpec, err := k8s.AppSpecFromJson(text)
+	// Deserialize the API object.
+	s := kubespec.APISpec{}
+	err = json.Unmarshal(text, &s)
 	if err != nil {
-		log.Fatalf(
-			"Could not deserialize swagger spec at '%s':\n%v",
-			filename,
-			err)
+		log.Fatalf("Could not deserialize schema:\n%v", err)
 	}
 
-	bytes, err := ksonnet.Marshal(appSpec)
-	if err != nil {
-		log.Fatalf(
-			"Failed to generate '%s' with error:\n%v\n", destFilename, err)
-	}
-	err = ioutil.WriteFile(os.Args[2]+"/"+destFilename, bytes, 0644)
-	if err != nil {
-		log.Fatalf(
-			"Failed to generate '%s' with error:\n%v\n", destFilename, err)
-	}
+	ksonnet.Emit(&s)
 }
 
 func init() {
