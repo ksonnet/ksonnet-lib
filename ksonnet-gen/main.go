@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 )
 
@@ -30,9 +31,17 @@ func main() {
 		log.Fatalf("Could not deserialize schema:\n%v", err)
 	}
 
-	// Print names of definitions.
-	for defName := range s.Definitions {
-		fmt.Println(defName)
+	// Emit Jsonnet code.
+	jsonnetBytes, err := ksonnet.Emit(&s)
+	if err != nil {
+		log.Fatalf("Could not write ksonnet library:\n%v", err)
+	}
+
+	// Write out.
+	outfile := fmt.Sprintf("%s/%s", os.Args[2], "k8s.libsonnet")
+	err = ioutil.WriteFile(outfile, jsonnetBytes, 0644)
+	if err != nil {
+		log.Fatalf("Could not write `kube.libsonnet`:\n%v", err)
 	}
 }
 
