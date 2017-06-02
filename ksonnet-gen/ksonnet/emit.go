@@ -426,17 +426,20 @@ func (pm *propertyMethod) emit(m *marshaller, root *root) {
 		// and generate mixins.
 	} else if pm.Type != nil {
 		paramType := *pm.Type
+
 		var body string
-		if paramType == "array" {
+		switch paramType {
+		case "array":
 			body = fmt.Sprintf(
 				"if std.type(%s) == \"array\" then {%s+: %s} else {%s: [%s]}",
-				paramName,
-				fieldName,
-				paramName,
-				fieldName,
-				paramName)
-		} else {
+				paramName, fieldName, paramName, fieldName, paramName,
+			)
+		case "integer", "string", "boolean":
+			body = fmt.Sprintf("{%s: %s}", paramName, fieldName)
+		case "object":
 			body = fmt.Sprintf("{%s+: %s}", paramName, fieldName)
+		default:
+			log.Fatalf("Unrecognized type '%s'", paramType)
 		}
 
 		line := fmt.Sprintf("%s %s,", signature, body)
