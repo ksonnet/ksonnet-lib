@@ -25,7 +25,9 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 	if split[4] == "api" {
 		// Name is something like: `io.k8s.kubernetes.pkg.api.v1.LimitRangeSpec`.
 		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+			log.Fatalf(
+				"Expected >= 7 path components for package 'api' in path: '%s'",
+				string(*dn))
 		}
 		versionString := VersionString(split[5])
 		return &ParsedDefinitionName{
@@ -38,7 +40,9 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 	} else if split[4] == "apis" {
 		// Name is something like: `io.k8s.kubernetes.pkg.apis.batch.v1.JobList`.
 		if len(split) < 8 {
-			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+			log.Fatalf(
+				"Expected >= 8 path components for package 'apis' in path: '%s'",
+				string(*dn))
 		}
 		groupName := GroupName(split[5])
 		versionString := VersionString(split[6])
@@ -51,7 +55,9 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 		}
 	} else if split[4] == "util" {
 		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+			log.Fatalf(
+				"Expected >= 7 path components for package 'api' in path: '%s'",
+				string(*dn))
 		}
 		versionString := VersionString(split[5])
 		return &ParsedDefinitionName{
@@ -81,7 +87,7 @@ func (dn *DefinitionName) Parse() *ParsedDefinitionName {
 		}
 	}
 
-	log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+	log.Fatalf("Unknown package name '%s' in path: '%s'", split[4], string(*dn))
 	return nil
 }
 
@@ -140,8 +146,8 @@ const (
 type ParsedDefinitionName struct {
 	PackageType Package
 	Codebase    string
-	Group       *GroupName
-	Version     *VersionString
+	Group       *GroupName     // Pointer because it's optional.
+	Version     *VersionString // Pointer because it's optional.
 	Kind        ObjectKind
 }
 

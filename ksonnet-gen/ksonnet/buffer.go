@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// marshaller abstracts the task of writing out indented text to a
+// indentWriter abstracts the task of writing out indented text to a
 // buffer. Different components can call `indent` and `dedent` as
 // appropriate to specify how indentation needs to change, rather than
 // to keep track of the current indentation.
@@ -17,45 +17,42 @@ import (
 // '[' character and `dedent` before the ']' character, while the
 // routine responsible for writing out the function can handle its own
 // indentation independently.
-type marshaller struct {
+type indentWriter struct {
 	depth  int
-	prefix string
-	lines  []string
-	buffer *bytes.Buffer
+	err    error
+	buffer bytes.Buffer
 }
 
-func newMarshaller() *marshaller {
+func newIndentWriter() *indentWriter {
 	var buffer bytes.Buffer
-	return &marshaller{
+	return &indentWriter{
 		depth:  0,
-		prefix: "",
-		lines:  []string{},
-		buffer: &buffer,
+		err:    nil,
+		buffer: buffer,
 	}
 }
 
-func (m *marshaller) bufferLine(text string) {
-	line := fmt.Sprintf("%s%s\n", m.prefix, text)
-	m.lines = append(m.lines, line)
+func (m *indentWriter) writeLine(text string) {
+	if m.err != nil {
+		return
+	}
+	prefix := strings.Repeat("  ", m.depth)
+	line := fmt.Sprintf("%s%s\n", prefix, text)
+	_, m.err = m.buffer.WriteString(line)
 }
 
-func (m *marshaller) writeAll() ([]byte, error) {
-	for _, line := range m.lines {
-		_, err := m.buffer.WriteString(line)
-		if err != nil {
-			return nil, err
-		}
+func (m *indentWriter) bytes() ([]byte, error) {
+	if m.err != nil {
+		return nil, m.err
 	}
 
 	return m.buffer.Bytes(), nil
 }
 
-func (m *marshaller) indent() {
+func (m *indentWriter) indent() {
 	m.depth++
-	m.prefix = strings.Repeat("  ", m.depth)
 }
 
-func (m *marshaller) dedent() {
+func (m *indentWriter) dedent() {
 	m.depth--
-	m.prefix = strings.Repeat("  ", m.depth)
 }
