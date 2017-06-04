@@ -6,6 +6,109 @@ import (
 	"strings"
 )
 
+//-----------------------------------------------------------------------------
+// Utility methods for `DefinitionName` and `ObjectRef`.
+//-----------------------------------------------------------------------------
+
+// Parse will parse a `DefinitionName` into a structured
+// `ParsedDefinitionName`.
+func (dn *DefinitionName) Parse() *ParsedDefinitionName {
+	split := strings.Split(string(*dn), ".")
+	if len(split) < 6 {
+		log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+	} else if split[0] != "io" || split[1] != "k8s" || split[3] != "pkg" {
+		log.Fatalf("Failed to parse definition name '%s'", string(*dn))
+	}
+
+	codebase := split[2]
+
+	if split[4] == "api" {
+		// Name is something like: `io.k8s.kubernetes.pkg.api.v1.LimitRangeSpec`.
+		if len(split) < 7 {
+			log.Fatalf(
+				"Expected >= 7 path components for package 'api' in path: '%s'",
+				string(*dn))
+		}
+		versionString := VersionString(split[5])
+		return &ParsedDefinitionName{
+			PackageType: Core,
+			Codebase:    codebase,
+			Group:       nil,
+			Version:     &versionString,
+			Kind:        ObjectKind(split[6]),
+		}
+	} else if split[4] == "apis" {
+		// Name is something like: `io.k8s.kubernetes.pkg.apis.batch.v1.JobList`.
+		if len(split) < 8 {
+			log.Fatalf(
+				"Expected >= 8 path components for package 'apis' in path: '%s'",
+				string(*dn))
+		}
+		groupName := GroupName(split[5])
+		versionString := VersionString(split[6])
+		return &ParsedDefinitionName{
+			PackageType: APIs,
+			Codebase:    codebase,
+			Group:       &groupName,
+			Version:     &versionString,
+			Kind:        ObjectKind(split[7]),
+		}
+	} else if split[4] == "util" {
+		if len(split) < 7 {
+			log.Fatalf(
+				"Expected >= 7 path components for package 'api' in path: '%s'",
+				string(*dn))
+		}
+		versionString := VersionString(split[5])
+		return &ParsedDefinitionName{
+			PackageType: Util,
+			Codebase:    codebase,
+			Group:       nil,
+			Version:     &versionString,
+			Kind:        ObjectKind(split[6]),
+		}
+	} else if split[4] == "runtime" {
+		// Name is something like: `io.k8s.apimachinery.pkg.runtime.RawExtension`.
+		return &ParsedDefinitionName{
+			PackageType: Runtime,
+			Codebase:    codebase,
+			Group:       nil,
+			Version:     nil,
+			Kind:        ObjectKind(split[5]),
+		}
+	} else if split[4] == "version" {
+		// Name is something like: `io.k8s.apimachinery.pkg.version.Info`.
+		return &ParsedDefinitionName{
+			PackageType: Version,
+			Codebase:    codebase,
+			Group:       nil,
+			Version:     nil,
+			Kind:        ObjectKind(split[5]),
+		}
+	}
+
+	log.Fatalf("Unknown package name '%s' in path: '%s'", split[4], string(*dn))
+	return nil
+}
+
+// Name parses a `DefinitionName` from an `ObjectRef`. `ObjectRef`s
+// that refer to a definition contain two parts: (1) a special prefix,
+// and (2) a `DefinitionName`, so this function simply strips the
+// prefix off.
+func (or *ObjectRef) Name() *DefinitionName {
+	defn := "#/definitions/"
+	ref := string(*or)
+	if !strings.HasPrefix(ref, defn) {
+		log.Fatalln(ref)
+	}
+	name := DefinitionName(strings.TrimPrefix(ref, defn))
+	return &name
+}
+
+//-----------------------------------------------------------------------------
+// Parsed definition name.
+//-----------------------------------------------------------------------------
+
 // Package represents the type of the definition, either `APIs`, which
 // have API groups (e.g., extensions, apps, meta, and so on), or
 // `Core`, which does not.
@@ -43,81 +146,22 @@ const (
 type ParsedDefinitionName struct {
 	PackageType Package
 	Codebase    string
-	Group       *string
-	Version     *string
-	Kind        string
+	Group       *GroupName     // Pointer because it's optional.
+	Version     *VersionString // Pointer because it's optional.
+	Kind        ObjectKind
 }
 
-// ParseDefinitionName will parse a `DefinitionName` into a structured
-// `ParsedDefinitionName`.
-func ParseDefinitionName(dn DefinitionName) *ParsedDefinitionName {
-	split := strings.Split(string(dn), ".")
-	if len(split) < 6 {
-		log.Fatalf("Failed to parse definition name '%s'", string(dn))
-	} else if split[0] != "io" || split[1] != "k8s" || split[3] != "pkg" {
-		log.Fatalf("Failed to parse definition name '%s'", string(dn))
-	}
+// GroupName represetents a Kubernetes group name (e.g., apps,
+// extensions, etc.)
+type GroupName string
 
-	codebase := split[2]
+// ObjectKind represents the `kind` of a Kubernetes API object (e.g.,
+// Service, Deployment, etc.)
+type ObjectKind string
 
-	if split[4] == "api" {
-		// Name is something like: `io.k8s.kubernetes.pkg.api.v1.LimitRangeSpec`.
-		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
-		}
-		return &ParsedDefinitionName{
-			PackageType: Core,
-			Codebase:    codebase,
-			Group:       nil,
-			Version:     &split[5],
-			Kind:        split[6],
-		}
-	} else if split[4] == "apis" {
-		// Name is something like: `io.k8s.kubernetes.pkg.apis.batch.v1.JobList`.
-		if len(split) < 8 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
-		}
-		return &ParsedDefinitionName{
-			PackageType: APIs,
-			Codebase:    codebase,
-			Group:       &split[5],
-			Version:     &split[6],
-			Kind:        split[7],
-		}
-	} else if split[4] == "util" {
-		if len(split) < 7 {
-			log.Fatalf("Failed to parse definition name '%s'", string(dn))
-		}
-		return &ParsedDefinitionName{
-			PackageType: Util,
-			Codebase:    codebase,
-			Group:       nil,
-			Version:     &split[5],
-			Kind:        split[6],
-		}
-	} else if split[4] == "runtime" {
-		// Name is something like: `io.k8s.apimachinery.pkg.runtime.RawExtension`.
-		return &ParsedDefinitionName{
-			PackageType: Runtime,
-			Codebase:    codebase,
-			Group:       nil,
-			Version:     nil,
-			Kind:        split[5],
-		}
-	} else if split[4] == "version" {
-		// Name is something like: `io.k8s.apimachinery.pkg.version.Info`.
-		return &ParsedDefinitionName{
-			PackageType: Version,
-			Codebase:    codebase,
-			Group:       nil,
-			Version:     nil,
-			Kind:        split[5],
-		}
-	}
-
-	log.Fatalf("Failed to parse definition name '%s'", string(dn))
-	return nil
-}
+// VersionString is the string representation of an API version (e.g.,
+// v1, v1beta1, etc.)
+type VersionString string
 
 // Unparse transforms a `ParsedDefinitionName` back into its
 // corresponding string, e.g.,

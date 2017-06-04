@@ -10,6 +10,10 @@ type APISpec struct {
 	//   - paths
 	//   - securityDefinitions
 	//   - security
+
+	// Not part of the OpenAPI spec. Filled in later.
+	FilePath string
+	Text     []byte
 }
 
 // SchemaInfo contains information about the the API represented with
@@ -25,11 +29,21 @@ type SchemaInfo struct {
 // (e.g., `apiVersion`, `kind`, and so on), and the names of required
 // properties.
 type SchemaDefinition struct {
-	Type        SchemaType `json:"type"`
-	Description string     `json:"description"` // nullable.
-	Required    []string   `json:"required"`    // nullable.
-	Properties  Properties `json:"properties"`  // nullable.
+	Type          *SchemaType   `json:"type"`
+	Description   string        `json:"description"` // nullable.
+	Required      []string      `json:"required"`    // nullable.
+	Properties    Properties    `json:"properties"`  // nullable.
+	TopLevelSpecs TopLevelSpecs `json:"x-kubernetes-group-version-kind"`
 }
+
+// TopLevelSpec is a property that exists on `SchemaDefinition`s for
+// top-level API objects.
+type TopLevelSpec struct {
+	Group   GroupName     `json:"Group"`
+	Version VersionString `json:"Version"`
+	Kind    ObjectKind    `json:"Kind"`
+}
+type TopLevelSpecs []*TopLevelSpec
 
 // SchemaDefinitions is a named collection of `SchemaDefinition`s,
 // represented as a collection mapping definition name ->
@@ -40,9 +54,10 @@ type SchemaDefinitions map[DefinitionName]*SchemaDefinition
 // example, `v1.APIGroup` might contain a property called
 // `apiVersion`, which would be specifid by a `Property`.
 type Property struct {
-	Description string     `json:"description"`
-	Type        SchemaType `json:"type"`
-	Items       Items      `json:"items"` // nil unless Type == "array".
+	Description string      `json:"description"`
+	Type        *SchemaType `json:"type"`
+	Ref         *ObjectRef  `json:"$ref"`
+	Items       Items       `json:"items"` // nil unless Type == "array".
 }
 
 // Properties is a named collection of `Properties`s, represented as a
@@ -56,7 +71,11 @@ type Items map[string]string
 
 // SchemaType represents the type of some object in an API spec. For
 // example, a property might have type `string`.
-type SchemaType *string
+type SchemaType string
+
+// ObjectRef represents a reference to some API object. For example,
+// `#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta`
+type ObjectRef string
 
 // PropertyName represents the name of a property. For example,
 // `apiVersion` or `kind`.
