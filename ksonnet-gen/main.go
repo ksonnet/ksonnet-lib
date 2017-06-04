@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
@@ -30,6 +31,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not deserialize schema:\n%v", err)
 	}
+	s.Text = text
+	s.FilePath = filepath.Dir(swaggerPath)
 
 	// Emit Jsonnet code.
 	jsonnetBytes, err := ksonnet.Emit(&s)

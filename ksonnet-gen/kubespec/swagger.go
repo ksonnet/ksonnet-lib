@@ -10,6 +10,10 @@ type APISpec struct {
 	//   - paths
 	//   - securityDefinitions
 	//   - security
+
+	// Not part of the OpenAPI spec. Filled in later.
+	FilePath string
+	Text     []byte
 }
 
 // SchemaInfo contains information about the the API represented with
