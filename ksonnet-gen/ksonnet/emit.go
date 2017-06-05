@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 )
@@ -73,8 +74,7 @@ func (root *root) emit(m *indentWriter) {
 func (root *root) addDefinition(
 	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
 ) {
-	isTopLevel := len(def.TopLevelSpecs) > 0
-	apiObject, err := root.createAPIObject(parsedName, isTopLevel)
+	apiObject, err := root.createAPIObject(parsedName, def)
 	if err != nil {
 		return
 	}
@@ -86,7 +86,7 @@ func (root *root) addDefinition(
 }
 
 func (root *root) createAPIObject(
-	parsedName *kubespec.ParsedDefinitionName, isTopLevel bool,
+	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
 ) (*apiObject, error) {
 	if parsedName.Version == nil {
 		return nil, fmt.Errorf(
@@ -117,7 +117,7 @@ func (root *root) createAPIObject(
 	if ok {
 		log.Fatalf("Duplicate object kinds with name '%s'", parsedName.Unparse())
 	}
-	apiObject = newAPIObject(parsedName.Kind, versionedAPI, isTopLevel)
+	apiObject = newAPIObject(parsedName.Kind, versionedAPI, def)
 	versionedAPI.apiObjects[parsedName.Kind] = apiObject
 	return apiObject, nil
 }
@@ -283,6 +283,7 @@ func (vas versionedAPISet) toSortedSlice() versionedAPISlice {
 type apiObject struct {
 	name            kubespec.ObjectKind // e.g., `Container` in `v1.Container`
 	propertyMethods propertyMethodSet   // e.g., container.image, container.env
+	comments        comments
 	parent          *versionedAPI
 	isTopLevel      bool
 }
@@ -290,11 +291,14 @@ type apiObjectSet map[kubespec.ObjectKind]*apiObject
 type apiObjectSlice []*apiObject
 
 func newAPIObject(
-	name kubespec.ObjectKind, parent *versionedAPI, isTopLevel bool,
+	name kubespec.ObjectKind, parent *versionedAPI, def *kubespec.SchemaDefinition,
 ) *apiObject {
+	isTopLevel := len(def.TopLevelSpecs) > 0
+	comments := newComments(def.Description)
 	return &apiObject{
 		name:            name,
 		propertyMethods: make(propertyMethodSet),
+		comments:        comments,
 		parent:          parent,
 		isTopLevel:      isTopLevel,
 	}
@@ -308,6 +312,8 @@ func (ao *apiObject) emit(m *indentWriter) {
 			jsonnetName,
 			ao.parent.version)
 	}
+
+	ao.comments.emit(m)
 
 	line := fmt.Sprintf("%s:: {", jsonnetName)
 	m.writeLine(line)
@@ -376,6 +382,9 @@ func (ao *apiObject) emitAsRefMixins(
 			ao.parent.version)
 	}
 
+	// NOTE: Comments are emitted by `propertyMethod#emit`, before we
+	// call this method.
+
 	line := fmt.Sprintf("%s:: {", jsonnetName)
 	m.writeLine(line)
 	m.indent()
@@ -426,9 +435,10 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 // The logic for creating them is handled largely by `root`.
 type propertyMethod struct {
 	*kubespec.Property
-	name   kubespec.PropertyName // e.g., image in container.image.
-	parent *apiObject
-	root   *root
+	name     kubespec.PropertyName // e.g., image in container.image.
+	comments comments
+	parent   *apiObject
+	root     *root
 }
 type propertyMethodSet map[kubespec.PropertyName]*propertyMethod
 type propertyMethodSlice []*propertyMethod
@@ -437,9 +447,11 @@ func newPropertyMethod(
 	name kubespec.PropertyName, property *kubespec.Property, parent *apiObject,
 	root *root,
 ) *propertyMethod {
+	comments := newComments(property.Description)
 	return &propertyMethod{
 		Property: property,
 		name:     name,
+		comments: comments,
 		parent:   parent,
 		root:     root,
 	}
@@ -477,6 +489,8 @@ func (pm *propertyMethod) emitAsRefMixin(
 func (pm *propertyMethod) emitHelper(
 	m *indentWriter, parentMixinName *string,
 ) {
+	pm.comments.emit(m)
+
 	paramName := pm.name
 	fieldName := pm.name
 	signature := fmt.Sprintf("%s(%s)::", pm.name, paramName)
@@ -538,4 +552,25 @@ func (aos propertyMethodSet) toSortedSlice() propertyMethodSlice {
 		return propertyMethods[i].name < propertyMethods[j].name
 	})
 	return propertyMethods
+}
+
+//-----------------------------------------------------------------------------
+// Comments.
+//-----------------------------------------------------------------------------
+
+type comments []string
+
+func newComments(text string) comments {
+	return strings.Split(text, "\n")
+}
+
+func (cs *comments) emit(m *indentWriter) {
+	for _, comment := range *cs {
+		if comment == "" {
+			// Don't create trailing space if comment is empty.
+			m.writeLine("//")
+		} else {
+			m.writeLine(fmt.Sprintf("// %s", comment))
+		}
+	}
 }
