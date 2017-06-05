@@ -205,22 +205,10 @@ func (gs groupSet) toSortedSlice() groupSlice {
 	for _, group := range gs {
 		groups = append(groups, group)
 	}
-	sort.Sort(groups)
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].name < groups[j].name
+	})
 	return groups
-}
-
-//
-// sort.Interface implementation for groupSlice.
-//
-
-func (gs groupSlice) Len() int {
-	return len(gs)
-}
-func (gs groupSlice) Swap(i, j int) {
-	gs[i], gs[j] = gs[j], gs[i]
-}
-func (gs groupSlice) Less(i, j int) bool {
-	return gs[i].name < gs[j].name
 }
 
 //-----------------------------------------------------------------------------
