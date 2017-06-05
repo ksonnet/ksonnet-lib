@@ -80,7 +80,7 @@ func (root *root) addDefinition(
 	}
 
 	for propName, prop := range def.Properties {
-		pm := newPropertyMethod(propName, prop, apiObject, root)
+		pm := newPropertyMethod(propName, prop, apiObject)
 		apiObject.propertyMethods[propName] = pm
 	}
 }
@@ -186,6 +186,10 @@ func newGroup(name kubespec.GroupName, parent *root) *group {
 	}
 }
 
+func (group *group) root() *root {
+	return group.parent
+}
+
 func (group *group) emit(m *indentWriter) {
 	line := fmt.Sprintf("%s:: {", group.name)
 	m.writeLine(line)
@@ -239,6 +243,10 @@ func newVersionedAPI(
 		apiObjects: make(apiObjectSet),
 		parent:     parent,
 	}
+}
+
+func (va *versionedAPI) root() *root {
+	return va.parent.parent
 }
 
 func (va *versionedAPI) emit(m *indentWriter) {
@@ -302,6 +310,10 @@ func newAPIObject(
 		parent:          parent,
 		isTopLevel:      isTopLevel,
 	}
+}
+
+func (ao *apiObject) root() *root {
+	return ao.parent.parent.parent
 }
 
 func (ao *apiObject) emit(m *indentWriter) {
@@ -438,14 +450,12 @@ type propertyMethod struct {
 	name     kubespec.PropertyName // e.g., image in container.image.
 	comments comments
 	parent   *apiObject
-	root     *root
 }
 type propertyMethodSet map[kubespec.PropertyName]*propertyMethod
 type propertyMethodSlice []*propertyMethod
 
 func newPropertyMethod(
 	name kubespec.PropertyName, property *kubespec.Property, parent *apiObject,
-	root *root,
 ) *propertyMethod {
 	comments := newComments(property.Description)
 	return &propertyMethod{
@@ -453,8 +463,11 @@ func newPropertyMethod(
 		name:     name,
 		comments: comments,
 		parent:   parent,
-		root:     root,
 	}
+}
+
+func (pm *propertyMethod) root() *root {
+	return pm.parent.parent.parent.parent
 }
 
 func (pm *propertyMethod) emit(m *indentWriter) {
@@ -497,7 +510,7 @@ func (pm *propertyMethod) emitHelper(
 
 	if pm.Ref != nil {
 		parsedRefPath := pm.Ref.Name().Parse()
-		apiObject, err := pm.root.getAPIObject(parsedRefPath)
+		apiObject, err := pm.root().getAPIObject(parsedRefPath)
 		if err != nil {
 			log.Fatalf("Failed to emit ref mixin:\n%v", err)
 		}
