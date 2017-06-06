@@ -59,16 +59,12 @@ func IsBlacklistedProperty(
 // Core data structures for specifying version information.
 //-----------------------------------------------------------------------------
 
-type versionSet map[string]versionData
-
 type versionData struct {
-	idAliases         idAliasSet
-	propertyBlacklist blackList
+	idAliases         map[string]string
+	propertyBlacklist map[string]propertySet
 }
 
-type idAliasSet map[string]string
 type propertySet map[string]bool
-type blackList map[string]propertySet
 
 func newPropertySet(strings ...string) propertySet {
 	ps := make(propertySet)

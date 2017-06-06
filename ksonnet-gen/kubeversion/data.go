@@ -5,9 +5,9 @@ package kubeversion
 // emitted.
 //-----------------------------------------------------------------------------
 
-var versions = versionSet{
+var versions = map[string]versionData{
 	"v1.7.0": versionData{
-		idAliases: idAliasSet{
+		idAliases: map[string]string{
 			"hostIPC":                        "hostIpc",
 			"hostPID":                        "hostPid",
 			"targetCPUUtilizationPercentage": "targetCpuUtilizationPercentage",
@@ -29,7 +29,7 @@ var versions = versionSet{
 			"externalIPs":                    "externalIps",
 			"loadBalancerIP":                 "loadBalancerIp",
 		},
-		propertyBlacklist: blackList{
+		propertyBlacklist: map[string]propertySet{
 			"io.k8s.kubernetes.pkg.apis.apps.v1beta1.Deployment": newPropertySet("status"),
 		},
 	},
