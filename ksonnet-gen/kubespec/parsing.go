@@ -155,13 +155,25 @@ type ParsedDefinitionName struct {
 // extensions, etc.)
 type GroupName string
 
+func (gn GroupName) String() string {
+	return string(gn)
+}
+
 // ObjectKind represents the `kind` of a Kubernetes API object (e.g.,
 // Service, Deployment, etc.)
 type ObjectKind string
 
+func (ok ObjectKind) String() string {
+	return string(ok)
+}
+
 // VersionString is the string representation of an API version (e.g.,
 // v1, v1beta1, etc.)
 type VersionString string
+
+func (vs VersionString) String() string {
+	return string(vs)
+}
 
 // Unparse transforms a `ParsedDefinitionName` back into its
 // corresponding string, e.g.,

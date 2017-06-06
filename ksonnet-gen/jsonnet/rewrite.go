@@ -7,7 +7,6 @@ package jsonnet
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
@@ -65,7 +64,7 @@ func RewriteAsFieldKey(text kubespec.PropertyName) FieldKey {
 func RewriteAsFuncParam(
 	k8sVersion string, text kubespec.PropertyName,
 ) FuncParam {
-	id := RewriteAsIdentifier(k8sVersion, string(text))
+	id := RewriteAsIdentifier(k8sVersion, text)
 	if _, ok := jsonnetKeywordSet[kubespec.PropertyName(id)]; ok {
 		return FuncParam(fmt.Sprintf("%sParam", id))
 	}
@@ -82,21 +81,9 @@ func RewriteAsFuncParam(
 // Kubernetes version, according to identifiers that don't conform to
 // this style.
 func RewriteAsIdentifier(
-	k8sVersion string, rawID interface{},
+	k8sVersion string, rawID fmt.Stringer,
 ) Identifier {
-	var id string
-	switch rawID.(type) {
-	case kubespec.GroupName:
-		id = string(rawID.(kubespec.GroupName))
-	case kubespec.ObjectKind:
-		id = string(rawID.(kubespec.ObjectKind))
-	case kubespec.PropertyName:
-		id = string(rawID.(kubespec.PropertyName))
-	case string:
-		id = rawID.(string)
-	default:
-		log.Fatalf("Can't rewrite identifier of type '%s'", reflect.TypeOf(rawID))
-	}
+	var id = rawID.String()
 
 	if len(id) == 0 {
 		log.Fatalf("Can't lowercase first letter of 0-rune string")
