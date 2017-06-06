@@ -259,6 +259,9 @@ func (va *versionedAPI) emit(m *indentWriter) {
 	m.writeLine(line)
 	m.indent()
 
+	m.writeLine(fmt.Sprintf(
+		"local apiVersion = {apiVersion: \"%s\"},", va.version))
+
 	// Emit in sorted order so that we can diff the output.
 	for _, object := range va.apiObjects.toSortedSlice() {
 		if !object.isTopLevel {
@@ -337,6 +340,10 @@ func (ao *apiObject) emit(m *indentWriter) {
 	line := fmt.Sprintf("%s:: {", jsonnetName)
 	m.writeLine(line)
 	m.indent()
+
+	// NOTE: It is important to NOT capitalize `ao.name` here.
+	m.writeLine(fmt.Sprintf("local kind = {kind: \"%s\"},", ao.name))
+	ao.emitConstructor(m)
 
 	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
@@ -420,6 +427,16 @@ func (ao *apiObject) emitAsRefMixins(
 
 	m.dedent()
 	m.writeLine("},")
+}
+
+func (ao *apiObject) emitConstructor(m *indentWriter) {
+	if dm, ok := ao.propertyMethods["default"]; ok {
+		log.Fatalf(
+			"Attempted to create constructor, but 'default' property already existed at '%s'",
+			dm.path)
+	}
+
+	m.writeLine("default():: apiVersion + kind,")
 }
 
 func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
