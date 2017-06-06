@@ -73,14 +73,30 @@ type Items map[string]string
 // example, a property might have type `string`.
 type SchemaType string
 
+func (st SchemaType) String() string {
+	return string(st)
+}
+
 // ObjectRef represents a reference to some API object. For example,
 // `#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta`
 type ObjectRef string
+
+func (or ObjectRef) String() string {
+	return string(or)
+}
 
 // PropertyName represents the name of a property. For example,
 // `apiVersion` or `kind`.
 type PropertyName string
 
+func (pn PropertyName) String() string {
+	return string(pn)
+}
+
 // DefinitionName represents the name of a definition. For example,
 // `v1.APIGroup`.
 type DefinitionName string
+
+func (dn DefinitionName) String() string {
+	return string(dn)
+}

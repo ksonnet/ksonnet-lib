@@ -20,16 +20,6 @@ func isSpecialProperty(pn kubespec.PropertyName) bool {
 	return ok
 }
 
-func toJsonnetName(ok kubespec.ObjectKind) kubespec.ObjectKind {
-	if len(ok) == 0 {
-		log.Fatalf("Can't lowercase first letter of 0-rune string")
-	}
-	kindString := string(ok)
-
-	upper := strings.ToLower(kindString[:1])
-	return kubespec.ObjectKind(upper + kindString[1:])
-}
-
 func getSHARevision(dir string) string {
 	cwd, err := os.Getwd()
 	if err != nil {

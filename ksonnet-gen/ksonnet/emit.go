@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/jsonnet"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubeversion"
 )
 
 // Emit takes a swagger API specification, and returns the text of
@@ -41,8 +44,7 @@ func newRoot(spec *kubespec.APISpec) *root {
 	}
 
 	for defName, def := range spec.Definitions {
-		parsedName := defName.Parse()
-		root.addDefinition(parsedName, def)
+		root.addDefinition(defName, def)
 	}
 
 	return &root
@@ -71,22 +73,22 @@ func (root *root) emit(m *indentWriter) {
 }
 
 func (root *root) addDefinition(
-	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
+	path kubespec.DefinitionName, def *kubespec.SchemaDefinition,
 ) {
-	isTopLevel := len(def.TopLevelSpecs) > 0
-	apiObject, err := root.createAPIObject(parsedName, isTopLevel)
+	parsedName := path.Parse()
+	apiObject, err := root.createAPIObject(parsedName, def)
 	if err != nil {
 		return
 	}
 
 	for propName, prop := range def.Properties {
-		pm := newPropertyMethod(propName, prop, apiObject, root)
+		pm := newPropertyMethod(propName, path, prop, apiObject)
 		apiObject.propertyMethods[propName] = pm
 	}
 }
 
 func (root *root) createAPIObject(
-	parsedName *kubespec.ParsedDefinitionName, isTopLevel bool,
+	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
 ) (*apiObject, error) {
 	if parsedName.Version == nil {
 		return nil, fmt.Errorf(
@@ -117,7 +119,7 @@ func (root *root) createAPIObject(
 	if ok {
 		log.Fatalf("Duplicate object kinds with name '%s'", parsedName.Unparse())
 	}
-	apiObject = newAPIObject(parsedName.Kind, versionedAPI, isTopLevel)
+	apiObject = newAPIObject(parsedName.Kind, versionedAPI, def)
 	versionedAPI.apiObjects[parsedName.Kind] = apiObject
 	return apiObject, nil
 }
@@ -186,8 +188,14 @@ func newGroup(name kubespec.GroupName, parent *root) *group {
 	}
 }
 
+func (group *group) root() *root {
+	return group.parent
+}
+
 func (group *group) emit(m *indentWriter) {
-	line := fmt.Sprintf("%s:: {", group.name)
+	k8sVersion := group.root().spec.Info.Version
+	mixinName := jsonnet.RewriteAsIdentifier(k8sVersion, group.name)
+	line := fmt.Sprintf("%s:: {", mixinName)
 	m.writeLine(line)
 	m.indent()
 
@@ -205,22 +213,10 @@ func (gs groupSet) toSortedSlice() groupSlice {
 	for _, group := range gs {
 		groups = append(groups, group)
 	}
-	sort.Sort(groups)
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].name < groups[j].name
+	})
 	return groups
-}
-
-//
-// sort.Interface implementation for groupSlice.
-//
-
-func (gs groupSlice) Len() int {
-	return len(gs)
-}
-func (gs groupSlice) Swap(i, j int) {
-	gs[i], gs[j] = gs[j], gs[i]
-}
-func (gs groupSlice) Less(i, j int) bool {
-	return gs[i].name < gs[j].name
 }
 
 //-----------------------------------------------------------------------------
@@ -253,7 +249,12 @@ func newVersionedAPI(
 	}
 }
 
+func (va *versionedAPI) root() *root {
+	return va.parent.parent
+}
+
 func (va *versionedAPI) emit(m *indentWriter) {
+	// NOTE: Do not need to call `jsonnet.RewriteAsIdentifier`.
 	line := fmt.Sprintf("%s:: {", va.version)
 	m.writeLine(line)
 	m.indent()
@@ -295,6 +296,7 @@ func (vas versionedAPISet) toSortedSlice() versionedAPISlice {
 type apiObject struct {
 	name            kubespec.ObjectKind // e.g., `Container` in `v1.Container`
 	propertyMethods propertyMethodSet   // e.g., container.image, container.env
+	comments        comments
 	parent          *versionedAPI
 	isTopLevel      bool
 }
@@ -302,18 +304,27 @@ type apiObjectSet map[kubespec.ObjectKind]*apiObject
 type apiObjectSlice []*apiObject
 
 func newAPIObject(
-	name kubespec.ObjectKind, parent *versionedAPI, isTopLevel bool,
+	name kubespec.ObjectKind, parent *versionedAPI, def *kubespec.SchemaDefinition,
 ) *apiObject {
+	isTopLevel := len(def.TopLevelSpecs) > 0
+	comments := newComments(def.Description)
 	return &apiObject{
 		name:            name,
 		propertyMethods: make(propertyMethodSet),
+		comments:        comments,
 		parent:          parent,
 		isTopLevel:      isTopLevel,
 	}
 }
 
+func (ao *apiObject) root() *root {
+	return ao.parent.parent.parent
+}
+
 func (ao *apiObject) emit(m *indentWriter) {
-	jsonnetName := toJsonnetName(ao.name)
+	k8sVersion := ao.root().spec.Info.Version
+	jsonnetName := kubespec.ObjectKind(
+		jsonnet.RewriteAsIdentifier(k8sVersion, ao.name))
 	if _, ok := ao.parent.apiObjects[jsonnetName]; ok {
 		log.Fatalf(
 			"Tried to lowercase first character of object kind '%s', but lowercase name was already present in version '%s'",
@@ -321,11 +332,13 @@ func (ao *apiObject) emit(m *indentWriter) {
 			ao.parent.version)
 	}
 
+	ao.comments.emit(m)
+
 	line := fmt.Sprintf("%s:: {", jsonnetName)
 	m.writeLine(line)
 	m.indent()
 
-	for _, pm := range ao.propertyMethods.toSortedSlice() {
+	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
 		// object type, since those will go in the `mixin` namespace.
 		if isSpecialProperty(pm.name) || pm.Ref != nil {
@@ -339,7 +352,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	m.writeLine("mixin:: {")
 	m.indent()
 
-	for _, pm := range ao.propertyMethods.toSortedSlice() {
+	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		// TODO: Emit mixin code also for arrays whose elements are
 		// `$ref`.
 		if pm.Ref == nil {
@@ -367,34 +380,38 @@ func (ao *apiObject) emit(m *indentWriter) {
 func (ao *apiObject) emitAsRefMixins(
 	m *indentWriter, pm *propertyMethod, parentMixinName *string,
 ) {
-	mixinName := fmt.Sprintf("__%sMixin", pm.name)
+	k8sVersion := ao.root().spec.Info.Version
+	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, pm.name)
+	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, pm.name)
+	fieldName := jsonnet.RewriteAsFieldKey(pm.name)
+	mixinName := fmt.Sprintf("__%sMixin", functionName)
 	var mixinText string
 	if parentMixinName == nil {
 		mixinText = fmt.Sprintf(
-			"local %s(%s) = {%s+: %s},", mixinName, pm.name, pm.name, pm.name)
+			"local %s(%s) = {%s+: %s},", mixinName, paramName, fieldName, paramName)
 	} else {
 		mixinText = fmt.Sprintf(
 			"local %s(%s) = %s({%s+: %s}),",
-			mixinName, pm.name, *parentMixinName, pm.name, pm.name)
+			mixinName, paramName, *parentMixinName, fieldName, paramName)
 	}
 
-	// NOTE: No need to call `toJsonnetName`, since only `ObjectKind`
-	// begins with a capital letter.
-	jsonnetName := kubespec.ObjectKind(pm.name)
-	if _, ok := ao.parent.apiObjects[jsonnetName]; ok {
+	if _, ok := ao.parent.apiObjects[kubespec.ObjectKind(functionName)]; ok {
 		log.Fatalf(
 			"Tried to lowercase first character of object kind '%s', but lowercase name was already present in version '%s'",
-			jsonnetName,
+			functionName,
 			ao.parent.version)
 	}
 
-	line := fmt.Sprintf("%s:: {", jsonnetName)
+	// NOTE: Comments are emitted by `propertyMethod#emit`, before we
+	// call this method.
+
+	line := fmt.Sprintf("%s:: {", functionName)
 	m.writeLine(line)
 	m.indent()
 
 	m.writeLine(mixinText)
 
-	for _, pm := range ao.propertyMethods.toSortedSlice() {
+	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		if isSpecialProperty(pm.name) {
 			continue
 		}
@@ -438,23 +455,30 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 // The logic for creating them is handled largely by `root`.
 type propertyMethod struct {
 	*kubespec.Property
-	name   kubespec.PropertyName // e.g., image in container.image.
-	parent *apiObject
-	root   *root
+	name     kubespec.PropertyName // e.g., image in container.image.
+	path     kubespec.DefinitionName
+	comments comments
+	parent   *apiObject
 }
 type propertyMethodSet map[kubespec.PropertyName]*propertyMethod
 type propertyMethodSlice []*propertyMethod
 
 func newPropertyMethod(
-	name kubespec.PropertyName, property *kubespec.Property, parent *apiObject,
-	root *root,
+	name kubespec.PropertyName, path kubespec.DefinitionName,
+	property *kubespec.Property, parent *apiObject,
 ) *propertyMethod {
+	comments := newComments(property.Description)
 	return &propertyMethod{
 		Property: property,
 		name:     name,
+		path:     path,
+		comments: comments,
 		parent:   parent,
-		root:     root,
 	}
+}
+
+func (pm *propertyMethod) root() *root {
+	return pm.parent.parent.parent.parent
 }
 
 func (pm *propertyMethod) emit(m *indentWriter) {
@@ -489,13 +513,17 @@ func (pm *propertyMethod) emitAsRefMixin(
 func (pm *propertyMethod) emitHelper(
 	m *indentWriter, parentMixinName *string,
 ) {
-	paramName := pm.name
-	fieldName := pm.name
-	signature := fmt.Sprintf("%s(%s)::", pm.name, paramName)
+	pm.comments.emit(m)
+
+	k8sVersion := pm.root().spec.Info.Version
+	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, pm.name)
+	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, pm.name)
+	fieldName := jsonnet.RewriteAsFieldKey(pm.name)
+	signature := fmt.Sprintf("%s(%s)::", functionName, paramName)
 
 	if pm.Ref != nil {
 		parsedRefPath := pm.Ref.Name().Parse()
-		apiObject, err := pm.root.getAPIObject(parsedRefPath)
+		apiObject, err := pm.root().getAPIObject(parsedRefPath)
 		if err != nil {
 			log.Fatalf("Failed to emit ref mixin:\n%v", err)
 		}
@@ -520,15 +548,15 @@ func (pm *propertyMethod) emitHelper(
 			}
 		case "integer", "string", "boolean":
 			if parentMixinName == nil {
-				body = fmt.Sprintf("{%s: %s}", paramName, fieldName)
+				body = fmt.Sprintf("{%s: %s}", fieldName, paramName)
 			} else {
-				body = fmt.Sprintf("%s({%s: %s})", *parentMixinName, paramName, fieldName)
+				body = fmt.Sprintf("%s({%s: %s})", *parentMixinName, fieldName, paramName)
 			}
 		case "object":
 			if parentMixinName == nil {
-				body = fmt.Sprintf("{%s+: %s}", paramName, fieldName)
+				body = fmt.Sprintf("{%s+: %s}", fieldName, paramName)
 			} else {
-				body = fmt.Sprintf("%s({%s+: %s})", *parentMixinName, paramName, fieldName)
+				body = fmt.Sprintf("%s({%s+: %s})", *parentMixinName, fieldName, paramName)
 			}
 		default:
 			log.Fatalf("Unrecognized type '%s'", paramType)
@@ -541,13 +569,38 @@ func (pm *propertyMethod) emitHelper(
 	}
 }
 
-func (aos propertyMethodSet) toSortedSlice() propertyMethodSlice {
+func (aos propertyMethodSet) sortAndFilterBlacklisted() propertyMethodSlice {
 	propertyMethods := propertyMethodSlice{}
-	for _, apiObject := range aos {
-		propertyMethods = append(propertyMethods, apiObject)
+	for _, pm := range aos {
+		k8sVersion := pm.root().spec.Info.Version
+		if kubeversion.IsBlacklistedProperty(k8sVersion, pm.path, pm.name) {
+			continue
+		}
+		propertyMethods = append(propertyMethods, pm)
 	}
 	sort.Slice(propertyMethods, func(i, j int) bool {
 		return propertyMethods[i].name < propertyMethods[j].name
 	})
 	return propertyMethods
+}
+
+//-----------------------------------------------------------------------------
+// Comments.
+//-----------------------------------------------------------------------------
+
+type comments []string
+
+func newComments(text string) comments {
+	return strings.Split(text, "\n")
+}
+
+func (cs *comments) emit(m *indentWriter) {
+	for _, comment := range *cs {
+		if comment == "" {
+			// Don't create trailing space if comment is empty.
+			m.writeLine("//")
+		} else {
+			m.writeLine(fmt.Sprintf("// %s", comment))
+		}
+	}
 }
