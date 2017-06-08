@@ -67,7 +67,13 @@ type Properties map[PropertyName]*Property
 // Items represents the type of an element in an array. Usually this
 // is used to fully specify a `Property` object whose `type` field is
 // `"array"`.
-type Items map[string]string
+type Items struct {
+	Ref *ObjectRef `json:"$ref"`
+
+	// Ignored fields:
+	// - Type *SchemaType `json:"type"`
+	// - Format *string `json:"format"`
+}
 
 // SchemaType represents the type of some object in an API spec. For
 // example, a property might have type `string`.
