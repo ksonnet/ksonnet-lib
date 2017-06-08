@@ -326,6 +326,19 @@ func newAPIObject(
 	}
 }
 
+func (ao apiObject) toRefPropertyMethod(
+	name kubespec.PropertyName, path kubespec.DefinitionName, parent *apiObject,
+) *propertyMethod {
+	return &propertyMethod{
+		ref:        path.AsObjectRef(),
+		schemaType: nil,
+		name:       name,
+		path:       path,
+		comments:   ao.comments,
+		parent:     parent,
+	}
+}
+
 func (ao *apiObject) root() *root {
 	return ao.parent.parent.parent
 }
@@ -354,7 +367,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
 		// object type, since those will go in the `mixin` namespace.
-		if isSpecialProperty(pm.name) || pm.Ref != nil {
+		if isSpecialProperty(pm.name) || pm.ref != nil {
 			continue
 		}
 		pm.emit(m)
@@ -368,7 +381,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
 		// TODO: Emit mixin code also for arrays whose elements are
 		// `$ref`.
-		if pm.Ref == nil {
+		if pm.ref == nil {
 			continue
 		}
 		pm.emit(m)
@@ -481,11 +494,12 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 //
 // The logic for creating them is handled largely by `root`.
 type propertyMethod struct {
-	*kubespec.Property
-	name     kubespec.PropertyName // e.g., image in container.image.
-	path     kubespec.DefinitionName
-	comments comments
-	parent   *apiObject
+	ref        *kubespec.ObjectRef
+	schemaType *kubespec.SchemaType
+	name       kubespec.PropertyName // e.g., image in container.image.
+	path       kubespec.DefinitionName
+	comments   comments
+	parent     *apiObject
 }
 type propertyMethodSet map[kubespec.PropertyName]*propertyMethod
 type propertyMethodSlice []*propertyMethod
@@ -496,11 +510,12 @@ func newPropertyMethod(
 ) *propertyMethod {
 	comments := newComments(property.Description)
 	return &propertyMethod{
-		Property: property,
-		name:     name,
-		path:     path,
-		comments: comments,
-		parent:   parent,
+		ref:        property.Ref,
+		schemaType: property.Type,
+		name:       name,
+		path:       path,
+		comments:   comments,
+		parent:     parent,
 	}
 }
 
@@ -548,15 +563,15 @@ func (pm *propertyMethod) emitHelper(
 	fieldName := jsonnet.RewriteAsFieldKey(pm.name)
 	signature := fmt.Sprintf("%s(%s)::", functionName, paramName)
 
-	if pm.Ref != nil {
-		parsedRefPath := pm.Ref.Name().Parse()
+	if pm.ref != nil {
+		parsedRefPath := pm.ref.Name().Parse()
 		apiObject, err := pm.root().getAPIObject(parsedRefPath)
 		if err != nil {
 			log.Fatalf("Failed to emit ref mixin:\n%v", err)
 		}
 		apiObject.emitAsRefMixins(m, pm, parentMixinName)
-	} else if pm.Type != nil {
-		paramType := *pm.Type
+	} else if pm.schemaType != nil {
+		paramType := *pm.schemaType
 
 		var body string
 		switch paramType {
