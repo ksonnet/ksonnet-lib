@@ -96,6 +96,19 @@ func (root *root) addDefinition(
 	for propName, prop := range def.Properties {
 		pm := newPropertyMethod(propName, path, prop, apiObject)
 		apiObject.properties[propName] = pm
+
+		st := prop.Type
+		if pm.ref != nil || (st != nil && *st == "array" && prop.Items.Ref != nil) {
+			typeAliasName := propName + "Type"
+			ta, ok := apiObject.properties[typeAliasName]
+			if ok && ta.kind != typeAlias {
+				log.Panicf(
+					"Can't create type alias '%s' because a property with that name already exists", typeAliasName)
+			}
+
+			ta = newPropertyTypeAlias(typeAliasName, path, prop, apiObject)
+			apiObject.properties[typeAliasName] = ta
+		}
 	}
 }
 
@@ -139,7 +152,7 @@ func (root *root) createAPIObject(
 	if ok {
 		log.Panicf("Duplicate object kinds with name '%s'", parsedName.Unparse())
 	}
-	apiObject = newAPIObject(parsedName.Kind, versionedAPI, def)
+	apiObject = newAPIObject(parsedName, versionedAPI, def)
 	versionedAPI.apiObjects[parsedName.Kind] = apiObject
 	return apiObject
 }
@@ -343,6 +356,7 @@ func (vas versionedAPISet) toSortedSlice() versionedAPISlice {
 type apiObject struct {
 	name       kubespec.ObjectKind // e.g., `Container` in `v1.Container`
 	properties propertySet         // e.g., container.image, container.env
+	parsedName *kubespec.ParsedDefinitionName
 	comments   comments
 	parent     *versionedAPI
 	isTopLevel bool
@@ -351,12 +365,14 @@ type apiObjectSet map[kubespec.ObjectKind]*apiObject
 type apiObjectSlice []*apiObject
 
 func newAPIObject(
-	name kubespec.ObjectKind, parent *versionedAPI, def *kubespec.SchemaDefinition,
+	name *kubespec.ParsedDefinitionName, parent *versionedAPI,
+	def *kubespec.SchemaDefinition,
 ) *apiObject {
 	isTopLevel := len(def.TopLevelSpecs) > 0
 	comments := newComments(def.Description)
 	return &apiObject{
-		name:       name,
+		name:       name.Kind,
+		parsedName: name,
 		properties: make(propertySet),
 		comments:   comments,
 		parent:     parent,
@@ -370,6 +386,7 @@ func (ao apiObject) toRefPropertyMethod(
 	return &property{
 		ref:        path.AsObjectRef(),
 		schemaType: nil,
+		itemTypes:  kubespec.Items{},
 		name:       name,
 		path:       path,
 		comments:   ao.comments,
@@ -423,6 +440,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 		if pm.ref == nil {
 			continue
 		}
+
 		pm.emit(m)
 	}
 
@@ -516,6 +534,13 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 // Property method.
 //-----------------------------------------------------------------------------
 
+type propertyKind int
+
+const (
+	method propertyKind = iota
+	typeAlias
+)
+
 // `property` is an abstract representation of a ksonnet-lib's
 // property methods, which can be emitted as Jsonnet code using the
 // `emit` method.
@@ -533,8 +558,10 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 //
 // The logic for creating them is handled largely by `root`.
 type property struct {
+	kind       propertyKind
 	ref        *kubespec.ObjectRef
 	schemaType *kubespec.SchemaType
+	itemTypes  kubespec.Items
 	name       kubespec.PropertyName // e.g., image in container.image.
 	path       kubespec.DefinitionName
 	comments   comments
@@ -549,8 +576,27 @@ func newPropertyMethod(
 ) *property {
 	comments := newComments(prop.Description)
 	return &property{
+		kind:       method,
 		ref:        prop.Ref,
 		schemaType: prop.Type,
+		itemTypes:  prop.Items,
+		name:       name,
+		path:       path,
+		comments:   comments,
+		parent:     parent,
+	}
+}
+
+func newPropertyTypeAlias(
+	name kubespec.PropertyName, path kubespec.DefinitionName,
+	prop *kubespec.Property, parent *apiObject,
+) *property {
+	comments := newComments(prop.Description)
+	return &property{
+		kind:       typeAlias,
+		ref:        prop.Ref,
+		schemaType: prop.Type,
+		itemTypes:  prop.Items,
 		name:       name,
 		path:       path,
 		comments:   comments,
@@ -582,6 +628,37 @@ func (p *property) emitAsRefMixin(
 	p.emitHelper(m, &parentMixinName)
 }
 
+func (p *property) emitAsTypeAlias(m *indentWriter) {
+	var path kubespec.DefinitionName
+	if p.ref != nil {
+		path = *p.ref.Name()
+	} else {
+		path = *p.itemTypes.Ref.Name()
+	}
+	parsedPath := path.Parse()
+	if parsedPath.Version == nil {
+		log.Printf("Could not emit type alias for '%s'\n", path)
+		return
+	}
+
+	k8sVersion := p.root().spec.Info.Version
+	typeName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
+
+	var group kubespec.GroupName
+	if parsedPath.Group == nil {
+		group = "core"
+	} else {
+		group = *parsedPath.Group
+	}
+
+	id := jsonnet.RewriteAsIdentifier(k8sVersion, parsedPath.Kind)
+	line := fmt.Sprintf(
+		"%s:: hidden.%s.%s.%s,",
+		typeName, group, parsedPath.Version, id)
+
+	m.writeLine(line)
+}
+
 // `emitHelper` emits the Jsonnet program text for a `property`,
 // handling both the case that it's a mixin (i.e., `parentMixinName !=
 // nil`), and the case that it's a "normal", non-mixin property method
@@ -594,6 +671,11 @@ func (p *property) emitAsRefMixin(
 func (p *property) emitHelper(
 	m *indentWriter, parentMixinName *string,
 ) {
+	if p.kind == typeAlias {
+		p.emitAsTypeAlias(m)
+		return
+	}
+
 	p.comments.emit(m)
 
 	k8sVersion := p.root().spec.Info.Version
@@ -651,7 +733,13 @@ func (aos propertySet) sortAndFilterBlacklisted() propertySlice {
 	properties := propertySlice{}
 	for _, pm := range aos {
 		k8sVersion := pm.root().spec.Info.Version
-		if kubeversion.IsBlacklistedProperty(k8sVersion, pm.path, pm.name) {
+		var name kubespec.PropertyName
+		if pm.kind == typeAlias {
+			name = kubespec.PropertyName(strings.TrimSuffix(string(pm.name), "Type"))
+		} else {
+			name = pm.name
+		}
+		if kubeversion.IsBlacklistedProperty(k8sVersion, pm.path, name) {
 			continue
 		} else if pm.ref != nil {
 			if parsed := pm.ref.Name().Parse(); parsed.Version == nil {

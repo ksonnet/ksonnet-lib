@@ -82,7 +82,6 @@ var versions = map[string]versionData{
 			"io.k8s.kubernetes.pkg.apis.storage.v1beta1.StorageClassList":                   newPropertySet("metadata"),
 
 			// Status fields.
-			"io.k8s.kubernetes.pkg.api.v1.ComponentCondition":                           newPropertySet("status"),
 			"io.k8s.kubernetes.pkg.api.v1.Namespace":                                    newPropertySet("status"),
 			"io.k8s.kubernetes.pkg.api.v1.Node":                                         newPropertySet("status"),
 			"io.k8s.kubernetes.pkg.api.v1.NodeCondition":                                newPropertySet("status"),
@@ -121,6 +120,16 @@ var versions = map[string]versionData{
 			"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.ReplicaSetCondition":         newPropertySet("status"),
 			"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Scale":                       newPropertySet("status"),
 			"io.k8s.kubernetes.pkg.apis.policy.v1beta1.PodDisruptionBudget":             newPropertySet("status"),
+
+			// TODO: Find a more principled way to omit "status" types.
+			// Currently we emit these in the `local hidden` in the `root`,
+			// so that we can type aliases. To get around the fact that some
+			// of their function names collide with Jsonnet keywords, we
+			// simply choose not to emit them. Eventually we will approach
+			// this problem in a more principled manner.
+			"io.k8s.kubernetes.pkg.api.v1.ComponentCondition":                     newPropertySet("error", "status"),
+			"io.k8s.kubernetes.pkg.apis.authentication.v1.TokenReviewStatus":      newPropertySet("error"),
+			"io.k8s.kubernetes.pkg.apis.authentication.v1beta1.TokenReviewStatus": newPropertySet("error"),
 
 			// Has both status and a property with type
 			// `io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta`.
