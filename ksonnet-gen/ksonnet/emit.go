@@ -259,8 +259,14 @@ func (va *versionedAPI) emit(m *indentWriter) {
 	m.writeLine(line)
 	m.indent()
 
-	m.writeLine(fmt.Sprintf(
-		"local apiVersion = {apiVersion: \"%s\"},", va.version))
+	gn := va.parent.name
+	if gn == "core" {
+		m.writeLine(fmt.Sprintf(
+			"local apiVersion = {apiVersion: \"%s\"},", va.version))
+	} else {
+		m.writeLine(fmt.Sprintf(
+			"local apiVersion = {apiVersion: \"%s/%s\"},", gn, va.version))
+	}
 
 	// Emit in sorted order so that we can diff the output.
 	for _, object := range va.apiObjects.toSortedSlice() {
@@ -436,7 +442,11 @@ func (ao *apiObject) emitConstructor(m *indentWriter) {
 			dm.path)
 	}
 
-	m.writeLine("default():: apiVersion + kind,")
+	if ao.isTopLevel {
+		m.writeLine("default():: apiVersion + kind,")
+	} else {
+		m.writeLine("default():: {},")
+	}
 }
 
 func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
