@@ -88,10 +88,10 @@ func (root *root) addDefinition(
 	path kubespec.DefinitionName, def *kubespec.SchemaDefinition,
 ) {
 	parsedName := path.Parse()
-	apiObject, err := root.createAPIObject(parsedName, def)
-	if err != nil {
+	if parsedName.Version == nil {
 		return
 	}
+	apiObject := root.createAPIObject(parsedName, def)
 
 	for propName, prop := range def.Properties {
 		pm := newPropertyMethod(propName, path, prop, apiObject)
@@ -101,9 +101,9 @@ func (root *root) addDefinition(
 
 func (root *root) createAPIObject(
 	parsedName *kubespec.ParsedDefinitionName, def *kubespec.SchemaDefinition,
-) (*apiObject, error) {
+) *apiObject {
 	if parsedName.Version == nil {
-		return nil, fmt.Errorf(
+		log.Panicf(
 			"Can't make API object from name with nil version in path: '%s'",
 			parsedName.Unparse())
 	}
@@ -137,27 +137,36 @@ func (root *root) createAPIObject(
 
 	apiObject, ok := versionedAPI.apiObjects[parsedName.Kind]
 	if ok {
-		log.Fatalf("Duplicate object kinds with name '%s'", parsedName.Unparse())
+		log.Panicf("Duplicate object kinds with name '%s'", parsedName.Unparse())
 	}
 	apiObject = newAPIObject(parsedName.Kind, versionedAPI, def)
 	versionedAPI.apiObjects[parsedName.Kind] = apiObject
-	return apiObject, nil
+	return apiObject
 }
 
 func (root *root) getAPIObject(
 	parsedName *kubespec.ParsedDefinitionName,
-) (*apiObject, error) {
+) *apiObject {
 	ao, err := root.getAPIObjectHelper(parsedName, false)
 	if err == nil {
-		return ao, err
+		return ao
 	}
 
-	return root.getAPIObjectHelper(parsedName, true)
+	ao, err = root.getAPIObjectHelper(parsedName, true)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	return ao
 }
 
 func (root *root) getAPIObjectHelper(
 	parsedName *kubespec.ParsedDefinitionName, hidden bool,
 ) (*apiObject, error) {
+	if parsedName.Version == nil {
+		log.Panicf(
+			"Can't get API object with nil version: '%s'", parsedName.Unparse())
+	}
+
 	var groupName kubespec.GroupName
 	if parsedName.Group == nil {
 		groupName = "core"
@@ -377,7 +386,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	jsonnetName := kubespec.ObjectKind(
 		jsonnet.RewriteAsIdentifier(k8sVersion, ao.name))
 	if _, ok := ao.parent.apiObjects[jsonnetName]; ok {
-		log.Fatalf(
+		log.Panicf(
 			"Tried to lowercase first character of object kind '%s', but lowercase name was already present in version '%s'",
 			jsonnetName,
 			ao.parent.version)
@@ -452,7 +461,7 @@ func (ao *apiObject) emitAsRefMixins(
 	}
 
 	if _, ok := ao.parent.apiObjects[kubespec.ObjectKind(functionName)]; ok {
-		log.Fatalf(
+		log.Panicf(
 			"Tried to lowercase first character of object kind '%s', but lowercase name was already present in version '%s'",
 			functionName,
 			ao.parent.version)
@@ -480,7 +489,7 @@ func (ao *apiObject) emitAsRefMixins(
 
 func (ao *apiObject) emitConstructor(m *indentWriter) {
 	if dm, ok := ao.properties[constructorName]; ok {
-		log.Fatalf(
+		log.Panicf(
 			"Attempted to create constructor, but 'new' property already existed at '%s'",
 			dm.path)
 	}
@@ -595,14 +604,7 @@ func (p *property) emitHelper(
 
 	if p.ref != nil {
 		parsedRefPath := p.ref.Name().Parse()
-		if parsedRefPath.Version == nil {
-			// Skip things like `io.k8s.apimachinery.pkg.runtime.RawExtension`.
-			return
-		}
-		apiObject, err := p.root().getAPIObject(parsedRefPath)
-		if err != nil {
-			log.Fatalf("Failed to emit ref mixin:\n%v", err)
-		}
+		apiObject := p.root().getAPIObject(parsedRefPath)
 		apiObject.emitAsRefMixins(m, p, parentMixinName)
 	} else if p.schemaType != nil {
 		paramType := *p.schemaType
@@ -635,13 +637,13 @@ func (p *property) emitHelper(
 				body = fmt.Sprintf("%s({%s+: %s})", *parentMixinName, fieldName, paramName)
 			}
 		default:
-			log.Fatalf("Unrecognized type '%s'", paramType)
+			log.Panicf("Unrecognized type '%s'", paramType)
 		}
 
 		line := fmt.Sprintf("%s %s,", signature, body)
 		m.writeLine(line)
 	} else {
-		log.Fatalf("Neither a type nor a ref")
+		log.Panicf("Neither a type nor a ref")
 	}
 }
 
@@ -651,6 +653,10 @@ func (aos propertySet) sortAndFilterBlacklisted() propertySlice {
 		k8sVersion := pm.root().spec.Info.Version
 		if kubeversion.IsBlacklistedProperty(k8sVersion, pm.path, pm.name) {
 			continue
+		} else if pm.ref != nil {
+			if parsed := pm.ref.Name().Parse(); parsed.Version == nil {
+				continue
+			}
 		}
 		properties = append(properties, pm)
 	}
