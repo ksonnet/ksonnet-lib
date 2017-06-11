@@ -33,14 +33,16 @@ func Emit(spec *kubespec.APISpec) ([]byte, error) {
 // holds all of the logic required to build the `groups` from an
 // `kubespec.APISpec`.
 type root struct {
-	spec   *kubespec.APISpec
-	groups groupSet // set of groups, e.g., core, apps, extensions.
+	spec         *kubespec.APISpec
+	groups       groupSet // set of groups, e.g., core, apps, extensions.
+	hiddenGroups groupSet
 }
 
 func newRoot(spec *kubespec.APISpec) *root {
 	root := root{
-		spec:   spec,
-		groups: make(groupSet),
+		spec:         spec,
+		groups:       make(groupSet),
+		hiddenGroups: make(groupSet),
 	}
 
 	for defName, def := range spec.Definitions {
@@ -67,6 +69,16 @@ func (root *root) emit(m *indentWriter) {
 	for _, group := range root.groups.toSortedSlice() {
 		group.emit(m)
 	}
+
+	m.writeLine("local hidden = {")
+	m.indent()
+
+	for _, hiddenGroup := range root.hiddenGroups.toSortedSlice() {
+		hiddenGroup.emit(m)
+	}
+
+	m.dedent()
+	m.writeLine("},")
 
 	m.dedent()
 	m.writeLine("}")
@@ -103,10 +115,18 @@ func (root *root) createAPIObject(
 		groupName = *parsedName.Group
 	}
 
-	group, ok := root.groups[groupName]
+	// Separate out top-level definitions from everything else.
+	var groups groupSet
+	if len(def.TopLevelSpecs) > 0 {
+		groups = root.groups
+	} else {
+		groups = root.hiddenGroups
+	}
+
+	group, ok := groups[groupName]
 	if !ok {
 		group = newGroup(groupName, root)
-		root.groups[groupName] = group
+		groups[groupName] = group
 	}
 
 	versionedAPI, ok := group.versionedAPIs[*parsedName.Version]
@@ -127,12 +147,17 @@ func (root *root) createAPIObject(
 func (root *root) getAPIObject(
 	parsedName *kubespec.ParsedDefinitionName,
 ) (*apiObject, error) {
-	if parsedName.Version == nil {
-		return nil, fmt.Errorf(
-			"Can't make API object from name with nil version in path: '%s'",
-			parsedName.Unparse())
+	ao, err := root.getAPIObjectHelper(parsedName, false)
+	if err == nil {
+		return ao, err
 	}
 
+	return root.getAPIObjectHelper(parsedName, true)
+}
+
+func (root *root) getAPIObjectHelper(
+	parsedName *kubespec.ParsedDefinitionName, hidden bool,
+) (*apiObject, error) {
 	var groupName kubespec.GroupName
 	if parsedName.Group == nil {
 		groupName = "core"
@@ -140,7 +165,14 @@ func (root *root) getAPIObject(
 		groupName = *parsedName.Group
 	}
 
-	group, ok := root.groups[groupName]
+	var groups groupSet
+	if hidden {
+		groups = root.groups
+	} else {
+		groups = root.hiddenGroups
+	}
+
+	group, ok := groups[groupName]
 	if !ok {
 		return nil, fmt.Errorf(
 			"Could not retrieve object, group in path '%s' doesn't exist",
@@ -270,9 +302,6 @@ func (va *versionedAPI) emit(m *indentWriter) {
 
 	// Emit in sorted order so that we can diff the output.
 	for _, object := range va.apiObjects.toSortedSlice() {
-		if !object.isTopLevel {
-			continue
-		}
 		object.emit(m)
 	}
 
@@ -356,12 +385,13 @@ func (ao *apiObject) emit(m *indentWriter) {
 
 	ao.comments.emit(m)
 
-	line := fmt.Sprintf("%s:: {", jsonnetName)
-	m.writeLine(line)
+	m.writeLine(fmt.Sprintf("%s:: {", jsonnetName))
 	m.indent()
 
-	// NOTE: It is important to NOT capitalize `ao.name` here.
-	m.writeLine(fmt.Sprintf("local kind = {kind: \"%s\"},", ao.name))
+	if ao.isTopLevel {
+		// NOTE: It is important to NOT capitalize `ao.name` here.
+		m.writeLine(fmt.Sprintf("local kind = {kind: \"%s\"},", ao.name))
+	}
 	ao.emitConstructor(m)
 
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
@@ -451,7 +481,7 @@ func (ao *apiObject) emitAsRefMixins(
 func (ao *apiObject) emitConstructor(m *indentWriter) {
 	if dm, ok := ao.properties[constructorName]; ok {
 		log.Fatalf(
-			"Attempted to create constructor, but 'default' property already existed at '%s'",
+			"Attempted to create constructor, but 'new' property already existed at '%s'",
 			dm.path)
 	}
 
@@ -565,6 +595,10 @@ func (p *property) emitHelper(
 
 	if p.ref != nil {
 		parsedRefPath := p.ref.Name().Parse()
+		if parsedRefPath.Version == nil {
+			// Skip things like `io.k8s.apimachinery.pkg.runtime.RawExtension`.
+			return
+		}
 		apiObject, err := p.root().getAPIObject(parsedRefPath)
 		if err != nil {
 			log.Fatalf("Failed to emit ref mixin:\n%v", err)
