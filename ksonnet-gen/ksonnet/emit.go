@@ -83,7 +83,7 @@ func (root *root) addDefinition(
 
 	for propName, prop := range def.Properties {
 		pm := newPropertyMethod(propName, path, prop, apiObject)
-		apiObject.propertyMethods[propName] = pm
+		apiObject.properties[propName] = pm
 	}
 }
 
@@ -303,11 +303,11 @@ func (vas versionedAPISet) toSortedSlice() versionedAPISlice {
 // formulate the basis of much of ksonnet-lib's programming surface.
 // The logic for creating them is handled largely by `root`.
 type apiObject struct {
-	name            kubespec.ObjectKind // e.g., `Container` in `v1.Container`
-	propertyMethods propertyMethodSet   // e.g., container.image, container.env
-	comments        comments
-	parent          *versionedAPI
-	isTopLevel      bool
+	name       kubespec.ObjectKind // e.g., `Container` in `v1.Container`
+	properties propertySet         // e.g., container.image, container.env
+	comments   comments
+	parent     *versionedAPI
+	isTopLevel bool
 }
 type apiObjectSet map[kubespec.ObjectKind]*apiObject
 type apiObjectSlice []*apiObject
@@ -318,18 +318,18 @@ func newAPIObject(
 	isTopLevel := len(def.TopLevelSpecs) > 0
 	comments := newComments(def.Description)
 	return &apiObject{
-		name:            name,
-		propertyMethods: make(propertyMethodSet),
-		comments:        comments,
-		parent:          parent,
-		isTopLevel:      isTopLevel,
+		name:       name,
+		properties: make(propertySet),
+		comments:   comments,
+		parent:     parent,
+		isTopLevel: isTopLevel,
 	}
 }
 
 func (ao apiObject) toRefPropertyMethod(
 	name kubespec.PropertyName, path kubespec.DefinitionName, parent *apiObject,
-) *propertyMethod {
-	return &propertyMethod{
+) *property {
+	return &property{
 		ref:        path.AsObjectRef(),
 		schemaType: nil,
 		name:       name,
@@ -364,7 +364,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	m.writeLine(fmt.Sprintf("local kind = {kind: \"%s\"},", ao.name))
 	ao.emitConstructor(m)
 
-	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
+	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
 		// object type, since those will go in the `mixin` namespace.
 		if isSpecialProperty(pm.name) || pm.ref != nil {
@@ -378,7 +378,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	m.writeLine("mixin:: {")
 	m.indent()
 
-	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
+	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// TODO: Emit mixin code also for arrays whose elements are
 		// `$ref`.
 		if pm.ref == nil {
@@ -404,12 +404,12 @@ func (ao *apiObject) emit(m *indentWriter) {
 // and create mixin methods, so that we can do something like
 // `someDeployment + deployment.mixin.spec.minReadySeconds(3)`.
 func (ao *apiObject) emitAsRefMixins(
-	m *indentWriter, pm *propertyMethod, parentMixinName *string,
+	m *indentWriter, p *property, parentMixinName *string,
 ) {
 	k8sVersion := ao.root().spec.Info.Version
-	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, pm.name)
-	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, pm.name)
-	fieldName := jsonnet.RewriteAsFieldKey(pm.name)
+	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
+	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, p.name)
+	fieldName := jsonnet.RewriteAsFieldKey(p.name)
 	mixinName := fmt.Sprintf("__%sMixin", functionName)
 	var mixinText string
 	if parentMixinName == nil {
@@ -428,7 +428,7 @@ func (ao *apiObject) emitAsRefMixins(
 			ao.parent.version)
 	}
 
-	// NOTE: Comments are emitted by `propertyMethod#emit`, before we
+	// NOTE: Comments are emitted by `property#emit`, before we
 	// call this method.
 
 	line := fmt.Sprintf("%s:: {", functionName)
@@ -437,7 +437,7 @@ func (ao *apiObject) emitAsRefMixins(
 
 	m.writeLine(mixinText)
 
-	for _, pm := range ao.propertyMethods.sortAndFilterBlacklisted() {
+	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		if isSpecialProperty(pm.name) {
 			continue
 		}
@@ -449,7 +449,7 @@ func (ao *apiObject) emitAsRefMixins(
 }
 
 func (ao *apiObject) emitConstructor(m *indentWriter) {
-	if dm, ok := ao.propertyMethods[constructorName]; ok {
+	if dm, ok := ao.properties[constructorName]; ok {
 		log.Fatalf(
 			"Attempted to create constructor, but 'default' property already existed at '%s'",
 			dm.path)
@@ -477,23 +477,23 @@ func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
 // Property method.
 //-----------------------------------------------------------------------------
 
-// `propertyMethod` is an abstract representation of a ksonnet-lib's
+// `property` is an abstract representation of a ksonnet-lib's
 // property methods, which can be emitted as Jsonnet code using the
 // `emit` method.
 //
 // For example, ksonnet-lib exposes many functions such as
 // `v1.container.image`, which can be added together with the `+`
-// operator to construct a complete image. `propertyMethod` is an
+// operator to construct a complete image. `property` is an
 // abstract representation of these so-called "property methods".
 //
-// `propertyMethod` contains the name of the property given in the
+// `property` contains the name of the property given in the
 // `apiObject` that is its parent (for example, `Deployment` has a
 // field called `containers`, which is an array of `v1.Container`), as
 // well as the `kubespec.PropertyName`, which contains information
 // required to generate the Jsonnet code.
 //
 // The logic for creating them is handled largely by `root`.
-type propertyMethod struct {
+type property struct {
 	ref        *kubespec.ObjectRef
 	schemaType *kubespec.SchemaType
 	name       kubespec.PropertyName // e.g., image in container.image.
@@ -501,17 +501,17 @@ type propertyMethod struct {
 	comments   comments
 	parent     *apiObject
 }
-type propertyMethodSet map[kubespec.PropertyName]*propertyMethod
-type propertyMethodSlice []*propertyMethod
+type propertySet map[kubespec.PropertyName]*property
+type propertySlice []*property
 
 func newPropertyMethod(
 	name kubespec.PropertyName, path kubespec.DefinitionName,
-	property *kubespec.Property, parent *apiObject,
-) *propertyMethod {
-	comments := newComments(property.Description)
-	return &propertyMethod{
-		ref:        property.Ref,
-		schemaType: property.Type,
+	prop *kubespec.Property, parent *apiObject,
+) *property {
+	comments := newComments(prop.Description)
+	return &property{
+		ref:        prop.Ref,
+		schemaType: prop.Type,
 		name:       name,
 		path:       path,
 		comments:   comments,
@@ -519,12 +519,12 @@ func newPropertyMethod(
 	}
 }
 
-func (pm *propertyMethod) root() *root {
-	return pm.parent.parent.parent.parent
+func (p *property) root() *root {
+	return p.parent.parent.parent.parent
 }
 
-func (pm *propertyMethod) emit(m *indentWriter) {
-	pm.emitHelper(m, nil)
+func (p *property) emit(m *indentWriter) {
+	p.emitHelper(m, nil)
 }
 
 // `emitAsRefMixin` will emit a property as a mixin method, so that it
@@ -535,15 +535,15 @@ func (pm *propertyMethod) emit(m *indentWriter) {
 // `someDeployment + deployment.mixin.spec.minReadySeconds(3)` to "mix
 // in" a change to the `spec.minReadySeconds` field.
 //
-// This method will take the `propertyMethod`, which specifies a
+// This method will take the `property`, which specifies a
 // property method, and use it to emit such a "mixin method".
-func (pm *propertyMethod) emitAsRefMixin(
+func (p *property) emitAsRefMixin(
 	m *indentWriter, parentMixinName string,
 ) {
-	pm.emitHelper(m, &parentMixinName)
+	p.emitHelper(m, &parentMixinName)
 }
 
-// `emitHelper` emits the Jsonnet program text for a `propertyMethod`,
+// `emitHelper` emits the Jsonnet program text for a `property`,
 // handling both the case that it's a mixin (i.e., `parentMixinName !=
 // nil`), and the case that it's a "normal", non-mixin property method
 // (i.e., `parentMixinName == nil`).
@@ -552,26 +552,26 @@ func (pm *propertyMethod) emitAsRefMixin(
 // REQUIRED for `parentMixinName` to be non-nil; likewise, to get
 // `emitHelper` to emit this property as a normal, non-mixin property
 // method, it is necessary for `parentMixinName == nil`.
-func (pm *propertyMethod) emitHelper(
+func (p *property) emitHelper(
 	m *indentWriter, parentMixinName *string,
 ) {
-	pm.comments.emit(m)
+	p.comments.emit(m)
 
-	k8sVersion := pm.root().spec.Info.Version
-	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, pm.name)
-	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, pm.name)
-	fieldName := jsonnet.RewriteAsFieldKey(pm.name)
+	k8sVersion := p.root().spec.Info.Version
+	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
+	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, p.name)
+	fieldName := jsonnet.RewriteAsFieldKey(p.name)
 	signature := fmt.Sprintf("%s(%s)::", functionName, paramName)
 
-	if pm.ref != nil {
-		parsedRefPath := pm.ref.Name().Parse()
-		apiObject, err := pm.root().getAPIObject(parsedRefPath)
+	if p.ref != nil {
+		parsedRefPath := p.ref.Name().Parse()
+		apiObject, err := p.root().getAPIObject(parsedRefPath)
 		if err != nil {
 			log.Fatalf("Failed to emit ref mixin:\n%v", err)
 		}
-		apiObject.emitAsRefMixins(m, pm, parentMixinName)
-	} else if pm.schemaType != nil {
-		paramType := *pm.schemaType
+		apiObject.emitAsRefMixins(m, p, parentMixinName)
+	} else if p.schemaType != nil {
+		paramType := *p.schemaType
 
 		var body string
 		switch paramType {
@@ -611,19 +611,19 @@ func (pm *propertyMethod) emitHelper(
 	}
 }
 
-func (aos propertyMethodSet) sortAndFilterBlacklisted() propertyMethodSlice {
-	propertyMethods := propertyMethodSlice{}
+func (aos propertySet) sortAndFilterBlacklisted() propertySlice {
+	properties := propertySlice{}
 	for _, pm := range aos {
 		k8sVersion := pm.root().spec.Info.Version
 		if kubeversion.IsBlacklistedProperty(k8sVersion, pm.path, pm.name) {
 			continue
 		}
-		propertyMethods = append(propertyMethods, pm)
+		properties = append(properties, pm)
 	}
-	sort.Slice(propertyMethods, func(i, j int) bool {
-		return propertyMethods[i].name < propertyMethods[j].name
+	sort.Slice(properties, func(i, j int) bool {
+		return properties[i].name < properties[j].name
 	})
-	return propertyMethods
+	return properties
 }
 
 //-----------------------------------------------------------------------------
