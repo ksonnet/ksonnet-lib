@@ -9,6 +9,8 @@ import (
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 )
 
+const constructorName = "new"
+
 var specialProperties = map[kubespec.PropertyName]kubespec.PropertyName{
 	"apiVersion": "apiVersion",
 	"metadata":   "metadata",
