@@ -449,16 +449,16 @@ func (ao *apiObject) emitAsRefMixins(
 }
 
 func (ao *apiObject) emitConstructor(m *indentWriter) {
-	if dm, ok := ao.propertyMethods["default"]; ok {
+	if dm, ok := ao.propertyMethods[constructorName]; ok {
 		log.Fatalf(
 			"Attempted to create constructor, but 'default' property already existed at '%s'",
 			dm.path)
 	}
 
 	if ao.isTopLevel {
-		m.writeLine("default():: apiVersion + kind,")
+		m.writeLine(fmt.Sprintf("%s():: apiVersion + kind,", constructorName))
 	} else {
-		m.writeLine("default():: {},")
+		m.writeLine(fmt.Sprintf("%s():: {},", constructorName))
 	}
 }
 
