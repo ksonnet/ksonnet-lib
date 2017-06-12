@@ -13,7 +13,6 @@ const constructorName = "new"
 
 var specialProperties = map[kubespec.PropertyName]kubespec.PropertyName{
 	"apiVersion": "apiVersion",
-	"metadata":   "metadata",
 	"kind":       "kind",
 }
 
