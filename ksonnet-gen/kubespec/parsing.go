@@ -105,6 +105,11 @@ func (or *ObjectRef) Name() *DefinitionName {
 	return &name
 }
 
+func (dn DefinitionName) AsObjectRef() *ObjectRef {
+	or := ObjectRef("#/definitions/" + dn)
+	return &or
+}
+
 //-----------------------------------------------------------------------------
 // Parsed definition name.
 //-----------------------------------------------------------------------------
