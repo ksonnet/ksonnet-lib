@@ -49,10 +49,10 @@ statements for the library to your Jsonnet code:
 local k = import "ksonnet.beta.1/k.libsonnet";
 ```
 
-As Jsonnet [does not yet support](https://github.com/google/jsonnet/issues/9)
-`go get`-style importing from HTTP, import paths are relative to the root of the
-**ksonnet** repository. Remember to modify the paths appropriately
-when you work in another environment so that they point at your clone.
+Jsonnet `import` statements look along a "search path" specified using
+`jsonnet -J <path>`.  To use **ksonnet**, the search path should
+include the root of the `ksonnet-lib` git repository.  You should add
+additional `-J` paths as you build up your own local libraries.
 
 Additionally, since Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports it is common to "unpack" an import with a series of `local` definitions, as so:
 
@@ -82,7 +82,7 @@ the examples in this readme. Then run the
 following command:
 
 ```bash
-jsonnet <filename.libsonnet>
+jsonnet -J /path/to/ksonnet-lib <filename.libsonnet>
 ```
 
 This command produces a JSON file that you can then run the
@@ -121,7 +121,8 @@ spec:
 Instead, you can write the following **ksonnet** code:
 
 ```jsonnet
-local k = import "../../ksonnet.beta.1/k.libsonnet";
+local k = import "ksonnet.beta.1/k.libsonnet";
+local util = import "ksonnet.beta.1/util.libsonnet";
 
 local container = k.core.v1.container;
 local deployment = k.apps.v1beta1.deployment;
@@ -130,14 +131,16 @@ local nginxContainer =
   container.default("nginx", "nginx:1.7.9") +
   container.helpers.namedPort("http", 80);
 
-deployment.default("nginx-deployment", nginxContainer) +
-deployment.mixin.spec.replicas(2)
+util.prune(
+  deployment.default("nginx-deployment", nginxContainer) +
+    deployment.mixin.spec.template({metadata: {labels: {app: "nginx"}}}) +
+    deployment.mixin.spec.replicas(2))
 ```
 
 Save the file as `helloworld.libsonnet`, then run:
 
 ```bash
-jsonnet helloworld.libsonnet
+jsonnet -J /path/to/ksonnet-lib helloworld.libsonnet > deployment.json
 ```
 
 This command creates the `deployment.json` file that the
