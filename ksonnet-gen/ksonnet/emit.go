@@ -696,12 +696,12 @@ func (p *property) emitHelper(
 		case "array":
 			if parentMixinName == nil {
 				body = fmt.Sprintf(
-					"if std.type(%s) == \"array\" then {%s+: %s} else {%s: [%s]}",
+					"if std.type(%s) == \"array\" then {%s+: %s} else {%s+: [%s]}",
 					paramName, fieldName, paramName, fieldName, paramName,
 				)
 			} else {
 				body = fmt.Sprintf(
-					"if std.type(%s) == \"array\" then %s({%s+: %s}) else %s({%s: [%s]})",
+					"if std.type(%s) == \"array\" then %s({%s+: %s}) else %s({%s+: [%s]})",
 					paramName, *parentMixinName, fieldName, paramName, *parentMixinName,
 					fieldName, paramName,
 				)
