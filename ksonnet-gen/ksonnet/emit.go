@@ -643,8 +643,19 @@ func (p *property) emitAsTypeAlias(m *indentWriter) {
 		return
 	}
 
+	// Chop the `Type` off the end of the type alias name, rewrite the
+	// "base" of the type alias, and then append `Type` to the end
+	// again.
+	//
+	// Why: the desired behavior is for a rewrite rule to apply to both
+	// a method and its type alias. For example, if we specify that
+	// `scaleIO` should be rewritten `scaleIo`, then we'd like the type
+	// alias to be emitted as `scaleIoType`, not `scaleIOType`,
+	// automatically, so that the user doesn't have to specify another,
+	// separate rule for the type alias itself.
 	k8sVersion := p.root().spec.Info.Version
-	typeName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
+	trimmedName := kubespec.PropertyName(strings.TrimSuffix(string(p.name), "Type"))
+	typeName := jsonnet.RewriteAsIdentifier(k8sVersion, trimmedName) + "Type"
 
 	var group kubespec.GroupName
 	if parsedPath.Group == nil {
