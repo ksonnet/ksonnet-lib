@@ -493,6 +493,8 @@ func (ao *apiObject) emitAsRefMixins(
 	m.indent()
 
 	m.writeLine(mixinText)
+	m.writeLine(
+		fmt.Sprintf("mixinInstance(%s):: %s(%s),", paramName, mixinName, paramName))
 
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		if isSpecialProperty(pm.name) {
