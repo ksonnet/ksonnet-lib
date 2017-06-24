@@ -98,7 +98,8 @@ func (root *root) addDefinition(
 		apiObject.properties[propName] = pm
 
 		st := prop.Type
-		if pm.ref != nil || (st != nil && *st == "array" && prop.Items.Ref != nil) {
+		if isMixinRef(pm.ref) ||
+			(st != nil && *st == "array" && prop.Items.Ref != nil) {
 			typeAliasName := propName + "Type"
 			ta, ok := apiObject.properties[typeAliasName]
 			if ok && ta.kind != typeAlias {
@@ -423,7 +424,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
 		// object type, since those will go in the `mixin` namespace.
-		if isSpecialProperty(pm.name) || pm.ref != nil {
+		if isSpecialProperty(pm.name) || isMixinRef(pm.ref) {
 			continue
 		}
 		pm.emit(m)
@@ -437,7 +438,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// TODO: Emit mixin code also for arrays whose elements are
 		// `$ref`.
-		if pm.ref == nil {
+		if !isMixinRef(pm.ref) {
 			continue
 		}
 
@@ -697,10 +698,19 @@ func (p *property) emitHelper(
 	fieldName := jsonnet.RewriteAsFieldKey(p.name)
 	signature := fmt.Sprintf("%s(%s)::", functionName, paramName)
 
-	if p.ref != nil {
+	if isMixinRef(p.ref) {
 		parsedRefPath := p.ref.Name().Parse()
 		apiObject := p.root().getAPIObject(parsedRefPath)
 		apiObject.emitAsRefMixins(m, p, parentMixinName)
+	} else if p.ref != nil && !isMixinRef(p.ref) {
+		var body string
+		if parentMixinName == nil {
+			body = fmt.Sprintf("{%s: %s}", fieldName, paramName)
+		} else {
+			body = fmt.Sprintf("%s({%s: %s})", *parentMixinName, fieldName, paramName)
+		}
+		line := fmt.Sprintf("%s %s,", signature, body)
+		m.writeLine(line)
 	} else if p.schemaType != nil {
 		paramType := *p.schemaType
 
@@ -756,6 +766,7 @@ func (aos propertySet) sortAndFilterBlacklisted() propertySlice {
 			continue
 		} else if pm.ref != nil {
 			if parsed := pm.ref.Name().Parse(); parsed.Version == nil {
+				// TODO: Might want to error out here.
 				continue
 			}
 		}
