@@ -98,7 +98,8 @@ func (root *root) addDefinition(
 		apiObject.properties[propName] = pm
 
 		st := prop.Type
-		if pm.ref != nil || (st != nil && *st == "array" && prop.Items.Ref != nil) {
+		if isMixinRef(pm.ref) ||
+			(st != nil && *st == "array" && prop.Items.Ref != nil) {
 			typeAliasName := propName + "Type"
 			ta, ok := apiObject.properties[typeAliasName]
 			if ok && ta.kind != typeAlias {
@@ -423,7 +424,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
 		// object type, since those will go in the `mixin` namespace.
-		if isSpecialProperty(pm.name) || pm.ref != nil {
+		if isSpecialProperty(pm.name) || isMixinRef(pm.ref) {
 			continue
 		}
 		pm.emit(m)
@@ -437,7 +438,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// TODO: Emit mixin code also for arrays whose elements are
 		// `$ref`.
-		if pm.ref == nil {
+		if !isMixinRef(pm.ref) {
 			continue
 		}
 
@@ -493,6 +494,8 @@ func (ao *apiObject) emitAsRefMixins(
 	m.indent()
 
 	m.writeLine(mixinText)
+	m.writeLine(
+		fmt.Sprintf("mixinInstance(%s):: %s(%s),", paramName, mixinName, paramName))
 
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		if isSpecialProperty(pm.name) {
@@ -641,8 +644,19 @@ func (p *property) emitAsTypeAlias(m *indentWriter) {
 		return
 	}
 
+	// Chop the `Type` off the end of the type alias name, rewrite the
+	// "base" of the type alias, and then append `Type` to the end
+	// again.
+	//
+	// Why: the desired behavior is for a rewrite rule to apply to both
+	// a method and its type alias. For example, if we specify that
+	// `scaleIO` should be rewritten `scaleIo`, then we'd like the type
+	// alias to be emitted as `scaleIoType`, not `scaleIOType`,
+	// automatically, so that the user doesn't have to specify another,
+	// separate rule for the type alias itself.
 	k8sVersion := p.root().spec.Info.Version
-	typeName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
+	trimmedName := kubespec.PropertyName(strings.TrimSuffix(string(p.name), "Type"))
+	typeName := jsonnet.RewriteAsIdentifier(k8sVersion, trimmedName) + "Type"
 
 	var group kubespec.GroupName
 	if parsedPath.Group == nil {
@@ -684,10 +698,19 @@ func (p *property) emitHelper(
 	fieldName := jsonnet.RewriteAsFieldKey(p.name)
 	signature := fmt.Sprintf("%s(%s)::", functionName, paramName)
 
-	if p.ref != nil {
+	if isMixinRef(p.ref) {
 		parsedRefPath := p.ref.Name().Parse()
 		apiObject := p.root().getAPIObject(parsedRefPath)
 		apiObject.emitAsRefMixins(m, p, parentMixinName)
+	} else if p.ref != nil && !isMixinRef(p.ref) {
+		var body string
+		if parentMixinName == nil {
+			body = fmt.Sprintf("{%s: %s}", fieldName, paramName)
+		} else {
+			body = fmt.Sprintf("%s({%s: %s})", *parentMixinName, fieldName, paramName)
+		}
+		line := fmt.Sprintf("%s %s,", signature, body)
+		m.writeLine(line)
 	} else if p.schemaType != nil {
 		paramType := *p.schemaType
 
@@ -696,12 +719,12 @@ func (p *property) emitHelper(
 		case "array":
 			if parentMixinName == nil {
 				body = fmt.Sprintf(
-					"if std.type(%s) == \"array\" then {%s+: %s} else {%s: [%s]}",
+					"if std.type(%s) == \"array\" then {%s+: %s} else {%s+: [%s]}",
 					paramName, fieldName, paramName, fieldName, paramName,
 				)
 			} else {
 				body = fmt.Sprintf(
-					"if std.type(%s) == \"array\" then %s({%s+: %s}) else %s({%s: [%s]})",
+					"if std.type(%s) == \"array\" then %s({%s+: %s}) else %s({%s+: [%s]})",
 					paramName, *parentMixinName, fieldName, paramName, *parentMixinName,
 					fieldName, paramName,
 				)
@@ -743,6 +766,7 @@ func (aos propertySet) sortAndFilterBlacklisted() propertySlice {
 			continue
 		} else if pm.ref != nil {
 			if parsed := pm.ref.Name().Parse(); parsed.Version == nil {
+				// TODO: Might want to error out here.
 				continue
 			}
 		}
