@@ -81,6 +81,13 @@ k8s + {
           if std.type(items) == "array" then {items+: items} else {items: [items]},
       },
 
+      namespace:: core.v1.namespace + {
+        new(name)::
+          super.new() +
+          super.mixin.metadata.name(name) +
+          super.mixin.metadata.labels({"name": name}),
+      },
+
       service:: core.v1.service + {
         new(name, selectorLabels, ports)::
           super.new() +
