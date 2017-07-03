@@ -43,6 +43,11 @@ local hidden = {
   },
 
   volume:: volume + {
+    fromEmptyDir(name)::
+      volume.new() +
+      volume.name("nginx-logs") +
+      volume.mixin.emptyDir.mixinInstance({}),
+
     fromPvc(name, claimName)::
       super.new() +
       super.name(name) + {
@@ -78,7 +83,9 @@ k8s + {
         new(items)::
           {apiVersion: "v1"} +
           {kind: "List"} +
-          if std.type(items) == "array" then {items+: items} else {items: [items]},
+          self.items(items),
+
+        items(items):: if std.type(items) == "array" then {items+: items} else {items+: [items]},
       },
 
       service:: core.v1.service + {
@@ -152,6 +159,19 @@ k8s + {
             },
           },
         },
+
+        mapContainersWithName(names, f) ::
+          local nameSet =
+            if std.type(names) == "array"
+            then std.set(names)
+            else std.set([names]);
+          local inNameSet(name) = std.length(std.setInter(nameSet, std.set([name]))) > 0;
+          self.mapContainers(
+            function(c)
+              if std.objectHas(c, "name") && inNameSet(c.name)
+              then f(c)
+              else c
+          ),
 
         mixin:: deployment.mixin + {
           // extensions.v1beta1.deployment.mixin.spec.template.spec.containersType
