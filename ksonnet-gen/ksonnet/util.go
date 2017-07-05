@@ -26,6 +26,8 @@ var specialProperties = map[kubespec.PropertyName]kubespec.PropertyName{
 	"kind":       "kind",
 }
 
+var specialPropertiesList = []string{"apiVersion", "kind"}
+
 func isSpecialProperty(pn kubespec.PropertyName) bool {
 	_, ok := specialProperties[pn]
 	return ok
