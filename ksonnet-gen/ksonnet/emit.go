@@ -129,6 +129,13 @@ func (root *root) createAPIObject(
 		groupName = *parsedName.Group
 	}
 
+	var qualifiedName kubespec.GroupName
+	if len(def.TopLevelSpecs) > 0 && def.TopLevelSpecs[0].Group != "" {
+		qualifiedName = def.TopLevelSpecs[0].Group
+	} else {
+		qualifiedName = groupName
+	}
+
 	// Separate out top-level definitions from everything else.
 	var groups groupSet
 	if len(def.TopLevelSpecs) > 0 {
@@ -139,7 +146,7 @@ func (root *root) createAPIObject(
 
 	group, ok := groups[groupName]
 	if !ok {
-		group = newGroup(groupName, root)
+		group = newGroup(groupName, qualifiedName, root)
 		groups[groupName] = group
 	}
 
@@ -229,15 +236,19 @@ func (root *root) getAPIObjectHelper(
 // though the logic for creating them is handled largely by `root`.
 type group struct {
 	name          kubespec.GroupName // e.g., core, apps, extensions.
+	qualifiedName kubespec.GroupName // e.g., rbac.authorization.k8s.io.
 	versionedAPIs versionedAPISet    // e.g., v1, v1beta1.
 	parent        *root
 }
 type groupSet map[kubespec.GroupName]*group
 type groupSlice []*group
 
-func newGroup(name kubespec.GroupName, parent *root) *group {
+func newGroup(
+	name kubespec.GroupName, qualifiedName kubespec.GroupName, parent *root,
+) *group {
 	return &group{
 		name:          name,
+		qualifiedName: qualifiedName,
 		versionedAPIs: make(versionedAPISet),
 		parent:        parent,
 	}
@@ -314,7 +325,7 @@ func (va *versionedAPI) emit(m *indentWriter) {
 	m.writeLine(line)
 	m.indent()
 
-	gn := va.parent.name
+	gn := va.parent.qualifiedName
 	if gn == "core" {
 		m.writeLine(fmt.Sprintf(
 			"local apiVersion = {apiVersion: \"%s\"},", va.version))
