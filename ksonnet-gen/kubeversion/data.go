@@ -132,6 +132,14 @@ var versions = map[string]versionData{
 					newParamNestedRef("containers", "mixin.spec.template.spec.containers"),
 					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.labels", "{}")),
 			},
+			"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Deployment": []CustomConstructorSpec{
+				newConstructor(
+					"new",
+					newParamNestedRef("name", "mixin.metadata.name"),
+					newParamNestedRef("replicas", "mixin.spec.replicas"),
+					newParamNestedRef("containers", "mixin.spec.template.spec.containers"),
+					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.labels", "{}")),
+			},
 		},
 		propertyBlacklist: map[string]propertySet{
 			// Metadata fields.
