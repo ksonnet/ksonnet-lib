@@ -68,6 +68,71 @@ var versions = map[string]versionData{
 			"APIVersions":                      "apiVersions",
 			"ServerAddressByClientCIDR":        "serverAddressByClientCidr",
 		},
+		constructorSpecs: map[string][]CustomConstructorSpec{
+			"io.k8s.kubernetes.pkg.api.v1.Container": []CustomConstructorSpec{
+				newConstructor("new", newParam("name"), newParam("image")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.ContainerPort": []CustomConstructorSpec{
+				newConstructor("new", newParam("containerPort")),
+				newConstructor("newNamed", newParam("name"), newParam("containerPort")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.EnvVar": []CustomConstructorSpec{
+				newConstructor("new", newParam("name"), newParam("value")),
+				newConstructor(
+					"fromSecretRef",
+					newParam("name"),
+					newParamNestedRef("secretRefName", "mixin.valueFrom.secretKeyRef.name"),
+					newParamNestedRef("secretRefKey", "mixin.valueFrom.secretKeyRef.key")),
+				newConstructor(
+					"fromFieldPath",
+					newParam("name"),
+					newParamNestedRef("fieldPath", "mixin.valueFrom.fieldRef.fieldPath")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.KeyToPath": []CustomConstructorSpec{
+				newConstructor("new", newParam("key"), newParam("path")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.Service": []CustomConstructorSpec{
+				newConstructor(
+					"new",
+					newParamNestedRef("name", "mixin.metadata.name"),
+					newParamNestedRef("selector", "mixin.spec.selector"),
+					newParamNestedRef("ports", "mixin.spec.ports")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.ServicePort": []CustomConstructorSpec{
+				newConstructor("new", newParam("port"), newParam("targetPort")),
+				newConstructor("newNamed", newParam("name"), newParam("port"), newParam("targetPort")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.Volume": []CustomConstructorSpec{
+				newConstructor(
+					"fromConfigMap",
+					newParam("name"),
+					newParamNestedRef("configMapName", "mixin.configMap.name"),
+					newParamNestedRef("configMapItems", "mixin.configMap.items")),
+				newConstructor(
+					"fromEmptyDir",
+					newParam("name"),
+					newParamNestedRefDefault("emptyDir", "mixin.emptyDir.mixinInstance", "{}")),
+				newConstructor(
+					"fromPersistentVolumeClaim",
+					newParam("name"),
+					newParamNestedRef("claimName", "mixin.persistentVolumeClaim.claimName")),
+				newConstructor(
+					"fromHostPath",
+					newParam("name"),
+					newParamNestedRef("hostPath", "mixin.hostPath.path")),
+			},
+			"io.k8s.kubernetes.pkg.api.v1.VolumeMount": []CustomConstructorSpec{
+				newConstructor("new", newParam("name"), newParam("mountPath"), newParamWithDefault("readOnly", "false")),
+			},
+			"io.k8s.kubernetes.pkg.apis.apps.v1beta1.Deployment": []CustomConstructorSpec{
+				newConstructor(
+					"new",
+					newParamNestedRef("name", "mixin.metadata.name"),
+					newParamNestedRef("replicas", "mixin.spec.replicas"),
+					newParamNestedRef("containers", "mixin.spec.template.spec.containers"),
+					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.labels", "{}")),
+			},
+		},
 		propertyBlacklist: map[string]propertySet{
 			// Metadata fields.
 			"io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta": newPropertySet(

@@ -129,6 +129,13 @@ func (root *root) createAPIObject(
 		groupName = *parsedName.Group
 	}
 
+	var qualifiedName kubespec.GroupName
+	if len(def.TopLevelSpecs) > 0 && def.TopLevelSpecs[0].Group != "" {
+		qualifiedName = def.TopLevelSpecs[0].Group
+	} else {
+		qualifiedName = groupName
+	}
+
 	// Separate out top-level definitions from everything else.
 	var groups groupSet
 	if len(def.TopLevelSpecs) > 0 {
@@ -139,7 +146,7 @@ func (root *root) createAPIObject(
 
 	group, ok := groups[groupName]
 	if !ok {
-		group = newGroup(groupName, root)
+		group = newGroup(groupName, qualifiedName, root)
 		groups[groupName] = group
 	}
 
@@ -229,15 +236,19 @@ func (root *root) getAPIObjectHelper(
 // though the logic for creating them is handled largely by `root`.
 type group struct {
 	name          kubespec.GroupName // e.g., core, apps, extensions.
+	qualifiedName kubespec.GroupName // e.g., rbac.authorization.k8s.io.
 	versionedAPIs versionedAPISet    // e.g., v1, v1beta1.
 	parent        *root
 }
 type groupSet map[kubespec.GroupName]*group
 type groupSlice []*group
 
-func newGroup(name kubespec.GroupName, parent *root) *group {
+func newGroup(
+	name kubespec.GroupName, qualifiedName kubespec.GroupName, parent *root,
+) *group {
 	return &group{
 		name:          name,
+		qualifiedName: qualifiedName,
 		versionedAPIs: make(versionedAPISet),
 		parent:        parent,
 	}
@@ -314,7 +325,7 @@ func (va *versionedAPI) emit(m *indentWriter) {
 	m.writeLine(line)
 	m.indent()
 
-	gn := va.parent.name
+	gn := va.parent.qualifiedName
 	if gn == "core" {
 		m.writeLine(fmt.Sprintf(
 			"local apiVersion = {apiVersion: \"%s\"},", va.version))
@@ -419,7 +430,7 @@ func (ao *apiObject) emit(m *indentWriter) {
 		// NOTE: It is important to NOT capitalize `ao.name` here.
 		m.writeLine(fmt.Sprintf("local kind = {kind: \"%s\"},", ao.name))
 	}
-	ao.emitConstructor(m)
+	ao.emitConstructors(m)
 
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		// Skip special properties and fields that `$ref` another API
@@ -508,18 +519,83 @@ func (ao *apiObject) emitAsRefMixins(
 	m.writeLine("},")
 }
 
-func (ao *apiObject) emitConstructor(m *indentWriter) {
-	if dm, ok := ao.properties[constructorName]; ok {
-		log.Panicf(
-			"Attempted to create constructor, but 'new' property already existed at '%s'",
-			dm.path)
+func (ao *apiObject) emitConstructors(m *indentWriter) {
+	k8sVersion := ao.root().spec.Info.Version
+	path := ao.parsedName.Unparse()
+
+	specs, ok := kubeversion.ConstructorSpec(k8sVersion, path)
+	if !ok {
+		ao.emitConstructor(m, constructorName, []kubeversion.CustomConstructorParam{})
+		return
 	}
 
-	if ao.isTopLevel {
-		m.writeLine(fmt.Sprintf("%s():: apiVersion + kind,", constructorName))
-	} else {
-		m.writeLine(fmt.Sprintf("%s():: {},", constructorName))
+	for _, spec := range specs {
+		ao.emitConstructor(m, spec.ID, spec.Params)
 	}
+}
+
+func (ao *apiObject) emitConstructor(
+	m *indentWriter, id string, params []kubeversion.CustomConstructorParam,
+) {
+	// Panic if a function with the constructor's name already exists.
+	specName := kubespec.PropertyName(id)
+	if dm, ok := ao.properties[specName]; ok {
+		log.Panicf(
+			"Attempted to create constructor, but '%s' property already existed at '%s'",
+			specName, dm.path)
+	}
+
+	// Default body of the constructor. Usually either `apiVersion +
+	// kind` or `{}`.
+	var defaultSetters []string
+	if ao.isTopLevel {
+		defaultSetters = specialPropertiesList
+	} else {
+		defaultSetters = []string{"{}"}
+	}
+
+	// Build parameters and body of constructor. Considering the example
+	// of the constructor of `v1.Container`:
+	//
+	//   new(name, image):: self.name(name) + self.image(image),
+	//
+	// Here we want to (1) assemble the parameter list (i.e., `name` and
+	// `image`), as well as the body (i.e., the calls to `self.name` and
+	// so on).
+	paramLiterals := []string{}
+	setters := defaultSetters
+	for _, param := range params {
+		// Add the param to the param list, including default value if
+		// applicable.
+		if param.DefaultValue != nil {
+			paramLiterals = append(
+				paramLiterals, fmt.Sprintf("%s=%s", param.ID, *param.DefaultValue))
+		} else {
+			paramLiterals = append(paramLiterals, param.ID)
+		}
+
+		// Add an element to the body (e.g., `self.name` above).
+		if param.RelativePath == nil {
+			prop, ok := ao.properties[kubespec.PropertyName(param.ID)]
+			if !ok {
+				log.Panicf(
+					"Attempted to create constructor, but property '%s' does not exist",
+					param.ID)
+			}
+			setters = append(
+				setters, fmt.Sprintf("self.%s(%s)", prop.name, param.ID))
+		} else {
+			// TODO(hausdorff): We may want to verify this relative path
+			// exists.
+			setters = append(
+				setters, fmt.Sprintf("self.%s(%s)", *param.RelativePath, param.ID))
+		}
+	}
+
+	// Write out constructor.
+	paramsText := strings.Join(paramLiterals, ", ")
+	bodyText := strings.Join(setters, " + ")
+	m.writeLine(fmt.Sprintf("%s(%s):: %s,", specName, paramsText, bodyText))
 }
 
 func (aos apiObjectSet) toSortedSlice() apiObjectSlice {
