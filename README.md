@@ -46,7 +46,7 @@ Then add the appropriate import
 statements for the library to your Jsonnet code:
 
 ```jsonnet
-local k = import "ksonnet.beta.1/k.libsonnet";
+local k = import "ksonnet.beta.2/k.libsonnet";
 ```
 
 Jsonnet `import` statements look along a "search path" specified using
@@ -54,7 +54,8 @@ Jsonnet `import` statements look along a "search path" specified using
 include the root of the `ksonnet-lib` git repository.  You should add
 additional `-J` paths as you build up your own local libraries.
 
-Additionally, since Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports it is common to "unpack" an import with a series of `local` definitions, as so:
+Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports, 
+so it is common to "unpack" an import with a series of `local` definitions:
 
 ```jsonnet
 local container = k.core.v1.container;
@@ -120,27 +121,31 @@ spec:
 
 Instead, you can write the following **ksonnet** code:
 
-```jsonnet
-local k = import "ksonnet.beta.1/k.libsonnet";
-local util = import "ksonnet.beta.1/util.libsonnet";
+```javascript
+local k = import "ksonnet.beta.2/k.libsonnet";
 
-local container = k.core.v1.container;
-local deployment = k.apps.v1beta1.deployment;
+// Specify the import objects that we need
+local container = k.extensions.v1beta1.deployment.mixin.spec.template.spec.containersType;
+local containerPort = container.portsType;
+local deployment = k.extensions.v1beta1.deployment;
+
+local targetPort = 80;
+local podLabels = {app: "nginx"};
 
 local nginxContainer =
-  container.default("nginx", "nginx:1.7.9") +
-  container.helpers.namedPort("http", 80);
+  container.new("nginx", "nginx:1.7.9") +
+  container.ports(containerPort.containerPort(targetPort));
 
-util.prune(
-  deployment.default("nginx-deployment", nginxContainer) +
-    deployment.mixin.spec.template({metadata: {labels: {app: "nginx"}}}) +
-    deployment.mixin.spec.replicas(2))
+local nginxDeployment =
+  deployment.new("nginx-deployment", 2, nginxContainer, podLabels);
+
+k.core.v1.list.new(nginxDeployment)
 ```
 
 Save the file as `helloworld.libsonnet`, then run:
 
 ```bash
-jsonnet -J /path/to/ksonnet-lib helloworld.libsonnet > deployment.json
+jsonnet -J </path/to/ksonnet-lib> helloworld.libsonnet > deployment.json
 ```
 
 This command creates the `deployment.json` file that the
@@ -158,17 +163,21 @@ kubectl apply -f deployment.json
 The **ksonnet** project organizes libraries by the level of
 abstraction they approach. For most users, the right entry point is:
 
-* `ksonnet.beta.1/k.libsonnet`: higher-level abstractions and methods
+* `ksonnet.beta.2/k.libsonnet`: higher-level abstractions and methods
   to help create complex Kubernetes objects out of smaller objects
 
-`k.libsonnet` is built on top of several lower-level utility libraries
-that extends the object model and functions of `Jsonnet` to implement
-the Kubernetes API. These are generated directly from the swagger
-spec, and are organized by the API groups they belong to:
+`k.libsonnet` is built on top of a utility library, `k8s.libsonnet`, 
+that is generated directly from the OpenAPI definition.
 
-* `ksonnet.beta.1/apps.v1beta1.libsonnet`
-* `ksonnet.beta.1/core.v1.libsonnet`
-* `ksonnet.beta.1/extensions.v1beta1.libsonnet`
+## Mixins
+
+Mixins are a core feature of **ksonnet**. Conceptually, they provide dynamic inheritance, at 
+runtime instead of compile time, which lets you combine them freely to modify objects or 
+create new ones.
+
+**ksonnet** ships with a large library of built-in mixins, or you can write your own custom mixins. 
+The [tutorial](/docs/TUTORIAL.md) shows you how to create a custom mixin that you can then 
+easily add as a Sidecar container to your Kubernetes cluster.
 
 ## Contributing
 

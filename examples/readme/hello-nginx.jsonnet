@@ -1,15 +1,19 @@
 // This expects to be run with `jsonnet -J <path to ksonnet-lib>`
-local k = import "ksonnet.beta.1/k.libsonnet";
-local util = import "ksonnet.beta.1/util.libsonnet";
+local k = import "ksonnet.beta.2/k.libsonnet";
 
-local container = k.core.v1.container;
-local deployment = k.apps.v1beta1.deployment;
+// Specify the import objects that we need
+local container = k.extensions.v1beta1.deployment.mixin.spec.template.spec.containersType;
+local containerPort = container.portsType;
+local deployment = k.extensions.v1beta1.deployment;
+
+local targetPort = 80;
+local podLabels = {app: "nginx"};
 
 local nginxContainer =
-  container.default("nginx", "nginx:1.7.9") +
-  container.helpers.namedPort("http", 80);
+  container.new("nginx", "nginx:1.7.9") +
+  container.ports(containerPort.containerPort(targetPort));
 
-util.prune(
-  deployment.default("nginx-deployment", nginxContainer) +
-    deployment.mixin.spec.template({metadata: {labels: {app: "nginx"}}}) +
-    deployment.mixin.spec.replicas(2))
+local nginxDeployment =
+  deployment.new("nginx-deployment", 2, nginxContainer, podLabels);
+
+k.core.v1.list.new(nginxDeployment)
