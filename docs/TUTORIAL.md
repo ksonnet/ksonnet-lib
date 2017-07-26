@@ -28,7 +28,7 @@ For details, see the [readme][readme].
 
 * Install **Jsonnet**, version 0.9.4 or later
 * Clone the **ksonnet** repository locally
-* Install and configure the VisualStudio Code extension (optional)
+* Install and configure the Visual Studio Code extension (optional)
 * Create a test Kubernetes cluster
 
 ## Architecture and design
