@@ -13,11 +13,11 @@ Kubernetes application definition.
 In this tutorial, we will explore how such libraries are constructed,
 using a mixin library for [fluentd][fluentd] (hosted in the official
 [mixins repository][fluentd-mixin]). Specifically, we see how one team
-writing an app using [ElasticSearch][elastic] can use the Fluentd
+writing an app using [Elasticsearch][elastic] can use the Fluentd
 mixin library to use easily configure Fluentd to tail the
-ElasticSearch logs and pass them Kibana to be rendered in a dashboard.
+Elasticsearch logs and pass them Kibana to be rendered in a dashboard.
 
-For more information about ElasticSearch and Kibana, see [the Elastic
+For more information about Elasticsearch and Kibana, see [the Elastic
 website][elastic]. For `fluentd`, see [the Fluentd website][fluentd].
 
 ## Requirements to build your own mixins
@@ -33,7 +33,7 @@ For details, see the [readme][readme].
 
 ## Architecture and design
 
-The idea of the application is for ElasticSearch to emit logs to
+The idea of the application is for Elasticsearch to emit logs to
 standard out, and for Fluentd to tail those logs and send them to
 Kibana for rendering.
 
@@ -48,7 +48,7 @@ We'll walk through the key parts of the files in example in detail,
 but at a high level this implementation is broken up as:
 
 * A `DaemonSet` that causes Fluentd to run once on every machine, so
-  that it can tail `Pod` logs for ElasticSearch running anywhere in
+  that it can tail `Pod` logs for Elasticsearch running anywhere in
   the cluster.
 
   On its own, this `DaemonSet` only contains the core Fluentd
