@@ -11,7 +11,7 @@ library that the application team can use to add logging to their
 Kubernetes application definition.
 
 In this tutorial, we will explore how such libraries are constructed,
-using an mixin library for [fluentd][fluentd] (hosted in the official
+using a mixin library for [fluentd][fluentd] (hosted in the official
 [mixins repository][fluentd-mixin]). Specifically, we see how one team
 writing an app using [ElasticSearch][elastic] can use the Fluentd
 mixin library to use easily configure Fluentd to tail the
