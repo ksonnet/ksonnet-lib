@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
@@ -35,7 +37,9 @@ func main() {
 	s.FilePath = filepath.Dir(swaggerPath)
 
 	// Emit Jsonnet code.
-	jsonnetBytes, err := ksonnet.Emit(&s)
+	ksonnetLibSHA := getSHARevision(".")
+	k8sSHA := getSHARevision(s.FilePath)
+	jsonnetBytes, err := ksonnet.Emit(&s, &ksonnetLibSHA, &k8sSHA)
 	if err != nil {
 		log.Fatalf("Could not write ksonnet library:\n%v", err)
 	}
@@ -46,6 +50,30 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not write `kube.libsonnet`:\n%v", err)
 	}
+}
+
+func getSHARevision(dir string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Could get working directory:\n%v", err)
+	}
+
+	err = os.Chdir(dir)
+	if err != nil {
+		log.Fatalf("Could cd to directory of repository at '%s':\n%v", dir, err)
+	}
+
+	sha, err := exec.Command("sh", "-c", "git rev-parse HEAD").Output()
+	if err != nil {
+		log.Fatalf("Could not find SHA of HEAD:\n%v", err)
+	}
+
+	err = os.Chdir(cwd)
+	if err != nil {
+		log.Fatalf("Could cd back to current directory '%s':\n%v", cwd, err)
+	}
+
+	return strings.TrimSpace(string(sha))
 }
 
 func init() {
