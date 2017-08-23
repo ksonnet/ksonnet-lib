@@ -30,7 +30,7 @@
 ##############################################
 
 FROM golang:1.8 as kubecfg-builder
-# Keep this in sync with the corresponding ENV in stage 2
+# Keep this in sync with the corresponding ENV in other stages
 ENV KUBECFG_VERSION v0.5.0
 
 RUN go get github.com/ksonnet/kubecfg
@@ -42,22 +42,32 @@ RUN CGO_ENABLED=1 GOOS=linux go install -a --ldflags '-linkmode external -extldf
 # STAGE 2: build jsonnet and download ksonnet
 ##############################################
 
+FROM alpine:3.6 as alpine-builder
+# Keep this in sync with the corresponding ENV in other stages
+ENV JSONNET_VERSION v0.9.4
+
+# Get Jsonnet
+RUN apk update && apk add git make g++
+RUN git clone https://github.com/google/jsonnet.git
+RUN cd jsonnet && git checkout tags/${JSONNET_VERSION} -b ${JSONNET_VERSION} && make -j4
+
+# Get ksonnet-lib
+RUN git clone https://github.com/ksonnet/ksonnet-lib.git
+
 FROM alpine:3.6
-ENV KUBECFG_VERSION v0.5.0
 ENV JSONNET_VERSION v0.9.4
 
 # Copy kubecfg executable and lib files from previous stage
-RUN mkdir -p /usr/share/kubecfg/${KUBECFG_VERSION}
+RUN mkdir -p /usr/share/kubecfg/
 COPY --from=kubecfg-builder /go/bin/kubecfg /usr/local/bin/
-COPY --from=kubecfg-builder /go/src/github.com/ksonnet/kubecfg/lib/ /usr/share/kubecfg/${KUBECFG_VERSION}/
-ENV KUBECFG_JPATH /usr/share/kubecfg/${KUBECFG_VERSION}
+COPY --from=kubecfg-builder /go/src/github.com/ksonnet/kubecfg/lib/ /usr/share/kubecfg/
 
-# Get Jsonnet.
-RUN apk update && apk add git make g++
-RUN git clone https://github.com/google/jsonnet.git
-RUN cd jsonnet && git checkout tags/${JSONNET_VERSION} -b ${JSONNET_VERSION} && make -j4 && mv jsonnet /usr/local/bin
+# Copy jsonnet executable from previous stage
+COPY --from=alpine-builder /jsonnet/jsonnet /usr/local/bin/
 
-# Get ksonnet-lib, add to the Jsonnet -J path.
-RUN git clone https://github.com/ksonnet/ksonnet-lib.git
-RUN mkdir -p /usr/share/${JSONNET_VERSION}
-RUN cp -r ksonnet-lib/ksonnet.beta.2 /usr/share/${JSONNET_VERSION}
+# Copy ksonnet-lib from previous stage, add to default Jsonnet -J path
+RUN mkdir -p /usr/share/${JSONNET_VERSION}/
+COPY --from=alpine-builder /ksonnet-lib/ksonnet.beta.2/ /usr/share/${JSONNET_VERSION}/
+
+# Add all jsonnet paths to kubecfg -J path
+ENV KUBECFG_JPATH /usr/share/kubecfg:/usr/share/${JSONNET_VERSION}
