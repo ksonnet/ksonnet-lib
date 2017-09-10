@@ -67,6 +67,9 @@ var versions = map[string]versionData{
 			"APIResourceList":                  "apiResourceList",
 			"APIVersions":                      "apiVersions",
 			"ServerAddressByClientCIDR":        "serverAddressByClientCidr",
+
+			// Collisions with Jsonnet keywords.
+			"local": "localStorage",
 		},
 		constructorSpecs: map[string][]CustomConstructorSpec{
 			"io.k8s.kubernetes.pkg.api.v1.Container": []CustomConstructorSpec{
