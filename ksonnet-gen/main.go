@@ -39,16 +39,22 @@ func main() {
 	// Emit Jsonnet code.
 	ksonnetLibSHA := getSHARevision(".")
 	k8sSHA := getSHARevision(s.FilePath)
-	jsonnetBytes, err := ksonnet.Emit(&s, &ksonnetLibSHA, &k8sSHA)
+	kBytes, k8sBytes, err := ksonnet.Emit(&s, &ksonnetLibSHA, &k8sSHA)
 	if err != nil {
 		log.Fatalf("Could not write ksonnet library:\n%v", err)
 	}
 
 	// Write out.
-	outfile := fmt.Sprintf("%s/%s", os.Args[2], "k8s.libsonnet")
-	err = ioutil.WriteFile(outfile, jsonnetBytes, 0644)
+	k8sOutfile := fmt.Sprintf("%s/%s", os.Args[2], "k8s.libsonnet")
+	err = ioutil.WriteFile(k8sOutfile, k8sBytes, 0644)
 	if err != nil {
-		log.Fatalf("Could not write `kube.libsonnet`:\n%v", err)
+		log.Fatalf("Could not write `k8s.libsonnet`:\n%v", err)
+	}
+
+	kOutfile := fmt.Sprintf("%s/%s", os.Args[2], "k.libsonnet")
+	err = ioutil.WriteFile(kOutfile, kBytes, 0644)
+	if err != nil {
+		log.Fatalf("Could not write `k.libsonnet`:\n%v", err)
 	}
 }
 
