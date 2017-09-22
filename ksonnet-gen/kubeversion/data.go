@@ -84,12 +84,12 @@ var versions = map[string]versionData{
 				newConstructor(
 					"fromSecretRef",
 					newParam("name"),
-					newParamNestedRef("secretRefName", "mixin.valueFrom.secretKeyRef.name"),
-					newParamNestedRef("secretRefKey", "mixin.valueFrom.secretKeyRef.key")),
+					newParamNestedRef("secretRefName", "mixin.valueFrom.secretKeyRef.withName"),
+					newParamNestedRef("secretRefKey", "mixin.valueFrom.secretKeyRef.withKey")),
 				newConstructor(
 					"fromFieldPath",
 					newParam("name"),
-					newParamNestedRef("fieldPath", "mixin.valueFrom.fieldRef.fieldPath")),
+					newParamNestedRef("fieldPath", "mixin.valueFrom.fieldRef.withFieldPath")),
 			},
 			"io.k8s.kubernetes.pkg.api.v1.KeyToPath": []CustomConstructorSpec{
 				newConstructor("new", newParam("key"), newParam("path")),
@@ -97,9 +97,9 @@ var versions = map[string]versionData{
 			"io.k8s.kubernetes.pkg.api.v1.Service": []CustomConstructorSpec{
 				newConstructor(
 					"new",
-					newParamNestedRef("name", "mixin.metadata.name"),
-					newParamNestedRef("selector", "mixin.spec.selector"),
-					newParamNestedRef("ports", "mixin.spec.ports")),
+					newParamNestedRef("name", "mixin.metadata.withName"),
+					newParamNestedRef("selector", "mixin.spec.withSelector"),
+					newParamNestedRef("ports", "mixin.spec.withPorts")),
 			},
 			"io.k8s.kubernetes.pkg.api.v1.ServicePort": []CustomConstructorSpec{
 				newConstructor("new", newParam("port"), newParam("targetPort")),
@@ -109,8 +109,8 @@ var versions = map[string]versionData{
 				newConstructor(
 					"fromConfigMap",
 					newParam("name"),
-					newParamNestedRef("configMapName", "mixin.configMap.name"),
-					newParamNestedRef("configMapItems", "mixin.configMap.items")),
+					newParamNestedRef("configMapName", "mixin.configMap.withName"),
+					newParamNestedRef("configMapItems", "mixin.configMap.withItems")),
 				newConstructor(
 					"fromEmptyDir",
 					newParam("name"),
@@ -118,11 +118,11 @@ var versions = map[string]versionData{
 				newConstructor(
 					"fromPersistentVolumeClaim",
 					newParam("name"),
-					newParamNestedRef("claimName", "mixin.persistentVolumeClaim.claimName")),
+					newParamNestedRef("claimName", "mixin.persistentVolumeClaim.withClaimName")),
 				newConstructor(
 					"fromHostPath",
 					newParam("name"),
-					newParamNestedRef("hostPath", "mixin.hostPath.path")),
+					newParamNestedRef("hostPath", "mixin.hostPath.withPath")),
 			},
 			"io.k8s.kubernetes.pkg.api.v1.VolumeMount": []CustomConstructorSpec{
 				newConstructor("new", newParam("name"), newParam("mountPath"), newParamWithDefault("readOnly", "false")),
@@ -130,18 +130,18 @@ var versions = map[string]versionData{
 			"io.k8s.kubernetes.pkg.apis.apps.v1beta1.Deployment": []CustomConstructorSpec{
 				newConstructor(
 					"new",
-					newParamNestedRef("name", "mixin.metadata.name"),
-					newParamNestedRef("replicas", "mixin.spec.replicas"),
-					newParamNestedRef("containers", "mixin.spec.template.spec.containers"),
-					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.labels", "{}")),
+					newParamNestedRef("name", "mixin.metadata.withName"),
+					newParamNestedRef("replicas", "mixin.spec.withReplicas"),
+					newParamNestedRef("containers", "mixin.spec.template.spec.withContainers"),
+					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.withLabels", "{}")),
 			},
 			"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Deployment": []CustomConstructorSpec{
 				newConstructor(
 					"new",
-					newParamNestedRef("name", "mixin.metadata.name"),
-					newParamNestedRef("replicas", "mixin.spec.replicas"),
-					newParamNestedRef("containers", "mixin.spec.template.spec.containers"),
-					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.labels", "{}")),
+					newParamNestedRef("name", "mixin.metadata.withName"),
+					newParamNestedRef("replicas", "mixin.spec.withReplicas"),
+					newParamNestedRef("containers", "mixin.spec.template.spec.withContainers"),
+					newParamNestedRefDefault("podLabels", "mixin.spec.template.metadata.withLabels", "{}")),
 			},
 		},
 		propertyBlacklist: map[string]propertySet{
