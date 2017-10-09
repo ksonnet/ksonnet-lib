@@ -54,7 +54,7 @@ Jsonnet `import` statements look along a "search path" specified using
 include the root of the `ksonnet-lib` git repository.  You should add
 additional `-J` paths as you build up your own local libraries.
 
-Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports, 
+Jsonnet does not yet support [ES2016-style](https://github.com/google/jsonnet/issues/307) imports,
 so it is common to "unpack" an import with a series of `local` definitions:
 
 ```jsonnet
@@ -166,17 +166,17 @@ abstraction they approach. For most users, the right entry point is:
 * `ksonnet.beta.2/k.libsonnet`: higher-level abstractions and methods
   to help create complex Kubernetes objects out of smaller objects
 
-`k.libsonnet` is built on top of a utility library, `k8s.libsonnet`, 
+`k.libsonnet` is built on top of a utility library, `k8s.libsonnet`,
 that is generated directly from the OpenAPI definition.
 
 ## Mixins
 
-Mixins are a core feature of **ksonnet**. Conceptually, they provide dynamic inheritance, at 
-runtime instead of compile time, which lets you combine them freely to modify objects or 
+Mixins are a core feature of **ksonnet**. Conceptually, they provide dynamic inheritance, at
+runtime instead of compile time, which lets you combine them freely to modify objects or
 create new ones.
 
-**ksonnet** ships with a large library of built-in mixins, or you can write your own custom mixins. 
-The [tutorial](/docs/TUTORIAL.md) shows you how to create a custom mixin that you can then 
+**ksonnet** ships with a large library of built-in mixins, or you can write your own custom mixins.
+The [tutorial][tutorial] shows you how to create a custom mixin that you can then
 easily add as a Sidecar container to your Kubernetes cluster.
 
 ## Contributing
@@ -187,8 +187,8 @@ contributing!
 ### Before you start
 
 * Please familiarize yourself with the [Code of
-Conduct](https://github.com/ksonnet/ksonnet-lib/blob/master/CODE-OF-CONDUCT.md) before contributing.
-* See [CONTRIBUTING.md](https://github.com/ksonnet/ksonnet-lib/blob/master/CONTRIBUTING.md) for instructions on the
+Conduct][codeofconduct] before contributing.
+* See [CONTRIBUTING.md][contributing] for instructions on the
 developer certificate of origin that we require.
 
 ### Pull requests
@@ -216,6 +216,9 @@ Overflow.
 [helloworld]: https://kubernetes.io/docs/tutorials/stateless-application/run-stateless-application-deployment/ "Hello, Kubernetes!"
 [v1hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v1.jsonnet "Hello, Jsonnet (v1)!"
 [v2hellojsonnet]: https://github.com/ksonnet/ksonnet-lib/blob/master/examples/hello-world/hello.v2.jsonnet "Hello, Jsonnet (v2)!"
+[codeofconduct]: https://github.com/ksonnet/ksonnet-lib/blob/master/CODE-OF-CONDUCT.md
+[contributing]: https://github.com/ksonnet/ksonnet-lib/blob/master/CONTRIBUTING.md
+[tutorial]: https://github.com/ksonnet/ksonnet-lib/blob/master/docs/TUTORIAL.md
 [deploymentspec]: https://kubernetes.io/docs/api-reference/extensions/v1beta1/definitions/#_v1beta1_deploymentspec "v1.DeploymentSpec"
 
 [jsonnet-demo]: docs/images/kube-demo.gif
