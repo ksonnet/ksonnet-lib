@@ -865,7 +865,7 @@
       // The StatefulSet guarantees that a given network identity will always map to the same storage identity.
       statefulSet:: {
         local kind = {kind: "StatefulSet"},
-        new(name, replicas, containers, volumeClaims, podLabels={app: name}):: apiVersion + kind + self.mixin.metadata.name(name) + self.mixin.spec.replicas(replicas) + self.mixin.spec.template.spec.containers(containers) + self.mixin.spec.volumeClaimTemplates(volumeClaims) + self.mixin.spec.template.metadata.labels(podLabels),
+        new(name, replicas, containers, volumeClaims, podLabels={app: name}):: apiVersion + kind + self.mixin.metadata.withName(name) + self.mixin.spec.withReplicas(replicas) + self.mixin.spec.template.spec.withContainers(containers) + self.mixin.spec.withVolumeClaimTemplates(volumeClaims) + self.mixin.spec.template.metadata.withLabels(podLabels),
         mixin:: {
           //
           metadata:: {
