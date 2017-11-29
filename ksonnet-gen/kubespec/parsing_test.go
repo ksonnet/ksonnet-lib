@@ -4,7 +4,8 @@ import (
 	"testing"
 )
 
-var namespaces = []string{
+// Definition naming schema up to and including Kubernetes 1.7.x
+var oldSchemaNamespaces = []string{
 	"io.k8s.kubernetes.pkg.api.v1.NodeAffinity",
 	"io.k8s.kubernetes.pkg.apis.autoscaling.v2alpha1.HorizontalPodAutoscalerStatus",
 	"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.ThirdPartyResource",
@@ -338,14 +339,30 @@ var namespaces = []string{
 	"io.k8s.kubernetes.pkg.api.v1.EndpointPort",
 	"io.k8s.kubernetes.pkg.apis.authentication.v1beta1.TokenReviewStatus",
 }
+// Definition naming schema for Kubernetes 1.8.x+
+var newSchemaNamespaces = []string{
+	"io.k8s.api.core.v1.ConfigMapList",
+	"io.k8s.api.policy.v1beta1.Eviction",
+	"io.k8s.api.apps.v1beta2.ControllerRevision",
+	"io.k8s.api.batch.v2alpha1.CronJobList",
+	"io.k8s.apimachinery.pkg.apis.meta.v1.Status",
+}
+
+func testDefinitionName(namespace string, withNewSchema bool, t *testing.T) {
+	dn := DefinitionName(namespace)
+	parsed := dn.Parse()
+	unparsed := parsed.Unparse(withNewSchema)
+	if dn != unparsed {
+		t.Errorf("Expected '%s' got '%s'", string(dn), unparsed)
+	}
+}
 
 func TestNamespaceParser(t *testing.T) {
-	for _, namespace := range namespaces {
-		dn := DefinitionName(namespace)
-		parsed := dn.Parse()
-		unparsed := parsed.Unparse()
-		if dn != unparsed {
-			t.Errorf("Expected '%s' got '%s'", string(dn), unparsed)
-		}
+	for _, namespace := range oldSchemaNamespaces {
+		testDefinitionName(namespace, false, t)
+	}
+
+	for _, namespace := range newSchemaNamespaces {
+		testDefinitionName(namespace, true, t)
 	}
 }
