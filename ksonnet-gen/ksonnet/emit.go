@@ -3,7 +3,9 @@ package ksonnet
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/jsonnet"
@@ -46,6 +48,31 @@ type root struct {
 
 	ksonnetLibSHA *string
 	k8sSHA        *string
+	withNewSchema bool
+	traversed     []*kubespec.ParsedDefinitionName
+}
+
+func checkSchema(version string) bool {
+	semVer := regexp.MustCompile(`v(\d*)\.(\d*)\.\d*`)
+	match := semVer.FindStringSubmatch(version)
+
+	if len(match) == 0 {
+		log.Panicf(
+			"Schema version '%s' does not follow semver (e.g. v1.0.3)", version)
+	}
+
+	major, err := strconv.Atoi(match[1])
+	if err != nil {
+		log.Panicf(
+			"Major version '%s' must be a number", match[1])
+	}
+
+	minor, err := strconv.Atoi(match[2])
+	if err != nil {
+		log.Panicf(
+			"Minor version '%s' must be a number", match[2])
+	}
+	return major >= 1 && minor >= 8
 }
 
 func newRoot(spec *kubespec.APISpec, ksonnetLibSHA, k8sSHA *string) *root {
@@ -56,6 +83,7 @@ func newRoot(spec *kubespec.APISpec, ksonnetLibSHA, k8sSHA *string) *root {
 
 		ksonnetLibSHA: ksonnetLibSHA,
 		k8sSHA:        k8sSHA,
+		withNewSchema: checkSchema(spec.Info.Version),
 	}
 
 	for defName, def := range spec.Definitions {
@@ -110,6 +138,11 @@ func (root *root) addDefinition(
 	if parsedName.Version == nil {
 		return
 	}
+
+	// skip redundant objects (from the old schema)
+	if (root.withNewSchema && strings.Contains(def.Description, "Deprecated.")) {
+		return
+	}
 	apiObject := root.createAPIObject(parsedName, def)
 
 	for propName, prop := range def.Properties {
@@ -138,7 +171,7 @@ func (root *root) createAPIObject(
 	if parsedName.Version == nil {
 		log.Panicf(
 			"Can't make API object from name with nil version in path: '%s'",
-			parsedName.Unparse())
+			parsedName.Unparse(root.withNewSchema))
 	}
 
 	var groupName kubespec.GroupName
@@ -177,7 +210,7 @@ func (root *root) createAPIObject(
 
 	apiObject, ok := versionedAPI.apiObjects[parsedName.Kind]
 	if ok {
-		log.Panicf("Duplicate object kinds with name '%s'", parsedName.Unparse())
+		log.Panicf("Duplicate object kinds with name '%s'", parsedName.Unparse(root.withNewSchema))
 	}
 	apiObject = newAPIObject(parsedName, versionedAPI, def)
 	versionedAPI.apiObjects[parsedName.Kind] = apiObject
@@ -204,7 +237,7 @@ func (root *root) getAPIObjectHelper(
 ) (*apiObject, error) {
 	if parsedName.Version == nil {
 		log.Panicf(
-			"Can't get API object with nil version: '%s'", parsedName.Unparse())
+			"Can't get API object with nil version: '%s'", parsedName.Unparse(root.withNewSchema))
 	}
 
 	var groupName kubespec.GroupName
@@ -225,14 +258,14 @@ func (root *root) getAPIObjectHelper(
 	if !ok {
 		return nil, fmt.Errorf(
 			"Could not retrieve object, group in path '%s' doesn't exist",
-			parsedName.Unparse())
+			parsedName.Unparse(root.withNewSchema))
 	}
 
 	versionedAPI, ok := group.versionedAPIs[*parsedName.Version]
 	if !ok {
 		return nil, fmt.Errorf(
 			"Could not retrieve object, versioned API in path '%s' doesn't exist",
-			parsedName.Unparse())
+			parsedName.Unparse(root.withNewSchema))
 	}
 
 	if apiObject, ok := versionedAPI.apiObjects[parsedName.Kind]; ok {
@@ -240,7 +273,7 @@ func (root *root) getAPIObjectHelper(
 	}
 	return nil, fmt.Errorf(
 		"Could not retrieve object, kind in path '%s' doesn't exist",
-		parsedName.Unparse())
+		parsedName.Unparse(root.withNewSchema))
 }
 
 //-----------------------------------------------------------------------------
@@ -494,7 +527,8 @@ func (ao *apiObject) emit(m *indentWriter) {
 func (ao *apiObject) emitAsRefMixins(
 	m *indentWriter, p *property, parentMixinName *string,
 ) {
-	k8sVersion := ao.root().spec.Info.Version
+  root := ao.root()
+	k8sVersion := root.spec.Info.Version
 	functionName := jsonnet.RewriteAsIdentifier(k8sVersion, p.name)
 	paramName := jsonnet.RewriteAsFuncParam(k8sVersion, p.name)
 	fieldName := jsonnet.RewriteAsFieldKey(p.name)
@@ -527,11 +561,17 @@ func (ao *apiObject) emitAsRefMixins(
 	m.writeLine(
 		fmt.Sprintf("mixinInstance(%s):: %s(%s),", paramName, mixinName, paramName))
 
+	root.traversed = append(root.traversed, ao.parsedName)
 	for _, pm := range ao.properties.sortAndFilterBlacklisted() {
 		if isSpecialProperty(pm.name) {
 			continue
 		}
 		pm.emitAsRefMixin(m, mixinName)
+	}
+	if len(root.traversed) > 0 && root.traversed[len(root.traversed) - 1] == ao.parsedName {
+		root.traversed = root.traversed[:len(root.traversed) - 1]
+	} else {
+		log.Panicf("Traversing error: failed to pop off element %s", ao.parsedName)
 	}
 
 	m.dedent()
@@ -540,7 +580,8 @@ func (ao *apiObject) emitAsRefMixins(
 
 func (ao *apiObject) emitConstructors(m *indentWriter) {
 	k8sVersion := ao.root().spec.Info.Version
-	path := ao.parsedName.Unparse()
+	withNewSchema := ao.root().withNewSchema
+	path := ao.parsedName.Unparse(withNewSchema)
 
 	specs, ok := kubeversion.ConstructorSpec(k8sVersion, path)
 	if !ok {
@@ -800,6 +841,14 @@ func (p *property) emitHelper(
 	if isMixinRef(p.ref) {
 		parsedRefPath := p.ref.Name().Parse()
 		apiObject := p.root().getAPIObject(parsedRefPath)
+		for _, ao := range p.root().traversed {
+			if parsedRefPath.EqualStrings(ao) {
+				// TODO: Need to figure out what Jsonnet output is for circular reference!
+				log.Printf("TODO for property '%s' of type '%s'", p.name, p.ref.Name())
+				m.writeLine(fmt.Sprintf("// ****TODO for property '%s' of type '%s'", p.name, p.ref.Name()))
+				return
+			}
+		}
 		apiObject.emitAsRefMixins(m, p, parentMixinName)
 	} else if p.ref != nil && !isMixinRef(p.ref) {
 		var body string
@@ -848,7 +897,7 @@ func (p *property) emitHelper(
 					fieldName, paramName,
 				)
 			}
-		case "integer", "string", "boolean":
+		case "integer", "string", "boolean", "number":
 			if parentMixinName == nil {
 				setterBody = fmt.Sprintf("{%s: %s}", fieldName, paramName)
 			} else {
