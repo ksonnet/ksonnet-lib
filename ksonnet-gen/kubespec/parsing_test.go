@@ -1,10 +1,11 @@
 package kubespec
 
 import (
+	"fmt"
 	"testing"
 )
 
-var namespaces = []string{
+var legacyNamespaces = []string{
 	"io.k8s.kubernetes.pkg.api.v1.NodeAffinity",
 	"io.k8s.kubernetes.pkg.apis.autoscaling.v2alpha1.HorizontalPodAutoscalerStatus",
 	"io.k8s.kubernetes.pkg.apis.extensions.v1beta1.ThirdPartyResource",
@@ -339,13 +340,43 @@ var namespaces = []string{
 	"io.k8s.kubernetes.pkg.apis.authentication.v1beta1.TokenReviewStatus",
 }
 
-func TestNamespaceParser(t *testing.T) {
-	for _, namespace := range namespaces {
-		dn := DefinitionName(namespace)
-		parsed := dn.Parse()
-		unparsed := parsed.Unparse()
-		if dn != unparsed {
-			t.Errorf("Expected '%s' got '%s'", string(dn), unparsed)
-		}
+// Definition naming schema for Kubernetes 1.8.x+
+var newSchemaNamespaces = []string{
+	"io.k8s.api.core.v1.ConfigMapList",
+	"io.k8s.api.policy.v1beta1.Eviction",
+	"io.k8s.api.apps.v1beta2.ControllerRevision",
+	"io.k8s.api.batch.v2alpha1.CronJobList",
+	"io.k8s.apimachinery.pkg.apis.meta.v1.Status",
+}
+
+func testDefinitionName(namespace string, withNewSchema bool, t *testing.T) {
+	dn := DefinitionName(namespace)
+	parsed, err := dn.Parse()
+	if err != nil {
+		t.Fatalf("Unexpected error while parsing: %v", err)
 	}
+
+	unparsed, err := parsed.Unparse(withNewSchema)
+	if err != nil {
+		t.Fatalf("Unexpected error while unparsing: %v", err)
+	}
+
+	if dn != unparsed {
+		t.Errorf("Expected '%s' got '%s'", string(dn), unparsed)
+	}
+}
+
+func TestNamespaceParser(t *testing.T) {
+	for _, namespace := range legacyNamespaces {
+		t.Run(fmt.Sprintf("legacy namespace: %s", namespace), func(t *testing.T) {
+			testDefinitionName(namespace, true, t)
+		})
+	}
+
+	for _, namespace := range newSchemaNamespaces {
+		t.Run(fmt.Sprintf("namespace: %s", namespace), func(t *testing.T) {
+			testDefinitionName(namespace, false, t)
+		})
+	}
+
 }
