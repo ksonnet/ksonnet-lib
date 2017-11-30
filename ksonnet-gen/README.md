@@ -7,6 +7,6 @@ a Jsonnet file representing that API definition.
 
 `ksonnet-gen [path to k8s OpenAPI swagger.json] [output dir]`
 
-Typeically the swagger spec is in something like
+Typically the swagger spec is in something like
 `k8s.io/kubernetes/api/openapi-spec`, where `k8s.io` is in your Go src
 folder.
