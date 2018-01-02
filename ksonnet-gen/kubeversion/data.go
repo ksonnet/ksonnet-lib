@@ -914,20 +914,7 @@ var deploymentCtor = []CustomConstructorSpec{
 	newConstructor(
 		"new",
 		newParamNestedRef("name", "mixin.metadata.withName"),
-		newParamNestedRef("replicas", "mixin.spec.withReplicas"),
-		newParamNestedRef("containers", "mixin.spec.template.spec.withContainers"),
-		newParamNestedRefDefault(
-			"podLabels",
-			"mixin.spec.template.metadata.withLabels",
-			"{app: name}")),
-	newConstructor(
-		"newWithoutReplicas",
-		newParamNestedRef("name", "mixin.metadata.withName"),
-		newParamNestedRef("containers", "mixin.spec.template.spec.withContainers"),
-		newParamNestedRefDefault(
-			"podLabels",
-			"mixin.spec.template.metadata.withLabels",
-			"{app: name}")),
+		newParamNestedRef("containers", "mixin.spec.template.spec.withContainers")),
 }
 var deploymentRollbackCtor = []CustomConstructorSpec{
 	newConstructor(
