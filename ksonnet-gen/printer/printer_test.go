@@ -36,6 +36,7 @@ func TestFprintf(t *testing.T) {
 		{name: "index"},
 		{name: "index_with_index"},
 		{name: "array"},
+		{name: "self_apply"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -474,6 +475,7 @@ var (
 				},
 			},
 		},
+		"self_apply": &ast.Apply{Target: &ast.Self{}},
 
 		// errors
 		"unknown_node":           &noopNode{},
