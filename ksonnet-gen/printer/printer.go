@@ -350,6 +350,8 @@ func extractApply(n ast.Node) (string, error) {
 		return fmt.Sprintf("%s.%s", id, s), nil
 	case *ast.Var:
 		return string(t.Id), nil
+	case *ast.Self:
+		return "self", nil
 	}
 }
 
