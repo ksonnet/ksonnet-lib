@@ -222,6 +222,11 @@ func KeyOptParams(params []string) KeyOpt {
 // KeyOpt is a functional option for configuring Key.
 type KeyOpt func(k *Key)
 
+var (
+	jsonnetReservedWords = []string{"assert", "else", "error", "false", "for", "function", "if",
+		"import", "importstr", "in", "local", "null", "tailstrict", "then", "self", "super", "true"}
+)
+
 // Key names a fields in an object.
 type Key struct {
 	name       string
@@ -235,9 +240,17 @@ type Key struct {
 // NewKey creates an instance of Key. KeyOpt functional options can be used to configure the
 // newly generated key.
 func NewKey(name string, opts ...KeyOpt) Key {
+
+	category := ast.ObjectFieldID
+	for _, s := range jsonnetReservedWords {
+		if s == name {
+			category = ast.ObjectFieldStr
+		}
+	}
+
 	k := Key{
 		name:     name,
-		category: ast.ObjectFieldID,
+		category: category,
 	}
 	for _, opt := range opts {
 		opt(&k)
