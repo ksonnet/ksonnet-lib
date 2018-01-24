@@ -17,6 +17,7 @@ func TestFprintf(t *testing.T) {
 		isErr bool
 	}{
 		{name: "object"},
+		{name: "object_with_string_key"},
 		{name: "object_with_hidden_field"},
 		{name: "inline_object"},
 		{name: "object_mixin"},
@@ -95,6 +96,15 @@ var (
 	fprintfCases = map[string]ast.Node{
 		"object": &ast.Object{
 			Fields: ast.ObjectFields{},
+		},
+		"object_with_string_key": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind:  ast.ObjectFieldStr,
+					Id:    newIdentifier("foo"),
+					Expr2: &ast.Object{},
+				},
+			},
 		},
 		"object_with_hidden_field": &ast.Object{
 			Fields: ast.ObjectFields{

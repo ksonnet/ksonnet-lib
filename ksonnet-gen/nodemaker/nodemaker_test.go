@@ -157,6 +157,11 @@ func TestObject(t *testing.T) {
 			expected: expectations["objectWithKeys"],
 		},
 		{
+			name:     "with a reserved word as the key",
+			object:   objectWithReservedWordKey(),
+			expected: expectations["objectWithReservedWordKey"],
+		},
+		{
 			name:     "inline",
 			object:   inline(),
 			expected: expectations["inline"],
@@ -250,6 +255,17 @@ func objectWithKeys() *Object {
 	o := NewObject()
 
 	k := NewKey("foo")
+	o2 := NewObject()
+
+	o.Set(k, o2)
+
+	return o
+}
+
+func objectWithReservedWordKey() *Object {
+	o := NewObject()
+
+	k := NewKey("error")
 	o2 := NewObject()
 
 	o.Set(k, o2)
@@ -458,6 +474,16 @@ var (
 					Id:    newIdentifier("foo"),
 					Hide:  ast.ObjectFieldHidden,
 					Kind:  ast.ObjectFieldID,
+					Expr2: &ast.Object{},
+				},
+			},
+		},
+		"objectWithReservedWordKey": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Id:    newIdentifier("error"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldStr,
 					Expr2: &ast.Object{},
 				},
 			},

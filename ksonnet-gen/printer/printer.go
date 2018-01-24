@@ -290,6 +290,9 @@ func (p *printer) handleObjectField(t ast.ObjectField) {
 		p.addMethodSignature(t)
 		p.writeString(" = ")
 		p.print(t.Expr2)
+	case ast.ObjectFieldStr:
+		p.writeString(fmt.Sprintf(`"%s"%s `, string(*t.Id), fieldType))
+		p.print(t.Expr2)
 	}
 }
 
