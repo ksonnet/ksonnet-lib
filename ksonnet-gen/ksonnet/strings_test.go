@@ -126,6 +126,7 @@ func Test_capitalizer_capitalize(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
+			c := &capitalizer{}
 			require.Equal(t, tt.want, capitalize(tt.in), "c.capitalize(%s)", tt.in)
 		})
 	}

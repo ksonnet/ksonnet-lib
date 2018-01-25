@@ -31,6 +31,34 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+var (
+	capTransforms = [][]string{
+		{"ISCSI", "Iscsi"},
+		{"CIDR", "Cidr"},
+		{"HTTP", "Http"},
+		{"UUID", "Uuid"},
+		{"API", "Api"},
+		{"AWS", "Aws"},
+		{"CPU", "Cpu"},
+		{"GCE", "Gce"},
+		{"IPC", "Ipc"},
+		{"NFS", "Nfs"},
+		{"PID", "Pid"},
+		{"RBD", "Rbd"},
+		{"TCP", "Tcp"},
+		{"TLS", "Tls"},
+		{"URI", "Uri"},
+		{"URL", "Url"},
+		{"WWN", "Wwn"},
+		{"FC", "Fc"},
+		{"FS", "Fs"},
+		{"ID", "Id"},
+		{"IO", "Io"},
+		{"IP", "Ip"},
+		{"SE", "Se"},
+	}
+)
+
 // capitalizer adjusts the case of terms found in a string.
 func toLower(b byte) byte {
 	return byte(unicode.ToLower(rune(b)))
@@ -47,6 +75,7 @@ func capitalize(in string) string {
 
 	if l == 0 {
 		// nothing to do when there is a one character strings
+		in = strings.Replace(in, k, v, -1)
 		return in
 	}
 
