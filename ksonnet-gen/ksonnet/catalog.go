@@ -176,8 +176,6 @@ func (c *Catalog) definitions() spec.Definitions {
 		if isValidDefinition(name) {
 			out[name] = schema
 		}
-
-		out[name] = schema
 	}
 
 	return out
