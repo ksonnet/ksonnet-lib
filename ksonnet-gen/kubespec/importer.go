@@ -15,6 +15,11 @@ func Import(path string) (*spec.Swagger, error) {
 		return nil, errors.Wrap(err, "load schema from path")
 	}
 
+	return CreateAPISpec(b)
+}
+
+// CreateAPISpec a swagger file into a *spec.Swagger.
+func CreateAPISpec(b []byte) (*spec.Swagger, error) {
 	var apiSpec spec.Swagger
 	if err := json.Unmarshal(b, &apiSpec); err != nil {
 		return nil, errors.Wrap(err, "parse swagger JSON")

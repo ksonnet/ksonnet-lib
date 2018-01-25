@@ -1,10 +1,8 @@
-package ksonnet_test
+package ksonnet
 
 import (
 	"path/filepath"
 	"testing"
-
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
 	"github.com/stretchr/testify/require"
@@ -17,21 +15,24 @@ func testdata(name string) string {
 func TestComponent(t *testing.T) {
 	cases := []struct {
 		name     string
-		expected *ksonnet.Component
+		expected *Component
+		isErr    bool
 	}{
 		{
 			name: "io.k8s.api.apps.v1beta2.Deployment",
-			expected: &ksonnet.Component{
+			expected: &Component{
 				Group:   "apps",
 				Version: "v1beta2",
 				Kind:    "Deployment",
 			},
 		},
 		{
-			name: "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+			name:  "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+			isErr: true,
 		},
 		{
-			name: "missing",
+			name:  "missing",
+			isErr: true,
 		},
 	}
 
@@ -42,9 +43,15 @@ func TestComponent(t *testing.T) {
 
 			schema := apiSpec.Definitions[tc.name]
 
-			c := ksonnet.NewComponent(schema)
+			c, err := NewComponent(schema)
+			if tc.isErr {
+				require.Error(t, err)
 
-			require.Equal(t, tc.expected, c)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expected, c)
+			}
+
 		})
 	}
 

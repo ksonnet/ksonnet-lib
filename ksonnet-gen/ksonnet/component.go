@@ -18,21 +18,21 @@ type Component struct {
 }
 
 // NewComponent extracts component information from a schema.
-func NewComponent(s spec.Schema) *Component {
+func NewComponent(s spec.Schema) (*Component, error) {
 	re := componentExtractor{schema: s}
 	group := re.extract("group")
 	kind := re.extract("kind")
 	version := re.extract("version")
 
 	if re.err != nil {
-		return nil
+		return nil, re.err
 	}
 
 	return &Component{
 		Group:   group,
 		Kind:    kind,
 		Version: version,
-	}
+	}, nil
 }
 
 type componentExtractor struct {
