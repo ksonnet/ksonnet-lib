@@ -130,3 +130,34 @@ func Test_capitalizer_capitalize(t *testing.T) {
 		})
 	}
 }
+
+func Test_formatKind(t *testing.T) {
+	cases := []struct {
+		name     string
+		expected string
+	}{
+		{
+			name:     "local",
+			expected: "localStorage",
+		},
+		{
+			name:     "error",
+			expected: "errorParam",
+		},
+		{
+			name:     "foo",
+			expected: "foo",
+		},
+		{
+			name:     "CIDRType",
+			expected: "cidrType",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := formatKind(tc.name)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
