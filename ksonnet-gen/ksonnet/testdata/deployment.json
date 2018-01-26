@@ -673,6 +673,10 @@
           "format": "int32"
         }
       }
-    }
+    },
+    "io.k8s.kubernetes.pkg.api.v1.Affinity": {
+      "description": "Deprecated. Please use io.k8s.api.core.v1.Affinity instead.",
+      "$ref": "#/definitions/io.k8s.api.core.v1.Affinity"
+   }
   }
 }

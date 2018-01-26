@@ -1,17 +1,16 @@
-package ksonnet_test
+package ksonnet
 
 import (
 	"testing"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestType(t *testing.T) {
-	props := make(map[string]ksonnet.Field)
-	props["foo"] = ksonnet.NewLiteralField("name", "integer", "desc", "ref")
+	props := make(map[string]Field)
+	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := ksonnet.NewType("id", "desc", "group", "ver", "kind", props)
+	ty := NewType("id", "desc", "group", "ver", "kind", props)
 
 	assert.Equal(t, "id", ty.Identifier())
 	assert.Equal(t, "desc", ty.Description())
@@ -25,10 +24,10 @@ func TestType(t *testing.T) {
 }
 
 func TestType_no_group(t *testing.T) {
-	props := make(map[string]ksonnet.Field)
-	props["foo"] = ksonnet.NewLiteralField("name", "integer", "desc", "ref")
+	props := make(map[string]Field)
+	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := ksonnet.NewType("id", "desc", "", "ver", "kind", props)
+	ty := NewType("id", "desc", "", "ver", "kind", props)
 
 	assert.Equal(t, "core", ty.Group())
 	assert.Equal(t, "core", ty.QualifiedGroup())
