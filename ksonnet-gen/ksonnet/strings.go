@@ -6,6 +6,12 @@ import (
 	"unicode"
 )
 
+var (
+	jsonnetKeywords = []string{"assert", "else", "error", "false", "for", "function", "if",
+		"import", "importstr", "in", "null", "tailstrict", "then", "self", "super",
+		"true"}
+)
+
 func camelCase(in string) string {
 	out := ""
 
@@ -72,4 +78,19 @@ func capitalize(in string) string {
 	}
 
 	return b.String()
+}
+
+func formatKind(s string) string {
+	if strings.ToLower(s) == "local" {
+		return "localStorage"
+	}
+
+	s = capitalize(s)
+	s = camelCase(s)
+
+	if stringInSlice(s, jsonnetKeywords) {
+		s = s + "Param"
+	}
+
+	return s
 }
