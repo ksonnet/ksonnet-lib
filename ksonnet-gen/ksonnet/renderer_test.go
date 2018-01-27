@@ -372,7 +372,7 @@ func Test_mixinName(t *testing.T) {
 func Test_renderFields(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
-	props := map[string]Field{
+	props := map[string]Property{
 		"name": NewLiteralField("name", "string", "desc", ""),
 		"aref": NewReferenceField("aref", "desc", "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector"),
 	}
@@ -398,7 +398,7 @@ func (cf *customField) Ref() string         { return "" }
 func Test_renderFields_unknown_type(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
-	props := map[string]Field{
+	props := map[string]Property{
 		"name": &customField{},
 	}
 
@@ -409,7 +409,7 @@ func Test_renderFields_unknown_type(t *testing.T) {
 func Test_renderFields_literal_field_error(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
-	props := map[string]Field{
+	props := map[string]Property{
 		"name": NewLiteralField("name", "unknown", "desc", ""),
 	}
 
@@ -420,7 +420,7 @@ func Test_renderFields_literal_field_error(t *testing.T) {
 func Test_renderFields_reference_field_error(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
-	props := map[string]Field{
+	props := map[string]Property{
 		"aref": NewReferenceField("aref", "desc", "unknown-id"),
 	}
 

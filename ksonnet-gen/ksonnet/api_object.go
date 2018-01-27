@@ -39,7 +39,7 @@ func (a *APIObject) Node(catalog *Catalog) (*nm.Object, error) {
 func (a *APIObject) initNode() *nm.Object {
 	o := nm.NewObject()
 
-	if a.resource.IsResource() {
+	if a.resource.IsType() {
 		kindObject := nm.OnelineObject()
 		kind := a.resource.Kind()
 		kindObject.Set(nm.InheritedKey("kind"), nm.NewStringDouble(kind))

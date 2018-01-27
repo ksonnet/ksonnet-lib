@@ -21,7 +21,7 @@ type baseRenderer struct {
 	ref         string
 }
 
-func newBaseRenderer(field Field, parent string) baseRenderer {
+func newBaseRenderer(field Property, parent string) baseRenderer {
 	return baseRenderer{
 		name:        field.Name(),
 		description: field.Description(),
@@ -117,7 +117,7 @@ type ObjectRenderer struct {
 }
 
 // NewObjectRenderer creates an instance of ObjectRenderer
-func NewObjectRenderer(field Field, parent string) *ObjectRenderer {
+func NewObjectRenderer(field Property, parent string) *ObjectRenderer {
 	return &ObjectRenderer{
 		baseRenderer: newBaseRenderer(field, parent),
 	}
@@ -145,7 +145,7 @@ type ItemRenderer struct {
 var _ renderer = (*ItemRenderer)(nil)
 
 // NewItemRenderer creates an instance of ItemRenderer.
-func NewItemRenderer(f Field, parent string) *ItemRenderer {
+func NewItemRenderer(f Property, parent string) *ItemRenderer {
 	return &ItemRenderer{baseRenderer: newBaseRenderer(f, parent)}
 }
 
@@ -164,7 +164,7 @@ type ArrayRenderer struct {
 }
 
 // NewArrayRenderer creates an instance of ArrayRenderer.
-func NewArrayRenderer(f Field, parent string) *ArrayRenderer {
+func NewArrayRenderer(f Property, parent string) *ArrayRenderer {
 	return &ArrayRenderer{baseRenderer: newBaseRenderer(f, parent)}
 }
 
@@ -316,13 +316,13 @@ func mixinName(name string) string {
 
 // typeLookup can look up types by id.
 type typeLookup interface {
-	Type(id string) (*Type, error)
+	Type(id string) (*Field, error)
 }
 
-type renderFieldsFn func(tl typeLookup, parent *nm.Object, parentName string, props map[string]Field) error
+type renderFieldsFn func(tl typeLookup, parent *nm.Object, parentName string, props map[string]Property) error
 
 // renderFields renders fields from a property map.
-func renderFields(tl typeLookup, parent *nm.Object, parentName string, props map[string]Field) error {
+func renderFields(tl typeLookup, parent *nm.Object, parentName string, props map[string]Property) error {
 	container := parent
 	if parentName == "" {
 		container = nm.NewObject()

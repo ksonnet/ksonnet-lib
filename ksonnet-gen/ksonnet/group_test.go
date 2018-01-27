@@ -31,7 +31,7 @@ func TestGroup_Versions(t *testing.T) {
 
 func TestGroup_AddResource(t *testing.T) {
 	c1 := Component{Group: "group2", Version: "v1", Kind: "kind"}
-	o1 := NewResource("alpha", "desc", "group", c1, nil)
+	o1 := NewType("alpha", "desc", "group", c1, nil)
 
 	g := NewGroup("groupName")
 	g.AddResource(&o1)
@@ -39,7 +39,7 @@ func TestGroup_AddResource(t *testing.T) {
 	require.Len(t, g.Versions(), 1)
 
 	c2 := Component{Group: "group2", Version: "", Kind: "kind"}
-	o2 := NewResource("beta", "desc", "group", c2, nil)
+	o2 := NewType("beta", "desc", "group", c2, nil)
 	g.AddResource(&o2)
 
 	require.Len(t, g.Versions(), 1)

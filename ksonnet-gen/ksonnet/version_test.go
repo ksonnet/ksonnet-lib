@@ -47,11 +47,11 @@ func TestVersion_AddResource(t *testing.T) {
 	v := NewVersion("v1", "groupName")
 
 	c1 := Component{Group: "group2", Version: "v1", Kind: "kind1"}
-	o1 := NewResource("alpha", "desc", "group", c1, nil)
+	o1 := NewType("alpha", "desc", "group", c1, nil)
 	v.AddResource(&o1)
 
 	c2 := Component{Group: "group2", Version: "v1", Kind: "kind2"}
-	o2 := NewResource("beta", "desc", "group", c2, nil)
+	o2 := NewType("beta", "desc", "group", c2, nil)
 	v.AddResource(&o2)
 
 	require.Len(t, v.APIObjects(), 2)

@@ -39,7 +39,7 @@ func TestDocument_Groups(t *testing.T) {
 }
 
 func TestDocument_Groups_types_error(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("fail")
 	}
 
@@ -74,7 +74,7 @@ func TestDocument_HiddenGroups(t *testing.T) {
 }
 
 func TestDocument_HiddenGroups_fields_error(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("fail")
 	}
 
@@ -153,7 +153,7 @@ func TestDocument_Node_api_object_error(t *testing.T) {
 }
 
 func Test_renderGroups_groups_error(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("fail")
 	}
 
@@ -181,7 +181,7 @@ func TestDocument_renderGroups_render_error(t *testing.T) {
 }
 
 func Test_renderHiddenGroups_hidden_groups_error(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("fail")
 	}
 

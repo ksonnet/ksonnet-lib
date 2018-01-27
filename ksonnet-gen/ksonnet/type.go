@@ -1,11 +1,10 @@
 package ksonnet
 
-// Type is a Kubernetes type.
+// Type is a Kubernetes kind.
 type Type struct {
-	kind        string
 	description string
-	properties  map[string]Field
-	version     string
+	properties  map[string]Property
+	component   Component
 	group       string
 	identifier  string
 }
@@ -13,28 +12,27 @@ type Type struct {
 var _ Object = (*Type)(nil)
 
 // NewType creates an instance of Type.
-func NewType(id, desc, group, ver, kind string, props map[string]Field) *Type {
-	return &Type{
-		identifier:  id,
-		description: desc,
+func NewType(identifier, description, group string, component Component, props map[string]Property) Type {
+	return Type{
+		description: description,
 		group:       group,
-		version:     ver,
-		kind:        kind,
+		component:   component,
 		properties:  props,
+		identifier:  identifier,
 	}
 }
 
-// Kind is the kind for this type.
+// Kind is the kind for this type
 func (t *Type) Kind() string {
-	return t.kind
+	return t.component.Kind
 }
 
-// Version is the version for this type.
+// Version is the version for this type
 func (t *Type) Version() string {
-	return t.version
+	return t.component.Version
 }
 
-// Group is the group for this type.
+// Group is the group for this type
 func (t *Type) Group() string {
 	if t.group == "" {
 		return "core"
@@ -43,27 +41,27 @@ func (t *Type) Group() string {
 	return t.group
 }
 
-// QualifiedGroup is the group for this type.
+// QualifiedGroup is the group for this type
 func (t *Type) QualifiedGroup() string {
-	return t.Group()
+	return t.component.Group
 }
 
-// Description is the description for this type.
+// Description is description for this type
 func (t *Type) Description() string {
 	return t.description
 }
 
-// Identifier is the identifier for this type.
+// Identifier is identifier for this type
 func (t *Type) Identifier() string {
 	return t.identifier
 }
 
-// IsResource returns if this item is a resource. It always returns false.
-func (t *Type) IsResource() bool {
-	return false
+// IsType returns if this item is a type. It always returns true.
+func (t *Type) IsType() bool {
+	return true
 }
 
 // Properties are the properties for this type.
-func (t *Type) Properties() map[string]Field {
+func (t *Type) Properties() map[string]Property {
 	return t.properties
 }

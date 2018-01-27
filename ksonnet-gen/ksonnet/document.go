@@ -14,8 +14,8 @@ type Document struct {
 	catalog *Catalog
 
 	// these are defined to aid testing Document
-	typesFn            func() ([]Resource, error)
-	fieldsFn           func() ([]Type, error)
+	typesFn            func() ([]Type, error)
+	fieldsFn           func() ([]Field, error)
 	renderFn           func(fn renderNodeFn, c *Catalog, o *nm.Object, groups []Group) error
 	renderGroups       func(doc *Document, container *nm.Object) error
 	renderHiddenGroups func(doc *Document, container *nm.Object) error
@@ -30,8 +30,8 @@ func NewDocument(catalog *Catalog) (*Document, error) {
 
 	return &Document{
 		catalog:            catalog,
-		typesFn:            catalog.Resources,
-		fieldsFn:           catalog.Types,
+		typesFn:            catalog.Types,
+		fieldsFn:           catalog.Fields,
 		renderFn:           render,
 		renderGroups:       renderGroups,
 		renderHiddenGroups: renderHiddenGroups,
