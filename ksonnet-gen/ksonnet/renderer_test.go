@@ -369,7 +369,7 @@ func Test_mixinName(t *testing.T) {
 	}
 }
 
-func Test_RenderFields(t *testing.T) {
+func Test_renderFields(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
 	props := map[string]Field{
@@ -377,7 +377,7 @@ func Test_RenderFields(t *testing.T) {
 		"aref": NewReferenceField("aref", "desc", "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector"),
 	}
 
-	err := RenderFields(c, o, "", props)
+	err := renderFields(c, o, "", props)
 	require.NoError(t, err)
 
 	err = printer.Fprint(os.Stdout, o.Node())
@@ -395,35 +395,35 @@ func (cf *customField) Description() string { return "desc" }
 func (cf *customField) Name() string        { return "name" }
 func (cf *customField) Ref() string         { return "" }
 
-func Test_RenderFields_unknown_type(t *testing.T) {
+func Test_renderFields_unknown_type(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
 	props := map[string]Field{
 		"name": &customField{},
 	}
 
-	err := RenderFields(c, o, "", props)
+	err := renderFields(c, o, "", props)
 	require.Error(t, err)
 }
 
-func Test_RenderFields_literal_field_error(t *testing.T) {
+func Test_renderFields_literal_field_error(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
 	props := map[string]Field{
 		"name": NewLiteralField("name", "unknown", "desc", ""),
 	}
 
-	err := RenderFields(c, o, "", props)
+	err := renderFields(c, o, "", props)
 	require.Error(t, err)
 }
 
-func Test_RenderFields_reference_field_error(t *testing.T) {
+func Test_renderFields_reference_field_error(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 	o := nm.NewObject()
 	props := map[string]Field{
 		"aref": NewReferenceField("aref", "desc", "unknown-id"),
 	}
 
-	err := RenderFields(c, o, "", props)
+	err := renderFields(c, o, "", props)
 	require.Error(t, err)
 }

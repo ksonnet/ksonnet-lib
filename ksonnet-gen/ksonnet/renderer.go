@@ -74,11 +74,11 @@ func (r *LiteralFieldRenderer) Render(container *nm.Object) error {
 type ReferenceRenderer struct {
 	baseRenderer
 	rf *ReferenceField
-	tl TypeLookup
+	tl typeLookup
 }
 
 // NewReferenceRenderer creates an instance of ReferenceRenderer.
-func NewReferenceRenderer(rf *ReferenceField, tl TypeLookup, parent string) *ReferenceRenderer {
+func NewReferenceRenderer(rf *ReferenceField, tl typeLookup, parent string) *ReferenceRenderer {
 	return &ReferenceRenderer{
 		baseRenderer: newBaseRenderer(rf, parent),
 		tl:           tl,
@@ -101,7 +101,7 @@ func (r *ReferenceRenderer) Render(container *nm.Object) error {
 		return errors.Wrapf(err, "fetch type %s", ref)
 	}
 
-	RenderFields(r.tl, mo, name, ty.Properties())
+	renderFields(r.tl, mo, name, ty.Properties())
 
 	formattedName := formatKind(r.rf.Name())
 
@@ -314,15 +314,15 @@ func mixinName(name string) string {
 	return fmt.Sprintf("__%sMixin", name)
 }
 
-// TypeLookup can look up types by id.
-// TODO: unexport this when api objects is migrated.
-type TypeLookup interface {
+// typeLookup can look up types by id.
+type typeLookup interface {
 	Type(id string) (*Type, error)
 }
 
-// RenderFields renders fields from a property map.
-// TODO: unexport this once api objects is migrated.
-func RenderFields(tl TypeLookup, parent *nm.Object, parentName string, props map[string]Field) error {
+type renderFieldsFn func(tl typeLookup, parent *nm.Object, parentName string, props map[string]Field) error
+
+// renderFields renders fields from a property map.
+func renderFields(tl typeLookup, parent *nm.Object, parentName string, props map[string]Field) error {
 	container := parent
 	if parentName == "" {
 		container = nm.NewObject()

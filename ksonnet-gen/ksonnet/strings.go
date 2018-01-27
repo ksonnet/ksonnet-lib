@@ -12,6 +12,7 @@ var (
 		"true"}
 )
 
+// camelCase converts a string to camel case.
 func camelCase(in string) string {
 	out := ""
 
@@ -28,6 +29,7 @@ func camelCase(in string) string {
 	return out
 }
 
+// stringInSlice returns true if the string is in the slice.
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -46,7 +48,7 @@ func isUpper(b byte) bool {
 	return unicode.IsUpper(rune(b))
 }
 
-// capitalizer adjusts the case of terms found in a string. It will convert `HTTPHeader` into
+// capitalize adjusts the case of terms found in a string. It will convert `HTTPHeader` into
 // `HttpHeader`.
 func capitalize(in string) string {
 	l := len(in) - 1
