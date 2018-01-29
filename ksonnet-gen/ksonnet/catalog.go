@@ -25,7 +25,7 @@ var (
 )
 
 // ExtractFn is a function which extracts properties from a schema.
-type ExtractFn func(*Catalog, map[string]spec.Schema) (map[string]Field, error)
+type ExtractFn func(*Catalog, map[string]spec.Schema) (map[string]Property, error)
 
 // CatalogOpt is an option for configuring Catalog.
 type CatalogOpt func(*Catalog)
@@ -62,9 +62,9 @@ func NewCatalog(apiSpec *spec.Swagger, opts ...CatalogOpt) (*Catalog, error) {
 	return c, nil
 }
 
-// Resources returns a slice of all resources.
-func (c *Catalog) Resources() ([]Resource, error) {
-	var resources []Resource
+// Types returns a slice of all types.
+func (c *Catalog) Types() ([]Type, error) {
+	var resources []Type
 
 	for name, schema := range c.definitions() {
 		desc, err := ParseDescription(name)
@@ -82,7 +82,7 @@ func (c *Catalog) Resources() ([]Resource, error) {
 			return nil, errors.Wrapf(err, "extract propererties from %s", name)
 		}
 
-		kind := NewResource(name, schema.Description, desc.Group, *component, props)
+		kind := NewType(name, schema.Description, desc.Group, *component, props)
 
 		resources = append(resources, kind)
 	}
@@ -90,9 +90,9 @@ func (c *Catalog) Resources() ([]Resource, error) {
 	return resources, nil
 }
 
-// Types returns a slice of all types.
-func (c *Catalog) Types() ([]Type, error) {
-	var types []Type
+// Fields returns a slice of all fields.
+func (c *Catalog) Fields() ([]Field, error) {
+	var types []Field
 
 	for name, schema := range c.definitions() {
 		desc, err := ParseDescription(name)
@@ -104,7 +104,7 @@ func (c *Catalog) Types() ([]Type, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "extract propererties from %s", name)
 		}
-		t := NewType(name, schema.Description, desc.Group, desc.Version, desc.Kind, props)
+		t := NewField(name, schema.Description, desc.Group, desc.Version, desc.Kind, props)
 		types = append(types, *t)
 	}
 
@@ -125,8 +125,8 @@ func (c *Catalog) isFormatRef(name string) (bool, error) {
 }
 
 // Type returns a type by name. If the type cannot be found, it returns an error.
-func (c *Catalog) Type(name string) (*Type, error) {
-	types, err := c.Types()
+func (c *Catalog) Type(name string) (*Field, error) {
+	types, err := c.Fields()
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +142,8 @@ func (c *Catalog) Type(name string) (*Type, error) {
 
 // Resource returns a resource by group, version, kind. If the field cannot be found,
 // it returns an error
-func (c *Catalog) Resource(group, version, kind string) (*Resource, error) {
-	resources, err := c.Resources()
+func (c *Catalog) Resource(group, version, kind string) (*Type, error) {
+	resources, err := c.Types()
 	if err != nil {
 		return nil, err
 	}

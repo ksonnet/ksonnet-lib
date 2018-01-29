@@ -4,16 +4,16 @@ package ksonnet
 type Object interface {
 	Kind() string
 	Description() string
-	IsResource() bool
-	Properties() map[string]Field
+	IsType() bool
+	Properties() map[string]Property
 	Version() string
 	Group() string
 	QualifiedGroup() string
 	Identifier() string
 }
 
-// Field is a field in a resource
-type Field interface {
+// Property is a field in a resource
+type Property interface {
 	Description() string
 	Name() string
 	Ref() string
@@ -27,7 +27,7 @@ type LiteralField struct {
 	ref         string
 }
 
-var _ Field = (*LiteralField)(nil)
+var _ Property = (*LiteralField)(nil)
 
 // NewLiteralField creates an instance of LiteralField.
 func NewLiteralField(name, fieldType, description, ref string) *LiteralField {
@@ -66,7 +66,7 @@ type ReferenceField struct {
 	ref         string
 }
 
-var _ Field = (*ReferenceField)(nil)
+var _ Property = (*ReferenceField)(nil)
 
 // NewReferenceField creates an instance of ReferenceField.
 func NewReferenceField(name, description, ref string) *ReferenceField {

@@ -7,28 +7,41 @@ import (
 )
 
 func TestType(t *testing.T) {
-	props := make(map[string]Field)
+	props := make(map[string]Property)
 	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := NewType("id", "desc", "group", "ver", "kind", props)
+	c := Component{
+		Group:   "group2",
+		Version: "ver",
+		Kind:    "kind",
+	}
 
-	assert.Equal(t, "id", ty.Identifier())
-	assert.Equal(t, "desc", ty.Description())
-	assert.Equal(t, "group", ty.Group())
-	assert.Equal(t, "group", ty.QualifiedGroup())
-	assert.Equal(t, "ver", ty.Version())
-	assert.Equal(t, "kind", ty.Kind())
-	assert.False(t, ty.IsResource())
+	r := NewType("id", "desc", "group1", c, props)
 
-	assert.Len(t, ty.Properties(), 1)
+	assert.Equal(t, "id", r.Identifier())
+	assert.Equal(t, "desc", r.Description())
+	assert.Equal(t, "group1", r.Group())
+	assert.Equal(t, "ver", r.Version())
+	assert.Equal(t, "kind", r.Kind())
+	assert.Equal(t, "group2", r.QualifiedGroup())
+	assert.True(t, r.IsType())
+
+	assert.Len(t, r.Properties(), 1)
 }
 
 func TestType_no_group(t *testing.T) {
-	props := make(map[string]Field)
+	props := make(map[string]Property)
 	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := NewType("id", "desc", "", "ver", "kind", props)
+	c := Component{
+		Group:   "group2",
+		Version: "ver",
+		Kind:    "kind",
+	}
 
-	assert.Equal(t, "core", ty.Group())
-	assert.Equal(t, "core", ty.QualifiedGroup())
+	r := NewType("id", "desc", "", c, props)
+
+	assert.Equal(t, "core", r.Group())
+	assert.Equal(t, "group2", r.QualifiedGroup())
+
 }

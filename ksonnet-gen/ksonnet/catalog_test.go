@@ -28,7 +28,7 @@ func TestCatalog_nil_apiSpec(t *testing.T) {
 func TestCatalog_Resources(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
-	resources, err := c.Resources()
+	resources, err := c.Types()
 	require.NoError(t, err)
 
 	require.Len(t, resources, 2)
@@ -43,7 +43,7 @@ func TestCatalog_Resources_invalid_description(t *testing.T) {
 	c, err := NewCatalog(apiSpec)
 	require.NoError(t, err)
 
-	_, err = c.Resources()
+	_, err = c.Types()
 	assert.Error(t, err)
 
 	_, err = c.Resource("group", "version", "kind")
@@ -51,7 +51,7 @@ func TestCatalog_Resources_invalid_description(t *testing.T) {
 }
 
 func TestCatalog_Resources_invalid_field_properties(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("failed")
 	}
 
@@ -59,7 +59,7 @@ func TestCatalog_Resources_invalid_field_properties(t *testing.T) {
 
 	c := initCatalog(t, "deployment.json", opt)
 
-	_, err := c.Resources()
+	_, err := c.Types()
 	require.Error(t, err)
 }
 
@@ -100,7 +100,7 @@ func TestCatalog_Resource(t *testing.T) {
 func TestCatalog_Types(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
-	types, err := c.Types()
+	types, err := c.Fields()
 	require.NoError(t, err)
 
 	require.Len(t, types, 22)
@@ -115,7 +115,7 @@ func TestCatalog_Types_invalid_description(t *testing.T) {
 	c, err := NewCatalog(apiSpec)
 	require.NoError(t, err)
 
-	_, err = c.Types()
+	_, err = c.Fields()
 	assert.Error(t, err)
 
 	_, err = c.Type("anything")
@@ -123,7 +123,7 @@ func TestCatalog_Types_invalid_description(t *testing.T) {
 }
 
 func TestCatalog_Types_invalid_field_properties(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Field, error) {
+	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("failed")
 	}
 
@@ -131,7 +131,7 @@ func TestCatalog_Types_invalid_field_properties(t *testing.T) {
 
 	c := initCatalog(t, "deployment.json", opt)
 
-	_, err := c.Types()
+	_, err := c.Fields()
 	require.Error(t, err)
 }
 

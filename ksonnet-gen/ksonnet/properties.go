@@ -7,12 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func extractProperties(c *Catalog, properties map[string]spec.Schema) (map[string]Field, error) {
+func extractProperties(c *Catalog, properties map[string]spec.Schema) (map[string]Property, error) {
 	if c == nil {
 		return nil, errors.New("catalog is nil")
 	}
 
-	out := make(map[string]Field)
+	out := make(map[string]Property)
 
 	for name, schema := range properties {
 		if isSkippedProperty(name, schema) {
