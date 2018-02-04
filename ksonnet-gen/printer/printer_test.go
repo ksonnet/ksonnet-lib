@@ -39,6 +39,8 @@ func TestFprintf(t *testing.T) {
 		{name: "index_with_index"},
 		{name: "array"},
 		{name: "self_apply"},
+		{name: "declarations"},
+		{name: "chained_apply"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -410,9 +412,9 @@ var (
 			Cond: &ast.Binary{
 				Left: &ast.Apply{
 					Target: &ast.Index{
-						Id: newIdentifier("std"),
+						Id: newIdentifier("type"),
 						Target: &ast.Var{
-							Id: *newIdentifier("type"),
+							Id: *newIdentifier("std"),
 						},
 					},
 					Arguments: ast.Arguments{
@@ -462,9 +464,9 @@ var (
 			Cond: &ast.Binary{
 				Left: &ast.Apply{
 					Target: &ast.Index{
-						Id: newIdentifier("std"),
+						Id: newIdentifier("type"),
 						Target: &ast.Var{
-							Id: *newIdentifier("type"),
+							Id: *newIdentifier("std"),
 						},
 					},
 					Arguments: ast.Arguments{
@@ -503,6 +505,69 @@ var (
 			},
 		},
 		"self_apply": &ast.Apply{Target: &ast.Self{}},
+		"declarations": &ast.Local{
+			Binds: ast.LocalBinds{
+				ast.LocalBind{
+					Variable: *newIdentifier("a"),
+					Body: &ast.Import{
+						File: &ast.LiteralString{
+							Kind:  ast.StringDouble,
+							Value: "a",
+						},
+					},
+				},
+			},
+			Body: &ast.Local{
+				Binds: ast.LocalBinds{
+					ast.LocalBind{
+						Variable: *newIdentifier("b"),
+						Body: &ast.LiteralString{
+							Kind:  ast.StringDouble,
+							Value: "b",
+						},
+					},
+				},
+				Body: &ast.Local{
+					Binds: ast.LocalBinds{
+						ast.LocalBind{
+							Variable: *newIdentifier("c"),
+							Body: &ast.Apply{
+								Target: &ast.Index{
+									Id: newIdentifier("new"),
+									Target: &ast.Var{
+										Id: *newIdentifier("deployment"),
+									},
+								},
+							},
+						},
+					},
+					Body: &ast.Object{},
+				},
+			},
+		},
+		"chained_apply": &ast.Apply{
+			Arguments: ast.Arguments{
+				Positional: ast.Nodes{
+					&ast.Var{Id: *newIdentifier("bar")},
+				},
+			},
+			Target: &ast.Index{
+				Id: newIdentifier("withBar"),
+				Target: &ast.Apply{
+					Arguments: ast.Arguments{
+						Positional: ast.Nodes{
+							&ast.Var{Id: *newIdentifier("foo")},
+						},
+					},
+					Target: &ast.Index{
+						Id: newIdentifier("withFoo"),
+						Target: &ast.Var{
+							Id: *newIdentifier("di"),
+						},
+					},
+				},
+			},
+		},
 
 		// errors
 		"unknown_node":           &noopNode{},
@@ -615,6 +680,27 @@ func Test_printer_err(t *testing.T) {
 
 	if len(p.output) != 0 {
 		t.Errorf("print() in error state should not add any output")
+	}
+}
+
+func Test_extractApply(t *testing.T) {
+	n := &ast.Apply{
+		Target: &ast.Index{
+			Id: newIdentifier("new"),
+			Target: &ast.Var{
+				Id: *newIdentifier("deployment"),
+			},
+		},
+	}
+
+	got, err := extractApply(n.Target)
+	if err != nil {
+		t.Fatalf("extractApply() returned unexpected error: %v", err)
+	}
+
+	expected := "deployment.new"
+	if got != expected {
+		t.Errorf("extractApply() = %s; expected = %s", got, expected)
 	}
 }
 

@@ -82,7 +82,8 @@ func capitalize(in string) string {
 	return b.String()
 }
 
-func formatKind(s string) string {
+// FormatKind formats a string in kind format. i.e camel case with jsonnet keywords massaged.
+func FormatKind(s string) string {
 	if strings.ToLower(s) == "local" {
 		return "localStorage"
 	}

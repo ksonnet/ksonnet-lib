@@ -103,7 +103,7 @@ func (r *ReferenceRenderer) Render(container *nm.Object) error {
 
 	renderFields(r.tl, mo, name, ty.Properties())
 
-	formattedName := formatKind(r.rf.Name())
+	formattedName := FormatKind(r.rf.Name())
 
 	container.Set(nm.NewKey(formattedName, nm.KeyOptComment(desc)), mo)
 	_ = genTypeAliasEntry(container, name, ref)
@@ -127,10 +127,10 @@ func NewObjectRenderer(field Property, parent string) *ObjectRenderer {
 func (r *ObjectRenderer) Render(container *nm.Object) error {
 	wrapper := mixinName(r.parent)
 	setterFn := createObjectWithField(r.name, wrapper, false)
-	setProperty(container, r.setter(), r.description, []string{formatKind(r.name)}, setterFn)
+	setProperty(container, r.setter(), r.description, []string{FormatKind(r.name)}, setterFn)
 
 	mixinFn := createObjectWithField(r.name, wrapper, true)
-	setProperty(container, r.mixin(), r.description, []string{formatKind(r.name)}, mixinFn)
+	setProperty(container, r.mixin(), r.description, []string{FormatKind(r.name)}, mixinFn)
 
 	_ = genTypeAliasEntry(container, r.name, r.ref)
 
@@ -152,7 +152,7 @@ func NewItemRenderer(f Property, parent string) *ItemRenderer {
 // Render renders an item in its parent object.
 func (r *ItemRenderer) Render(parent *nm.Object) error {
 	noder := createObjectWithField(r.name, mixinName(r.parent), false)
-	setProperty(parent, r.setter(), r.description, []string{formatKind(r.name)}, noder)
+	setProperty(parent, r.setter(), r.description, []string{FormatKind(r.name)}, noder)
 
 	_ = genTypeAliasEntry(parent, r.name, r.ref)
 	return nil
@@ -172,10 +172,10 @@ func NewArrayRenderer(f Property, parent string) *ArrayRenderer {
 func (r *ArrayRenderer) Render(container *nm.Object) error {
 	wrapper := mixinName(r.parent)
 	setterFn := convertToArray(r.name, wrapper, false)
-	setProperty(container, r.setter(), r.description, []string{formatKind(r.name)}, setterFn)
+	setProperty(container, r.setter(), r.description, []string{FormatKind(r.name)}, setterFn)
 
 	mixinFn := convertToArray(r.name, wrapper, true)
-	setProperty(container, r.mixin(), r.description, []string{formatKind(r.name)}, mixinFn)
+	setProperty(container, r.mixin(), r.description, []string{FormatKind(r.name)}, mixinFn)
 
 	_ = genTypeAliasEntry(container, r.name, r.ref)
 	return nil
@@ -184,7 +184,7 @@ func (r *ArrayRenderer) Render(container *nm.Object) error {
 func convertToArray(varName, parent string, mixin bool) nm.Noder {
 	apply := nm.NewApply(
 		nm.NewCall("std.type"),
-		nm.NewVar(formatKind(varName)))
+		nm.NewVar(FormatKind(varName)))
 
 	test := nm.NewBinary(apply, nm.NewStringDouble("array"), nm.BopEqual)
 
@@ -194,12 +194,12 @@ func convertToArray(varName, parent string, mixin bool) nm.Noder {
 	trueO := nm.OnelineObject()
 	trueO.Set(
 		nm.InheritedKey(varName, nm.KeyOptMixin(mixin)),
-		nm.NewVar(formatKind(varName)))
+		nm.NewVar(FormatKind(varName)))
 
 	falseO := nm.OnelineObject()
 	falseO.Set(
 		nm.InheritedKey(varName, nm.KeyOptMixin(mixin)),
-		nm.NewArray([]nm.Noder{nm.NewVar(formatKind(varName))}))
+		nm.NewArray([]nm.Noder{nm.NewVar(FormatKind(varName))}))
 
 	if parent == "" {
 		trueBranch = trueO
@@ -217,7 +217,7 @@ func convertToArray(varName, parent string, mixin bool) nm.Noder {
 func createObjectWithField(name, parentName string, mixin bool) nm.Noder {
 	var noder nm.Noder
 	io := nm.OnelineObject()
-	io.Set(nm.InheritedKey(name, nm.KeyOptMixin(mixin)), nm.NewVar(formatKind(name)))
+	io.Set(nm.InheritedKey(name, nm.KeyOptMixin(mixin)), nm.NewVar(FormatKind(name)))
 
 	if parentName == "" {
 		noder = io
@@ -238,7 +238,7 @@ func mixinPreamble(o *nm.Object, parent, name string) error {
 	if o == nil {
 		return errors.New("parent object is nil")
 	}
-	name = formatKind(name)
+	name = FormatKind(name)
 
 	formattedName := mixinName(name)
 
@@ -280,7 +280,7 @@ func genTypeAliasEntry(container *nm.Object, name, refName string) error {
 			name, refName)
 	}
 
-	kind := formatKind(rd.Kind)
+	kind := FormatKind(rd.Kind)
 	path := []string{"hidden", rd.Group, rd.Version, kind}
 	location := strings.Join(path, ".")
 
@@ -309,7 +309,7 @@ func mixinName(name string) string {
 		return ""
 	}
 
-	name = formatKind(name)
+	name = FormatKind(name)
 
 	return fmt.Sprintf("__%sMixin", name)
 }
