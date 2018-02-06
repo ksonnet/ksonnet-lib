@@ -1,5 +1,8 @@
 {
   "swagger": "2.0",
+  "info": {
+    "version": "v1.8.0"
+  },
   "definitions": {
     "io.k8s.api.apps.v1beta2.Deployment": {
       "description": "Deployment enables declarative updates for Pods and ReplicaSets.",
