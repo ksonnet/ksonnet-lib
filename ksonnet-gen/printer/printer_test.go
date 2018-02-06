@@ -8,7 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 )
 
 func TestFprintf(t *testing.T) {
@@ -120,18 +121,22 @@ var (
 				},
 			},
 		},
-		"inline_object": &ast.Object{
+		"inline_object": &astext.Object{
 			Oneline: true,
-			Fields: ast.ObjectFields{
+			Fields: []astext.ObjectField{
 				{
-					Kind:  ast.ObjectFieldID,
-					Id:    &id1,
-					Expr2: &ast.Var{Id: *newIdentifier("foo")},
+					ObjectField: ast.ObjectField{
+						Kind:  ast.ObjectFieldID,
+						Id:    &id1,
+						Expr2: &ast.Var{Id: *newIdentifier("foo")},
+					},
 				},
 				{
-					Kind:  ast.ObjectFieldID,
-					Id:    &id1,
-					Expr2: &ast.Var{Id: *newIdentifier("bar")},
+					ObjectField: ast.ObjectField{
+						Kind:  ast.ObjectFieldID,
+						Id:    &id1,
+						Expr2: &ast.Var{Id: *newIdentifier("bar")},
+					},
 				},
 			},
 		},
@@ -209,14 +214,16 @@ var (
 				},
 			},
 		},
-		"multi_line_comments": &ast.Object{
-			Fields: ast.ObjectFields{
+		"multi_line_comments": &astext.Object{
+			Fields: []astext.ObjectField{
 				{
-					Kind:  ast.ObjectLocal,
-					Hide:  ast.ObjectFieldVisible,
-					Id:    &id2,
-					Expr2: &ast.Object{},
-					Comment: &ast.Comment{
+					ObjectField: ast.ObjectField{
+						Kind:  ast.ObjectLocal,
+						Hide:  ast.ObjectFieldVisible,
+						Id:    &id2,
+						Expr2: &ast.Object{},
+					},
+					Comment: &astext.Comment{
 						Text: "line 1\n\nline 3\nline 4",
 					},
 				},
@@ -261,17 +268,19 @@ var (
 				},
 			},
 		},
-		"object_field_with_comment": &ast.Object{
-			Fields: ast.ObjectFields{
+		"object_field_with_comment": &astext.Object{
+			Fields: []astext.ObjectField{
 				{
-					Kind: ast.ObjectFieldID,
-					Hide: ast.ObjectFieldInherit,
-					Id:   &id1,
-					Expr2: &ast.LiteralString{
-						Value: "value",
-						Kind:  ast.StringDouble,
+					ObjectField: ast.ObjectField{
+						Kind: ast.ObjectFieldID,
+						Hide: ast.ObjectFieldInherit,
+						Id:   &id1,
+						Expr2: &ast.LiteralString{
+							Value: "value",
+							Kind:  ast.StringDouble,
+						},
 					},
-					Comment: &ast.Comment{
+					Comment: &astext.Comment{
 						Text: "a comment",
 					},
 				},
@@ -356,14 +365,16 @@ var (
 							Optional: []ast.NamedParameter{
 								{
 									Name: *newIdentifier("opt1"),
-									DefaultArg: &ast.Object{
+									DefaultArg: &astext.Object{
 										Oneline: true,
-										Fields: ast.ObjectFields{
+										Fields: []astext.ObjectField{
 											{
-												Kind:  ast.ObjectFieldID,
-												Hide:  ast.ObjectFieldInherit,
-												Id:    newIdentifier("foo"),
-												Expr2: newLiteralNumber("1"),
+												ObjectField: ast.ObjectField{
+													Kind:  ast.ObjectFieldID,
+													Hide:  ast.ObjectFieldInherit,
+													Id:    newIdentifier("foo"),
+													Expr2: newLiteralNumber("1"),
+												},
 											},
 										},
 									},
@@ -416,27 +427,31 @@ var (
 				},
 				Op: ast.BopManifestEqual,
 			},
-			BranchTrue: &ast.Object{
+			BranchTrue: &astext.Object{
 				Oneline: true,
-				Fields: ast.ObjectFields{
+				Fields: astext.ObjectFields{
 					{
-						Id:    newIdentifier("foo"),
-						Kind:  ast.ObjectFieldID,
-						Hide:  ast.ObjectFieldInherit,
-						Expr2: &ast.Var{Id: *newIdentifier("foo")},
+						ObjectField: ast.ObjectField{
+							Id:    newIdentifier("foo"),
+							Kind:  ast.ObjectFieldID,
+							Hide:  ast.ObjectFieldInherit,
+							Expr2: &ast.Var{Id: *newIdentifier("foo")},
+						},
 					},
 				},
 			},
-			BranchFalse: &ast.Object{
+			BranchFalse: &astext.Object{
 				Oneline: true,
-				Fields: ast.ObjectFields{
+				Fields: astext.ObjectFields{
 					{
-						Id:   newIdentifier("foo"),
-						Kind: ast.ObjectFieldID,
-						Hide: ast.ObjectFieldInherit,
-						Expr2: &ast.Array{
-							Elements: ast.Nodes{
-								&ast.Var{Id: *newIdentifier("foo")},
+						ObjectField: ast.ObjectField{
+							Id:   newIdentifier("foo"),
+							Kind: ast.ObjectFieldID,
+							Hide: ast.ObjectFieldInherit,
+							Expr2: &ast.Array{
+								Elements: ast.Nodes{
+									&ast.Var{Id: *newIdentifier("foo")},
+								},
 							},
 						},
 					},
@@ -464,14 +479,16 @@ var (
 				},
 				Op: ast.BopManifestEqual,
 			},
-			BranchTrue: &ast.Object{
+			BranchTrue: &astext.Object{
 				Oneline: true,
-				Fields: ast.ObjectFields{
+				Fields: astext.ObjectFields{
 					{
-						Id:    newIdentifier("foo"),
-						Kind:  ast.ObjectFieldID,
-						Hide:  ast.ObjectFieldInherit,
-						Expr2: &ast.Var{Id: *newIdentifier("foo")},
+						ObjectField: ast.ObjectField{
+							Id:    newIdentifier("foo"),
+							Kind:  ast.ObjectFieldID,
+							Hide:  ast.ObjectFieldInherit,
+							Expr2: &ast.Var{Id: *newIdentifier("foo")},
+						},
 					},
 				},
 			},

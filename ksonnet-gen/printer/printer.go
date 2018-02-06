@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
 
@@ -172,6 +173,23 @@ func (p *printer) print(n interface{}) {
 	case *ast.Object:
 		p.writeString("{")
 
+		for _, field := range t.Fields {
+			p.indentLevel++
+			p.writeByte(newline, 1)
+
+			p.print(field)
+
+			p.indentLevel--
+			p.writeByte(comma, 1)
+		}
+
+		// write an extra newline at the end
+		p.writeByte(newline, 1)
+
+		p.writeString("}")
+	case *astext.Object:
+		p.writeString("{")
+
 		for i, field := range t.Fields {
 			if !t.Oneline {
 				p.indentLevel++
@@ -198,7 +216,7 @@ func (p *printer) print(n interface{}) {
 		}
 
 		p.writeString("}")
-	case ast.ObjectField:
+	case astext.ObjectField, ast.ObjectField:
 		p.handleObjectField(t)
 	case *ast.LiteralString:
 		switch t.Kind {
@@ -234,7 +252,7 @@ func (p *printer) handleApply(t *ast.Apply) {
 	p.writeString(")")
 }
 
-func (p *printer) writeComment(c *ast.Comment) {
+func (p *printer) writeComment(c *astext.Comment) {
 	if c == nil {
 		return
 	}
@@ -250,14 +268,40 @@ func (p *printer) writeComment(c *ast.Comment) {
 	}
 }
 
-func (p *printer) handleObjectField(t ast.ObjectField) {
-	p.writeComment(t.Comment)
+func (p *printer) handleObjectField(n interface{}) {
+	var ofHide ast.ObjectFieldHide
+	var ofKind ast.ObjectFieldKind
+	var ofId *ast.Identifier
+	var ofMethod *ast.Function
+	var ofSugar bool
+	var ofExpr2 ast.Node
+
+	switch t := n.(type) {
+	default:
+		p.err = errors.Errorf("unknown object field type %T", t)
+		return
+	case ast.ObjectField:
+		ofHide = t.Hide
+		ofKind = t.Kind
+		ofId = t.Id
+		ofMethod = t.Method
+		ofSugar = t.SuperSugar
+		ofExpr2 = t.Expr2
+	case astext.ObjectField:
+		ofHide = t.Hide
+		ofKind = t.Kind
+		ofId = t.Id
+		ofMethod = t.Method
+		ofSugar = t.SuperSugar
+		ofExpr2 = t.Expr2
+		p.writeComment(t.Comment)
+	}
 
 	var fieldType string
 
-	switch hide := t.Hide; hide {
+	switch ofHide {
 	default:
-		p.err = errors.Errorf("unknown Hide type %#v", hide)
+		p.err = errors.Errorf("unknown Hide type %#v", ofHide)
 		return
 	case ast.ObjectFieldHidden:
 		fieldType = "::"
@@ -267,40 +311,40 @@ func (p *printer) handleObjectField(t ast.ObjectField) {
 		fieldType = ":"
 	}
 
-	switch kind := t.Kind; kind {
+	switch ofKind {
 	default:
-		p.err = errors.Errorf("unknown Kind type %#v", kind)
+		p.err = errors.Errorf("unknown Kind type %#v", ofKind)
 		return
 	case ast.ObjectFieldID:
-		p.writeString(string(*t.Id))
-		if t.Method != nil {
-			p.addMethodSignature(t)
+		p.writeString(string(*ofId))
+		if ofMethod != nil {
+			p.addMethodSignature(ofMethod)
 		}
 
-		if t.SuperSugar {
+		if ofSugar {
 			p.writeByte(syntaxSugar, 1)
 		}
 
 		p.writeString(fieldType)
 		p.writeByte(space, 1)
-		p.print(t.Expr2)
+		p.print(ofExpr2)
 	case ast.ObjectLocal:
 		p.writeString("local ")
-		p.writeString(string(*t.Id))
-		p.addMethodSignature(t)
+		p.writeString(string(*ofId))
+		p.addMethodSignature(ofMethod)
 		p.writeString(" = ")
-		p.print(t.Expr2)
+		p.print(ofExpr2)
 	case ast.ObjectFieldStr:
-		p.writeString(fmt.Sprintf(`"%s"%s `, string(*t.Id), fieldType))
-		p.print(t.Expr2)
+		p.writeString(fmt.Sprintf(`"%s"%s `, string(*ofId), fieldType))
+		p.print(ofExpr2)
 	}
 }
 
-func (p *printer) addMethodSignature(of ast.ObjectField) {
-	if of.Method == nil {
+func (p *printer) addMethodSignature(method *ast.Function) {
+	if method == nil {
 		return
 	}
-	params := of.Method.Parameters
+	params := method.Parameters
 
 	p.writeString("(")
 	var args []string

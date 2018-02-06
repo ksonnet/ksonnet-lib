@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 )
 
