@@ -122,7 +122,7 @@ func (p *printer) print(n interface{}) {
 
 	switch t := n.(type) {
 	default:
-		p.err = errors.Errorf("unknown node type: %v", n)
+		p.err = errors.Errorf("unknown node type: (%T) %v", n, n)
 		return
 	case *ast.Apply:
 		p.handleApply(t)
@@ -160,6 +160,9 @@ func (p *printer) print(n interface{}) {
 			p.writeString(" else ")
 			p.print(t.BranchFalse)
 		}
+	case *ast.Import:
+		p.writeString("import ")
+		p.print(t.File)
 	case *ast.Index:
 		id, err := indexID(t)
 		if err != nil {
@@ -170,6 +173,17 @@ func (p *printer) print(n interface{}) {
 		p.writeString(id)
 		p.writeString(".")
 		p.print(t.Target)
+	case *ast.Local:
+		p.writeString("local ")
+
+		for _, bind := range t.Binds {
+			p.writeString(string(bind.Variable))
+			p.writeString(" = ")
+			p.print(bind.Body)
+			p.writeString(";")
+			p.writeByte(newline, 1)
+		}
+		p.print(t.Body)
 	case *ast.Object:
 		p.writeString("{")
 
@@ -379,13 +393,33 @@ func extractApply(n ast.Node) (string, error) {
 	switch t := n.(type) {
 	default:
 		return "", errors.Errorf("invalid type %T when extracting apply", t)
+	case *ast.Apply:
+		var args bytes.Buffer
+
+		for i, arg := range t.Arguments.Positional {
+			s, err := extractApply(arg)
+			if err != nil {
+				return "", errors.Wrap(err, "extract apply arguments")
+			}
+
+			args.WriteString(s)
+			if i != len(t.Arguments.Positional)-1 {
+				args.WriteString(", ")
+			}
+		}
+
+		s, err := extractApply(t.Target)
+		if err != nil {
+			return "", errors.Wrap(err, "extract apply in apply")
+		}
+		return fmt.Sprintf("%s(%s)", s, args.String()), nil
 	case *ast.Index:
 		var s string
 		if t.Target != nil {
 			var err error
 			s, err = extractApply(t.Target)
 			if err != nil {
-				return "", errors.Wrap(err, "extract apply")
+				return "", errors.Wrap(err, "extract apply in index")
 			}
 		}
 
@@ -394,7 +428,7 @@ func extractApply(n ast.Node) (string, error) {
 			return "", err
 		}
 
-		return fmt.Sprintf("%s.%s", id, s), nil
+		return fmt.Sprintf("%s.%s", s, id), nil
 	case *ast.Var:
 		return string(t.Id), nil
 	case *ast.Self:

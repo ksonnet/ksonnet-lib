@@ -2,6 +2,7 @@ package nodemaker
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-jsonnet/ast"
@@ -140,21 +141,32 @@ func (t *StringDouble) Node() ast.Node {
 // Number is an a number.
 type Number struct {
 	number float64
+	value  string
 }
 
 var _ Noder = (*Number)(nil)
 
-// NewNumber creates an instance of Number.
-func NewNumber(number float64) *Number {
+// NewInt creates an integer number.
+func NewInt(i int) *Number {
 	return &Number{
-		number: number,
+		number: float64(i),
+		value:  strconv.Itoa(i),
+	}
+}
+
+// NewFloat creates a float instance of a number.
+func NewFloat(f float64) *Number {
+	return &Number{
+		number: f,
+		value:  strconv.FormatFloat(f, 'f', -1, 64),
 	}
 }
 
 // Node converts the Number to a jsonnet node.
 func (t *Number) Node() ast.Node {
 	return &ast.LiteralNumber{
-		Value: t.number,
+		Value:          t.number,
+		OriginalString: t.value,
 	}
 }
 
@@ -426,6 +438,13 @@ func NewApply(target Noder, args ...Noder) *Apply {
 
 // ApplyCall creates an Apply using a method string.
 func ApplyCall(method string, args ...Noder) *Apply {
+	parts := strings.Split(method, ".")
+	for i := 0; i < len(parts)/2; i++ {
+		j := len(parts) - i - 1
+		parts[i], parts[j] = parts[j], parts[i]
+	}
+
+	method = strings.Join(parts, ".")
 	return NewApply(NewCall(method), args...)
 }
 
@@ -467,13 +486,20 @@ func (c *Call) Node() ast.Node {
 	var head *ast.Index
 	var cur *ast.Index
 
-	if len(c.parts) == 1 {
-		return NewVar(c.parts[0]).Node()
+	parts := c.parts
+
+	for i := 0; i < len(parts)/2; i++ {
+		j := len(parts) - i - 1
+		parts[i], parts[j] = parts[j], parts[i]
 	}
 
-	for i := 0; i < len(c.parts)-1; i++ {
+	if len(parts) == 1 {
+		return NewVar(parts[0]).Node()
+	}
+
+	for i := len(parts) - 1; i > 0; i-- {
 		newIndex := &ast.Index{
-			Id: newIdentifier(c.parts[i]),
+			Id: newIdentifier(parts[i]),
 		}
 		if head == nil {
 			head = newIndex
@@ -484,7 +510,7 @@ func (c *Call) Node() ast.Node {
 		}
 	}
 
-	cur.Target = NewVar(c.parts[len(c.parts)-1]).Node()
+	cur.Target = NewVar(parts[0]).Node()
 
 	return head
 }

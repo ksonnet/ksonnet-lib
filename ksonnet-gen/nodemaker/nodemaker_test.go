@@ -73,6 +73,26 @@ func ExampleBinary() {
 	// }
 }
 
+func ExampleCall() {
+	o := NewObject()
+	k := NewKey("foo")
+
+	c := NewCall("a.b.c.d")
+
+	if err := o.Set(k, c); err != nil {
+		fmt.Printf("error: %#v\n", err)
+	}
+
+	if err := printer.Fprint(os.Stdout, o.Node()); err != nil {
+		fmt.Printf("error: %#v\n", err)
+	}
+
+	// Output:
+	// {
+	//   foo:: a.b.c.d,
+	// }
+}
+
 func ExampleObject() {
 	o := NewObject()
 
@@ -321,7 +341,7 @@ func mixinField() *Object {
 
 func numberField() *Object {
 	o := NewObject()
-	t := NewNumber(1)
+	t := NewInt(1)
 	k := InheritedKey("foo")
 	o.Set(k, t)
 	return o
@@ -557,7 +577,8 @@ var (
 						Hide: ast.ObjectFieldInherit,
 						Kind: ast.ObjectFieldID,
 						Expr2: &ast.LiteralNumber{
-							Value: 1,
+							Value:          1,
+							OriginalString: "1",
 						},
 					},
 				},
@@ -769,11 +790,11 @@ var (
 						Kind: ast.ObjectLocal,
 						Expr2: &ast.Apply{
 							Target: &ast.Index{
-								Id: newIdentifier("alpha"),
+								Id: newIdentifier("charlie"),
 								Target: &ast.Index{
 									Id: newIdentifier("beta"),
 									Target: &ast.Var{
-										Id: *newIdentifier("charlie"),
+										Id: *newIdentifier("alpha"),
 									},
 								},
 							},
@@ -810,8 +831,8 @@ func TestObject_Get(t *testing.T) {
 }
 
 func TestBinary_UnknownOperator(t *testing.T) {
-	left := NewNumber(1)
-	right := NewNumber(2)
+	left := NewInt(1)
+	right := NewFloat(2)
 
 	b := NewBinary(left, right, BinaryOp("☃"))
 

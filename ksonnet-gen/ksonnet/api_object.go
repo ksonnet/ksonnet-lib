@@ -23,7 +23,7 @@ func NewAPIObject(resource Object) *APIObject {
 
 // Kind is the kind of api object this is.
 func (a *APIObject) Kind() string {
-	return formatKind(a.resource.Kind())
+	return FormatKind(a.resource.Kind())
 }
 
 // Description is the description of this API object.
