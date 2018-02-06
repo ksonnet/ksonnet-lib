@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
 
@@ -82,7 +83,7 @@ func (o *Object) Get(keyName string) Noder {
 
 // Node converts the object to a jsonnet node.
 func (o *Object) Node() ast.Node {
-	ao := &ast.Object{
+	ao := &astext.Object{
 		Oneline: o.oneline,
 	}
 
@@ -90,15 +91,15 @@ func (o *Object) Node() ast.Node {
 		k := o.keys[name]
 		v := o.fields[name]
 
-		of := ast.ObjectField{
-			Id:         newIdentifier(k.name),
-			Kind:       k.category,
-			Hide:       k.visibility,
-			Expr2:      v.Node(),
-			Comment:    o.generateComment(k.comment),
-			Method:     k.Method(),
-			SuperSugar: k.Mixin(),
+		of := astext.ObjectField{
+			Comment: o.generateComment(k.comment),
 		}
+		of.Id = newIdentifier(k.name)
+		of.Kind = k.category
+		of.Hide = k.visibility
+		of.Expr2 = v.Node()
+		of.Method = k.Method()
+		of.SuperSugar = k.Mixin()
 
 		ao.Fields = append(ao.Fields, of)
 	}
@@ -106,9 +107,9 @@ func (o *Object) Node() ast.Node {
 	return ao
 }
 
-func (o *Object) generateComment(text string) *ast.Comment {
+func (o *Object) generateComment(text string) *astext.Comment {
 	if text != "" {
-		return &ast.Comment{Text: text}
+		return &astext.Comment{Text: text}
 	}
 
 	return nil
