@@ -1,6 +1,7 @@
 package ksonnet
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/go-openapi/spec"
@@ -35,7 +36,8 @@ func TestCatalog_Resources(t *testing.T) {
 }
 
 func TestCatalog_Resources_invalid_description(t *testing.T) {
-	source := []byte(`{"swagger": "2.0", "definitions": {"invalid": {}}}`)
+	source, err := ioutil.ReadFile("testdata/invalid_definition.json")
+	require.NoError(t, err)
 
 	apiSpec, err := kubespec.CreateAPISpec(source)
 	require.NoError(t, err)
@@ -107,7 +109,8 @@ func TestCatalog_Types(t *testing.T) {
 }
 
 func TestCatalog_Types_invalid_description(t *testing.T) {
-	source := []byte(`{"swagger": "2.0", "definitions": {"invalid": {}}}`)
+	source, err := ioutil.ReadFile("testdata/invalid_definition.json")
+	require.NoError(t, err)
 
 	apiSpec, err := kubespec.CreateAPISpec(source)
 	require.NoError(t, err)

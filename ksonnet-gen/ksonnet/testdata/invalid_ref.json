@@ -1,5 +1,8 @@
 {
     "swagger": "2.0",
+    "info": {
+        "version": "v1.8.0"
+    },
     "definitions": {
         "io.k8s.api.apps.v1beta2.RollingUpdateDeployment": {
             "description": "Spec to control the desired behavior of rolling update.",

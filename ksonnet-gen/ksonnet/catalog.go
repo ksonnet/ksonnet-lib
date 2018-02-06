@@ -3,6 +3,7 @@ package ksonnet
 import (
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/go-openapi/spec"
 	"github.com/pkg/errors"
 )
@@ -40,8 +41,9 @@ func CatalogOptExtractProperties(fn ExtractFn) CatalogOpt {
 
 // Catalog is a catalog definitions
 type Catalog struct {
-	apiSpec   *spec.Swagger
-	extractFn ExtractFn
+	apiSpec    *spec.Swagger
+	extractFn  ExtractFn
+	apiVersion semver.Version
 }
 
 // NewCatalog creates an instance of Catalog.
@@ -50,9 +52,22 @@ func NewCatalog(apiSpec *spec.Swagger, opts ...CatalogOpt) (*Catalog, error) {
 		return nil, errors.New("apiSpec is nil")
 	}
 
+	if apiSpec.Info == nil {
+		return nil, errors.New("apiSpec Info is nil")
+	}
+
+	parts := strings.SplitN(apiSpec.Info.Version, ".", 3)
+	parts[0] = strings.TrimPrefix(parts[0], "v")
+	vers := strings.Join(parts, ".")
+	apiVersion, err := semver.Parse(vers)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid apiSpec version")
+	}
+
 	c := &Catalog{
-		apiSpec:   apiSpec,
-		extractFn: extractProperties,
+		apiSpec:    apiSpec,
+		extractFn:  extractProperties,
+		apiVersion: apiVersion,
 	}
 
 	for _, opt := range opts {
@@ -160,8 +175,13 @@ func (c *Catalog) Resource(group, version, kind string) (*Type, error) {
 		group, version, kind)
 }
 
-func isValidDefinition(name string) bool {
-	return !strings.HasPrefix(name, "io.k8s.kubernetes.pkg.api")
+func isValidDefinition(name string, ver semver.Version) bool {
+	checkVer := semver.Version{Major: 1, Minor: 7}
+	if ver.GTE(checkVer) {
+		return !strings.HasPrefix(name, "io.k8s.kubernetes.pkg.api")
+	}
+
+	return true
 }
 
 // extractRef extracts a ref from a schema.
@@ -173,7 +193,7 @@ func (c *Catalog) definitions() spec.Definitions {
 	out := spec.Definitions{}
 
 	for name, schema := range c.apiSpec.Definitions {
-		if isValidDefinition(name) {
+		if isValidDefinition(name, c.apiVersion) {
 			out[name] = schema
 		}
 	}
