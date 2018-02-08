@@ -7,17 +7,19 @@ type Field struct {
 	properties  map[string]Property
 	version     string
 	group       string
+	codebase    string
 	identifier  string
 }
 
 var _ Object = (*Field)(nil)
 
 // NewField creates an instance of Field.
-func NewField(id, desc, group, ver, kind string, props map[string]Property) *Field {
+func NewField(id, desc, codebase, group, ver, kind string, props map[string]Property) *Field {
 	return &Field{
 		identifier:  id,
 		description: desc,
 		group:       group,
+		codebase:    codebase,
 		version:     ver,
 		kind:        kind,
 		properties:  props,
@@ -32,6 +34,11 @@ func (f *Field) Kind() string {
 // Version is the version for this field.
 func (f *Field) Version() string {
 	return f.version
+}
+
+// Codebase is the codebase for this field.
+func (f *Field) Codebase() string {
+	return f.codebase
 }
 
 // Group is the group for this field.

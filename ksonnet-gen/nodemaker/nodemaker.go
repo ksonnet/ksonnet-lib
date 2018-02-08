@@ -2,6 +2,7 @@ package nodemaker
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -23,7 +24,7 @@ type field struct {
 // ObjectOptOneline is a functional option which sets the object's oneline status.
 func ObjectOptOneline(oneline bool) ObjectOpt {
 	return func(o *Object) {
-		o.oneline = oneline
+		o.Oneline = oneline
 	}
 }
 
@@ -32,13 +33,45 @@ type ObjectOpt func(*Object)
 
 // Object is an item that can have multiple keys with values.
 type Object struct {
-	oneline bool
+	Oneline bool
 	fields  map[string]Noder
 	keys    map[string]Key
 	keyList []string
 }
 
 var _ Noder = (*Object)(nil)
+
+// KVFromMap creates a shallow object using a map.
+func KVFromMap(m map[string]interface{}) (*Object, error) {
+	if m == nil {
+		return nil, errors.New("map is nil")
+	}
+
+	var names []string
+	for name := range m {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	o := NewObject(ObjectOptOneline(true))
+
+	for _, name := range names {
+		switch t := m[name].(type) {
+		case string:
+			o.Set(InheritedKey(name), NewStringDouble(t))
+		case float64:
+			o.Set(InheritedKey(name), NewFloat(t))
+		case int:
+			o.Set(InheritedKey(name), NewInt(t))
+		case bool:
+			o.Set(InheritedKey(name), NewBoolean(t))
+		default:
+			return nil, errors.Errorf("unsupported type %T", t)
+		}
+	}
+
+	return o, nil
+}
 
 // NewObject creates an Object. ObjectOpt functional arguments can be used to configure the
 // newly generated key.
@@ -85,7 +118,7 @@ func (o *Object) Get(keyName string) Noder {
 // Node converts the object to a jsonnet node.
 func (o *Object) Node() ast.Node {
 	ao := &astext.Object{
-		Oneline: o.oneline,
+		Oneline: o.Oneline,
 	}
 
 	for _, name := range o.keyList {
@@ -116,12 +149,29 @@ func (o *Object) generateComment(text string) *astext.Comment {
 	return nil
 }
 
+// Boolean is a boolean.
+type Boolean struct {
+	value bool
+}
+
+// NewBoolean creates an instance of Boolean.
+func NewBoolean(value bool) *Boolean {
+	return &Boolean{
+		value: value,
+	}
+}
+
+// Node converts Boolean to a jsonnet node.
+func (b *Boolean) Node() ast.Node {
+	return &ast.LiteralBoolean{
+		Value: b.value,
+	}
+}
+
 // StringDouble is double quoted string.
 type StringDouble struct {
 	text string
 }
-
-var _ Noder = (*StringDouble)(nil)
 
 // NewStringDouble creates an instance of StringDouble.
 func NewStringDouble(text string) *StringDouble {
@@ -130,12 +180,16 @@ func NewStringDouble(text string) *StringDouble {
 	}
 }
 
-// Node converts the StringDouble to a jsonnet node.
-func (t *StringDouble) Node() ast.Node {
+func (t *StringDouble) node() *ast.LiteralString {
 	return &ast.LiteralString{
 		Kind:  ast.StringDouble,
 		Value: t.text,
 	}
+}
+
+// Node converts the StringDouble to a jsonnet node.
+func (t *StringDouble) Node() ast.Node {
+	return t.node()
 }
 
 // Number is an a number.
@@ -232,6 +286,13 @@ func KeyOptParams(params []string) KeyOpt {
 	}
 }
 
+// KeyOptNamedParams is a functional option for setting named params for a key.
+func KeyOptNamedParams(params ...OptionalArg) KeyOpt {
+	return func(k *Key) {
+		k.namedParams = params
+	}
+}
+
 // KeyOpt is a functional option for configuring Key.
 type KeyOpt func(k *Key)
 
@@ -242,12 +303,13 @@ var (
 
 // Key names a fields in an object.
 type Key struct {
-	name       string
-	category   ast.ObjectFieldKind
-	visibility ast.ObjectFieldHide
-	comment    string
-	params     []string
-	mixin      bool
+	name        string
+	category    ast.ObjectFieldKind
+	visibility  ast.ObjectFieldHide
+	comment     string
+	params      []string
+	namedParams []OptionalArg
+	mixin       bool
 }
 
 // NewKey creates an instance of Key. KeyOpt functional options can be used to configure the
@@ -291,7 +353,7 @@ func FunctionKey(name string, args []string, opts ...KeyOpt) Key {
 }
 
 // Method returns the jsonnet AST object file method parameter.
-func (k Key) Method() *ast.Function {
+func (k *Key) Method() *ast.Function {
 	if k.params == nil {
 		return nil
 	}
@@ -304,6 +366,10 @@ func (k Key) Method() *ast.Function {
 
 	for _, p := range k.params {
 		f.Parameters.Required = append(f.Parameters.Required, *newIdentifier(p))
+	}
+
+	for _, p := range k.namedParams {
+		f.Parameters.Optional = append(f.Parameters.Optional, p.NamedParameter())
 	}
 
 	return f
@@ -322,6 +388,10 @@ const (
 	BopPlus BinaryOp = "+"
 	// BopEqual is ==
 	BopEqual = "=="
+	// BopGreater is >
+	BopGreater = ">"
+	// BopAnd is &&
+	BopAnd = "&&"
 )
 
 // Binary represents a binary operation
@@ -420,46 +490,75 @@ func (c *Conditional) Node() ast.Node {
 	return cond
 }
 
+// OptionalArg is an optional argument.
+type OptionalArg struct {
+	Name    string
+	Default Noder
+}
+
+// NamedArgument converts the OptionalArgument to a jsonnet NamedArgument.
+func (oa *OptionalArg) NamedArgument() ast.NamedArgument {
+	na := ast.NamedArgument{
+		Name: *newIdentifier(oa.Name),
+	}
+
+	if oa.Default == nil {
+		na.Arg = NewStringDouble("").Node()
+	} else {
+		na.Arg = oa.Default.Node()
+	}
+
+	return na
+}
+
+// NamedParameter converts the OptionalArgument to a jsonnet NamedParameter.
+func (oa *OptionalArg) NamedParameter() ast.NamedParameter {
+	np := ast.NamedParameter{
+		Name: *newIdentifier(oa.Name),
+	}
+
+	if oa.Default != nil {
+		np.DefaultArg = oa.Default.Node()
+	}
+
+	return np
+}
+
 // Apply represents an application of a function.
 type Apply struct {
-	target Noder
-	args   []Noder
+	target         Noder
+	positionalArgs []Noder
+	optionalArgs   []OptionalArg
 }
 
 var _ Noder = (*Apply)(nil)
 
 // NewApply creates an instance of Apply.
-func NewApply(target Noder, args ...Noder) *Apply {
+func NewApply(target Noder, positionalArgs []Noder, optionalArgs []OptionalArg) *Apply {
 	return &Apply{
-		target: target,
-		args:   args,
+		target:         target,
+		positionalArgs: positionalArgs,
+		optionalArgs:   optionalArgs,
 	}
 }
 
 // ApplyCall creates an Apply using a method string.
 func ApplyCall(method string, args ...Noder) *Apply {
-	parts := strings.Split(method, ".")
-	for i := 0; i < len(parts)/2; i++ {
-		j := len(parts) - i - 1
-		parts[i], parts[j] = parts[j], parts[i]
-	}
-
-	method = strings.Join(parts, ".")
-	return NewApply(NewCall(method), args...)
+	return NewApply(NewCall(method), args, nil)
 }
 
 // Node converts the Apply to a jsonnet ast node.
 func (a *Apply) Node() ast.Node {
-	nodes := make([]ast.Node, 0)
-	for _, arg := range a.args {
-		nodes = append(nodes, arg.Node())
-	}
-
 	apply := &ast.Apply{
 		Target: a.target.Node(),
-		Arguments: ast.Arguments{
-			Positional: nodes,
-		},
+	}
+
+	for _, arg := range a.positionalArgs {
+		apply.Arguments.Positional = append(apply.Arguments.Positional, arg.Node())
+	}
+
+	for _, arg := range a.optionalArgs {
+		apply.Arguments.Named = append(apply.Arguments.Named, arg.NamedArgument())
 	}
 
 	return apply
@@ -488,16 +587,22 @@ func (c *Call) Node() ast.Node {
 
 	parts := c.parts
 
-	for i := 0; i < len(parts)/2; i++ {
-		j := len(parts) - i - 1
-		parts[i], parts[j] = parts[j], parts[i]
-	}
-
 	if len(parts) == 1 {
 		return NewVar(parts[0]).Node()
 	}
 
-	for i := len(parts) - 1; i > 0; i-- {
+	for i := range parts {
+		i = len(parts) - 1 - i
+		if i == 0 {
+			v := NewVar(parts[i]).Node()
+			if head == nil {
+				return v
+			}
+
+			cur.Target = v
+			return head
+		}
+
 		newIndex := &ast.Index{
 			Id: newIdentifier(parts[i]),
 		}
@@ -510,9 +615,116 @@ func (c *Call) Node() ast.Node {
 		}
 	}
 
-	cur.Target = NewVar(parts[0]).Node()
-
 	return head
+}
+
+// Local is a local declaration.
+type Local struct {
+	name  string
+	value Noder
+	body  Noder
+}
+
+var _ Noder = (*Local)(nil)
+
+// NewLocal creates an instance of Local.
+func NewLocal(name string, value, body Noder) *Local {
+	return &Local{name: name, value: value, body: body}
+}
+
+// Node converts the Local to a jsonnet ast node.
+func (l *Local) Node() ast.Node {
+	id := *newIdentifier(l.name)
+
+	local := &ast.Local{
+		Binds: ast.LocalBinds{
+			{
+				Variable: id,
+				Body:     l.value.Node(),
+			},
+		},
+	}
+
+	if l.body != nil {
+		local.Body = l.body.Node()
+	}
+
+	return local
+}
+
+// Import is an import declaration.
+type Import struct {
+	name string
+}
+
+var _ Noder = (*Import)(nil)
+
+// NewImport creates an instance of Import.
+func NewImport(name string) *Import {
+	return &Import{name: name}
+}
+
+// Node converts the Import to a jsonnet ast node.
+func (i *Import) Node() ast.Node {
+	file := NewStringDouble(i.name)
+
+	return &ast.Import{
+		File: file.node(),
+	}
+}
+
+// Function is a function.
+type Function struct {
+	req  []string
+	body Noder
+}
+
+var _ Noder = (*Function)(nil)
+
+// NewFunction creates an instance of Function.
+func NewFunction(req []string, body Noder) *Function {
+	return &Function{
+		req:  req,
+		body: body,
+	}
+}
+
+// Node converts the Function to a jsonnet ast node.
+func (f *Function) Node() ast.Node {
+	fun := &ast.Function{
+		Parameters: ast.Parameters{},
+		Body:       f.body.Node(),
+	}
+
+	var ids ast.Identifiers
+	for _, param := range f.req {
+		ids = append(ids, *newIdentifier(param))
+	}
+	fun.Parameters.Required = ids
+
+	return fun
+}
+
+// Combine combines multiple nodes into a single node. If one argument is passed,
+// it is returned. If two or more arguments are passed, they are combined using a
+// Binary.
+func Combine(nodes ...Noder) Noder {
+	l := len(nodes)
+
+	switch {
+	case l == 1:
+		return nodes[0]
+	case l >= 2:
+		sum := NewBinary(nodes[0], nodes[1], BopPlus)
+
+		for i := 2; i < l; i++ {
+			sum = NewBinary(sum, nodes[i], BopPlus)
+		}
+
+		return sum
+	}
+
+	return NewObject()
 }
 
 // newIdentifier creates an identifier.

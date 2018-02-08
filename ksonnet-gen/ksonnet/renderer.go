@@ -96,7 +96,7 @@ func (r *ReferenceRenderer) Render(container *nm.Object) error {
 
 	ref := r.rf.Ref()
 
-	ty, err := r.tl.Type(ref)
+	ty, err := r.tl.Field(ref)
 	if err != nil {
 		return errors.Wrapf(err, "fetch type %s", ref)
 	}
@@ -184,7 +184,8 @@ func (r *ArrayRenderer) Render(container *nm.Object) error {
 func convertToArray(varName, parent string, mixin bool) nm.Noder {
 	apply := nm.NewApply(
 		nm.NewCall("std.type"),
-		nm.NewVar(FormatKind(varName)))
+		[]nm.Noder{nm.NewVar(FormatKind(varName))},
+		nil)
 
 	test := nm.NewBinary(apply, nm.NewStringDouble("array"), nm.BopEqual)
 
@@ -205,8 +206,8 @@ func convertToArray(varName, parent string, mixin bool) nm.Noder {
 		trueBranch = trueO
 		falseBranch = falseO
 	} else {
-		trueBranch = nm.NewApply(nm.NewCall(parent), trueO)
-		falseBranch = nm.NewApply(nm.NewCall(parent), falseO)
+		trueBranch = nm.NewApply(nm.NewCall(parent), []nm.Noder{trueO}, nil)
+		falseBranch = nm.NewApply(nm.NewCall(parent), []nm.Noder{falseO}, nil)
 	}
 
 	return nm.NewConditional(test, trueBranch, falseBranch)
@@ -222,7 +223,7 @@ func createObjectWithField(name, parentName string, mixin bool) nm.Noder {
 	if parentName == "" {
 		noder = io
 	} else {
-		noder = nm.NewApply(nm.NewCall(parentName), io)
+		noder = nm.NewApply(nm.NewCall(parentName), []nm.Noder{io}, nil)
 	}
 
 	return noder
@@ -256,7 +257,7 @@ func mixinPreamble(o *nm.Object, parent, name string) error {
 	o.Set(nm.LocalKey(formattedName, nm.KeyOptParams([]string{name})), noder)
 
 	miFn := nm.NewCall(formattedName)
-	o.Set(nm.FunctionKey("mixinInstance", []string{name}), nm.NewApply(miFn, nm.NewVar(name)))
+	o.Set(nm.FunctionKey("mixinInstance", []string{name}), nm.NewApply(miFn, []nm.Noder{nm.NewVar(name)}, nil))
 
 	return nil
 }
@@ -316,7 +317,7 @@ func mixinName(name string) string {
 
 // typeLookup can look up types by id.
 type typeLookup interface {
-	Type(id string) (*Field, error)
+	Field(id string) (*Field, error)
 }
 
 type renderFieldsFn func(tl typeLookup, parent *nm.Object, parentName string, props map[string]Property) error

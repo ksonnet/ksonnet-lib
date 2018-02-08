@@ -110,6 +110,8 @@ func (p *printer) writeString(s string) {
 	}
 }
 
+// printer prints a node.
+// nolint: gocyclo
 func (p *printer) print(n interface{}) {
 	if p.err != nil {
 		return
@@ -127,10 +129,7 @@ func (p *printer) print(n interface{}) {
 	case *ast.Apply:
 		p.handleApply(t)
 	case ast.Arguments:
-		// NOTE: only supporting positional arguments
-		for _, arg := range t.Positional {
-			p.print(arg)
-		}
+		p.handleArguments(t)
 	case *ast.Array:
 		p.writeString("[")
 		for i := 0; i < len(t.Elements); i++ {
@@ -150,40 +149,16 @@ func (p *printer) print(n interface{}) {
 
 		p.print(t.Right)
 	case *ast.Conditional:
-		p.writeString("if ")
-		p.print(t.Cond)
-
-		p.writeString(" then ")
-		p.print(t.BranchTrue)
-
-		if t.BranchFalse != nil {
-			p.writeString(" else ")
-			p.print(t.BranchFalse)
-		}
+		p.handleConditional(t)
+	case *ast.Function:
+		p.addMethodSignature(t)
 	case *ast.Import:
 		p.writeString("import ")
 		p.print(t.File)
 	case *ast.Index:
-		id, err := indexID(t)
-		if err != nil {
-			p.err = err
-			return
-		}
-
-		p.writeString(id)
-		p.writeString(".")
-		p.print(t.Target)
+		p.handleIndex(t)
 	case *ast.Local:
-		p.writeString("local ")
-
-		for _, bind := range t.Binds {
-			p.writeString(string(bind.Variable))
-			p.writeString(" = ")
-			p.print(bind.Body)
-			p.writeString(";")
-			p.writeByte(newline, 1)
-		}
-		p.print(t.Body)
+		p.handleLocal(t)
 	case *ast.Object:
 		p.writeString("{")
 
@@ -232,6 +207,12 @@ func (p *printer) print(n interface{}) {
 		p.writeString("}")
 	case astext.ObjectField, ast.ObjectField:
 		p.handleObjectField(t)
+	case *ast.LiteralBoolean:
+		if t.Value {
+			p.writeString("true")
+		} else {
+			p.writeString("false")
+		}
 	case *ast.LiteralString:
 		switch t.Kind {
 		default:
@@ -252,18 +233,45 @@ func (p *printer) print(n interface{}) {
 	}
 }
 
-func (p *printer) handleApply(t *ast.Apply) {
-	s, err := extractApply(t.Target)
-	if err != nil {
-		p.err = err
-		return
+func (p *printer) handleApply(a *ast.Apply) {
+	switch a.Target.(type) {
+	default:
+		p.writeString("function")
+		p.writeString("(")
+		p.print(a.Arguments)
+		p.writeString(")")
+		p.writeByte(space, 1)
+		p.print(a.Target)
+	case *ast.Apply, *ast.Index, *ast.Self, *ast.Var:
+		p.print(a.Target)
+		p.writeString("(")
+		p.print(a.Arguments)
+		p.writeString(")")
 	}
+}
 
-	p.writeString(s)
-	p.writeString("(")
+func (p *printer) handleArguments(a ast.Arguments) {
+	// NOTE: only supporting positional arguments
+	for i, arg := range a.Positional {
+		p.print(arg)
+		if i < len(a.Positional)-1 {
+			p.writeByte(comma, 1)
+			p.writeByte(space, 1)
+		}
+	}
+}
 
-	p.print(t.Arguments)
-	p.writeString(")")
+func (p *printer) handleConditional(c *ast.Conditional) {
+	p.writeString("if ")
+	p.print(c.Cond)
+
+	p.writeString(" then ")
+	p.print(c.BranchTrue)
+
+	if c.BranchFalse != nil {
+		p.writeString(" else ")
+		p.print(c.BranchFalse)
+	}
 }
 
 func (p *printer) writeComment(c *astext.Comment) {
@@ -282,10 +290,48 @@ func (p *printer) writeComment(c *astext.Comment) {
 	}
 }
 
+func (p *printer) handleIndex(i *ast.Index) {
+	if i == nil {
+		p.err = errors.New("index is nil")
+		return
+	}
+	p.print(i.Target)
+	p.writeString(".")
+
+	id, err := indexID(i)
+	if err != nil {
+		p.err = err
+		return
+	}
+	p.writeString(id)
+
+}
+
+func (p *printer) handleLocal(l *ast.Local) {
+	p.writeString("local ")
+
+	for _, bind := range l.Binds {
+		p.writeString(string(bind.Variable))
+		switch bt := bind.Body.(type) {
+		default:
+			p.writeString(" = ")
+			p.print(bind.Body)
+			p.writeString(";")
+		case *ast.Function:
+			p.print(bind.Body)
+			p.writeString(" = ")
+			p.print(bt.Body)
+			p.writeString(";")
+		}
+		p.writeByte(newline, 1)
+	}
+	p.print(l.Body)
+}
+
 func (p *printer) handleObjectField(n interface{}) {
 	var ofHide ast.ObjectFieldHide
 	var ofKind ast.ObjectFieldKind
-	var ofId *ast.Identifier
+	var ofID *ast.Identifier
 	var ofMethod *ast.Function
 	var ofSugar bool
 	var ofExpr2 ast.Node
@@ -297,14 +343,14 @@ func (p *printer) handleObjectField(n interface{}) {
 	case ast.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofId = t.Id
+		ofID = t.Id
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
 	case astext.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofId = t.Id
+		ofID = t.Id
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
@@ -330,7 +376,7 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.err = errors.Errorf("unknown Kind type %#v", ofKind)
 		return
 	case ast.ObjectFieldID:
-		p.writeString(string(*ofId))
+		p.writeString(string(*ofID))
 		if ofMethod != nil {
 			p.addMethodSignature(ofMethod)
 		}
@@ -340,17 +386,36 @@ func (p *printer) handleObjectField(n interface{}) {
 		}
 
 		p.writeString(fieldType)
-		p.writeByte(space, 1)
-		p.print(ofExpr2)
+
+		if isLocal(ofExpr2) {
+			p.indentLevel++
+			p.writeByte(newline, 1)
+			p.print(ofExpr2)
+			p.indentLevel--
+
+		} else {
+			p.writeByte(space, 1)
+			p.print(ofExpr2)
+		}
+
 	case ast.ObjectLocal:
 		p.writeString("local ")
-		p.writeString(string(*ofId))
+		p.writeString(string(*ofID))
 		p.addMethodSignature(ofMethod)
 		p.writeString(" = ")
 		p.print(ofExpr2)
 	case ast.ObjectFieldStr:
-		p.writeString(fmt.Sprintf(`"%s"%s `, string(*ofId), fieldType))
+		p.writeString(fmt.Sprintf(`"%s"%s `, string(*ofID), fieldType))
 		p.print(ofExpr2)
+	}
+}
+
+func isLocal(node ast.Node) bool {
+	switch node.(type) {
+	default:
+		return false
+	case *ast.Local:
+		return true
 	}
 }
 
@@ -387,53 +452,6 @@ func (p *printer) addMethodSignature(method *ast.Function) {
 
 	p.writeString(strings.Join(args, ", "))
 	p.writeString(")")
-}
-
-func extractApply(n ast.Node) (string, error) {
-	switch t := n.(type) {
-	default:
-		return "", errors.Errorf("invalid type %T when extracting apply", t)
-	case *ast.Apply:
-		var args bytes.Buffer
-
-		for i, arg := range t.Arguments.Positional {
-			s, err := extractApply(arg)
-			if err != nil {
-				return "", errors.Wrap(err, "extract apply arguments")
-			}
-
-			args.WriteString(s)
-			if i != len(t.Arguments.Positional)-1 {
-				args.WriteString(", ")
-			}
-		}
-
-		s, err := extractApply(t.Target)
-		if err != nil {
-			return "", errors.Wrap(err, "extract apply in apply")
-		}
-		return fmt.Sprintf("%s(%s)", s, args.String()), nil
-	case *ast.Index:
-		var s string
-		if t.Target != nil {
-			var err error
-			s, err = extractApply(t.Target)
-			if err != nil {
-				return "", errors.Wrap(err, "extract apply in index")
-			}
-		}
-
-		id, err := indexID(t)
-		if err != nil {
-			return "", err
-		}
-
-		return fmt.Sprintf("%s.%s", s, id), nil
-	case *ast.Var:
-		return string(t.Id), nil
-	case *ast.Self:
-		return "self", nil
-	}
 }
 
 func literalStringValue(ls *ast.LiteralString) (string, error) {

@@ -8,6 +8,7 @@ type Object interface {
 	Properties() map[string]Property
 	Version() string
 	Group() string
+	Codebase() string
 	QualifiedGroup() string
 	Identifier() string
 }

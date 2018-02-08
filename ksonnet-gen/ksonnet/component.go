@@ -1,6 +1,8 @@
 package ksonnet
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/spec"
 	"github.com/pkg/errors"
 )
@@ -33,6 +35,15 @@ func NewComponent(s spec.Schema) (*Component, error) {
 		Kind:    kind,
 		Version: version,
 	}, nil
+}
+
+func (c *Component) String() string {
+	group := c.Group
+	if group == "" {
+		group = "core"
+	}
+
+	return fmt.Sprintf("%s.%s.%s", group, c.Version, c.Kind)
 }
 
 type componentExtractor struct {

@@ -36,7 +36,7 @@ func (a *APIObject) Node(catalog *Catalog) (*nm.Object, error) {
 	return apiObjectNode(catalog, a)
 }
 
-func (a *APIObject) initNode() *nm.Object {
+func (a *APIObject) initNode(catalog *Catalog) (*nm.Object, error) {
 	o := nm.NewObject()
 
 	if a.resource.IsType() {
@@ -45,12 +45,38 @@ func (a *APIObject) initNode() *nm.Object {
 		kindObject.Set(nm.InheritedKey("kind"), nm.NewStringDouble(kind))
 		o.Set(nm.LocalKey("kind"), kindObject)
 
-		o.Set(nm.FunctionKey("new", []string{}), objectConstructor())
+		ctorBase := []nm.Noder{
+			nm.NewVar("apiVersion"),
+			nm.NewVar("kind"),
+		}
+
+		a.setConstructors(o, ctorBase, objectConstructor())
 	} else {
-		o.Set(nm.FunctionKey("new", []string{}), nm.OnelineObject())
+		a.setConstructors(o, nil, nm.OnelineObject())
 	}
 
-	return o
+	return o, nil
+}
+
+func (a *APIObject) setConstructors(parent *nm.Object, ctorBase []nm.Noder, defaultCtorBody nm.Noder) error {
+	desc := makeDescriptor(a.resource.Codebase(), a.resource.Group(), a.resource.Kind())
+	ctors := locateConstructors(desc)
+
+	if len(ctors) > 0 {
+		for _, ctor := range ctors {
+			key, err := ctor.Key()
+			if err != nil {
+				return errors.Wrap(err, "generate constructor key")
+			}
+
+			parent.Set(key, ctor.Body(ctorBase...))
+		}
+		return nil
+	}
+
+	parent.Set(nm.FunctionKey("new", []string{}), defaultCtorBody)
+	return nil
+
 }
 
 func objectConstructor() *nm.Binary {
@@ -62,7 +88,10 @@ func apiObjectNode(catalog *Catalog, a *APIObject) (*nm.Object, error) {
 		return nil, errors.New("catalog is nil")
 	}
 
-	o := a.initNode()
+	o, err := a.initNode(catalog)
+	if err != nil {
+		return nil, err
+	}
 	if err := a.renderFieldsFn(catalog, o, "", a.resource.Properties()); err != nil {
 		return nil, err
 	}

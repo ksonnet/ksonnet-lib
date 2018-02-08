@@ -6,16 +6,18 @@ type Type struct {
 	properties  map[string]Property
 	component   Component
 	group       string
+	codebase    string
 	identifier  string
 }
 
 var _ Object = (*Type)(nil)
 
 // NewType creates an instance of Type.
-func NewType(identifier, description, group string, component Component, props map[string]Property) Type {
+func NewType(identifier, description, codebase, group string, component Component, props map[string]Property) Type {
 	return Type{
 		description: description,
 		group:       group,
+		codebase:    codebase,
 		component:   component,
 		properties:  props,
 		identifier:  identifier,
@@ -30,6 +32,11 @@ func (t *Type) Kind() string {
 // Version is the version for this type
 func (t *Type) Version() string {
 	return t.component.Version
+}
+
+// Codebase is the codebase for this field.
+func (t *Type) Codebase() string {
+	return t.codebase
 }
 
 // Group is the group for this type
