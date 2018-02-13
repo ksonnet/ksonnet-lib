@@ -46,6 +46,11 @@ k8s + {
         mapContainers(f):: hidden.mapContainers(f),
         mapContainersWithName(names, f):: hidden.mapContainersWithName(names, f),
       },
+
+      statefulSet:: v1beta1.statefulSet + {
+        mapContainers(f):: hidden.mapContainers(f),
+        mapContainersWithName(names, f):: hidden.mapContainersWithName(names, f),
+      },
     },
   },
 
@@ -72,6 +77,11 @@ k8s + {
       },
 
       deployment:: v1beta1.deployment + {
+        mapContainers(f):: hidden.mapContainers(f),
+        mapContainersWithName(names, f):: hidden.mapContainersWithName(names, f),
+      },
+
+      statefulSet:: v1beta1.statefulSet + {
         mapContainers(f):: hidden.mapContainers(f),
         mapContainersWithName(names, f):: hidden.mapContainersWithName(names, f),
       },
