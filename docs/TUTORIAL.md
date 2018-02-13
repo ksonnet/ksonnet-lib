@@ -293,7 +293,7 @@ objects for easier manipulation.
 And feel free to contribute your own examples to our mixins
 repository!
 
-[readme]: ../readme.md "ksonnet readme"
+[readme]: ../README.md "ksonnet readme"
 [fluentd-mixin]: https://github.com/ksonnet/mixins/tree/master/incubator/fluentd
 [fluentd]: http://www.fluentd.org/architecture
 [elastic]: https://www.elastic.co/products
