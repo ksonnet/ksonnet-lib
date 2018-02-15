@@ -163,249 +163,495 @@ func ExampleConditional() {
 
 func TestObject(t *testing.T) {
 	cases := []struct {
-		name     string
-		object   *Object
-		expected ast.Node
+		name   string
+		object func(*testing.T) (Noder, ast.Node)
 	}{
 		{
-			name:     "empty",
-			object:   NewObject(),
-			expected: &astext.Object{},
+			name:   "empty",
+			object: newObject,
 		},
 		{
-			name:     "with a single key",
-			object:   objectWithKeys(),
-			expected: expectations["objectWithKeys"],
+			name:   "with a single key",
+			object: objectWithKeys,
 		},
 		{
-			name:     "with a reserved word as the key",
-			object:   objectWithReservedWordKey(),
-			expected: expectations["objectWithReservedWordKey"],
+			name:   "with a reserved word as the key",
+			object: objectWithReservedWordKey,
 		},
 		{
-			name:     "inline",
-			object:   inline(),
-			expected: expectations["inline"],
+			name:   "inline",
+			object: inline,
 		},
 		{
-			name:     "local field",
-			object:   localField(),
-			expected: expectations["localField"],
+			name:   "local field",
+			object: localField,
 		},
 		{
-			name:     "text field",
-			object:   textField(),
-			expected: expectations["textField"],
+			name:   "text field",
+			object: textField,
 		},
 		{
-			name:     "mixin field",
-			object:   mixinField(),
-			expected: expectations["mixinField"],
+			name:   "mixin field",
+			object: mixinField,
 		},
 		{
-			name:     "number field",
-			object:   numberField(),
-			expected: expectations["numberField"],
+			name:   "number field",
+			object: numberField,
 		},
 		{
-			name:     "self field",
-			object:   selfField(),
-			expected: expectations["selfField"],
+			name:   "self field",
+			object: selfField,
 		},
 		{
-			name:     "array field",
-			object:   arrayField(),
-			expected: expectations["arrayField"],
+			name:   "array field",
+			object: arrayField,
 		},
 		{
-			name:     "comment field",
-			object:   commentedField(),
-			expected: expectations["commentedField"],
+			name:   "comment field",
+			object: commentedField,
 		},
 		{
-			name:     "function",
-			object:   functionField(),
-			expected: expectations["function"],
+			name:   "function",
+			object: functionField,
 		},
 		{
-			name:     "function with args",
-			object:   functionFieldArg(),
-			expected: expectations["functionWithArgs"],
+			name:   "function with args",
+			object: functionFieldArg,
 		},
 		{
-			name:     "binary operation",
-			object:   binaryOp(),
-			expected: expectations["binaryOp"],
+			name:   "function with optional args",
+			object: functionFieldOptionalArguments,
 		},
 		{
-			name:     "conditional",
-			object:   conditional(),
-			expected: expectations["conditional"],
+			name:   "binary operation",
+			object: binaryOp,
 		},
 		{
-			name:     "conditional without false branch",
-			object:   conditionalNoFalse(),
-			expected: expectations["conditionalNoFalse"],
+			name:   "conditional",
+			object: conditional,
 		},
 		{
-			name:     "local apply",
-			object:   localApply(),
-			expected: expectations["localApply"],
+			name:   "conditional without false branch",
+			object: conditionalNoFalse,
 		},
 		{
-			name:     "local apply with an index",
-			object:   localApply2(),
-			expected: expectations["localApply2"],
+			name:   "local apply",
+			object: localApply,
+		},
+		{
+			name:   "local apply with an index",
+			object: localApplyWithAnIndex,
+		},
+		{
+			name:   "local",
+			object: local,
+		},
+		{
+			name:   "optional arguments",
+			object: optionalArguments,
+		},
+		{
+			name:   "combine 0 nodes",
+			object: combine0,
+		},
+		{
+			name:   "combine 1 nodes",
+			object: combine1,
+		},
+		{
+			name:   "combine 2 nodes",
+			object: combine2,
+		},
+		{
+			name:   "combine 3 nodes",
+			object: combine3,
+		},
+		{
+			name:   "kv from map",
+			object: kvFromMap1,
+		},
+		{
+			name:   "kv from map invalid value",
+			object: kvFromMap2,
+		},
+		{
+			name:   "kv from map invalid map",
+			object: kvFromMap3,
+		},
+		{
+			name:   "create function",
+			object: function,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			node := tc.object.Node()
-
-			require.Equal(t, tc.expected, node)
-			// if !reflect.DeepEqual(tc.expected, node) {
-			// 	t.Errorf("object didn't convert to expected node")
-			// }
+			node, expected := tc.object(t)
+			if node != nil && expected != nil {
+				require.Equal(t, expected, node.Node())
+			}
 		})
 	}
-
 }
 
-func objectWithKeys() *Object {
-	o := NewObject()
+func newObject(t *testing.T) (Noder, ast.Node) {
+	return NewObject(), &astext.Object{}
+}
 
+func objectWithKeys(t *testing.T) (Noder, ast.Node) {
+	o := NewObject()
 	k := NewKey("foo")
 	o2 := NewObject()
-
 	o.Set(k, o2)
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("foo"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldID,
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func objectWithReservedWordKey() *Object {
+func objectWithReservedWordKey(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-
 	k := NewKey("error")
 	o2 := NewObject()
-
 	o.Set(k, o2)
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("error"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldStr,
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func inline() *Object {
+func inline(t *testing.T) (Noder, ast.Node) {
 	o := OnelineObject()
-
 	k := NewKey("foo")
 	o2 := NewObject()
-
 	o.Set(k, o2)
 
-	return o
+	ao := &astext.Object{
+		Oneline: true,
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("foo"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldID,
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func localField() *Object {
+func localField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := LocalKey("foo")
 	o.Set(k, NewObject())
-	return o
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("foo"),
+					Kind:  ast.ObjectLocal,
+					Hide:  ast.ObjectFieldHidden,
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func sortedFields() *Object {
+func textField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-	o.Set(NewKey("zField"), NewObject())
-	o.Set(NewKey("aField"), NewObject())
-	o.Set(LocalKey("aLocal"), NewObject())
-	return o
-}
-
-func textField() *Object {
-	o := NewObject()
-	t := NewStringDouble("bar")
-
+	sd := NewStringDouble("bar")
 	k := InheritedKey("foo")
-	o.Set(k, t)
-	return o
+	o.Set(k, sd)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldInherit,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.LiteralString{
+						Kind:  ast.StringDouble,
+						Value: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func mixinField() *Object {
+func mixinField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-	t := NewStringDouble("bar")
+	sd := NewStringDouble("bar")
 	k := NewKey("foo",
 		KeyOptVisibility(ast.ObjectFieldInherit),
 		KeyOptMixin(true))
-	o.Set(k, t)
-	return o
+	o.Set(k, sd)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					SuperSugar: true,
+					Id:         newIdentifier("foo"),
+					Hide:       ast.ObjectFieldInherit,
+					Kind:       ast.ObjectFieldID,
+					Expr2: &ast.LiteralString{
+						Kind:  ast.StringDouble,
+						Value: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func numberField() *Object {
+func numberField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-	t := NewInt(1)
+	i := NewInt(1)
 	k := InheritedKey("foo")
-	o.Set(k, t)
-	return o
+	o.Set(k, i)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldInherit,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.LiteralNumber{
+						Value:          1,
+						OriginalString: "1",
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func selfField() *Object {
+func selfField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-	t := &Self{}
+	s := &Self{}
 	k := InheritedKey("foo")
-	o.Set(k, t)
-	return o
+	o.Set(k, s)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("foo"),
+					Hide:  ast.ObjectFieldInherit,
+					Kind:  ast.ObjectFieldID,
+					Expr2: &ast.Self{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func arrayField() *Object {
+func arrayField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-
 	nodes := []Noder{NewStringDouble("hello")}
-
-	t := NewArray(nodes)
+	a := NewArray(nodes)
 	k := InheritedKey("foo")
-	o.Set(k, t)
-	return o
+	o.Set(k, a)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldInherit,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.Array{
+						Elements: []ast.Node{
+							&ast.LiteralString{
+								Kind:  ast.StringDouble,
+								Value: "hello",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func commentedField() *Object {
+func commentedField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
-
 	k := NewKey("foo", KeyOptComment("a comment"))
 	o2 := NewObject()
-
 	o.Set(k, o2)
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("foo"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldID,
+					Expr2: &astext.Object{},
+				},
+				Comment: &astext.Comment{Text: "a comment"},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func functionField() *Object {
+func functionField(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := FunctionKey("foo", []string{})
-
 	o.Set(k, NewObject())
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Kind: ast.ObjectFieldID,
+					Method: &ast.Function{
+						Parameters: ast.Parameters{
+							Required: ast.Identifiers{},
+						},
+					},
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func functionFieldArg() *Object {
+func functionFieldArg(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := FunctionKey("foo", []string{"arg1"})
-
 	o.Set(k, NewObject())
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Kind: ast.ObjectFieldID,
+					Method: &ast.Function{
+						Parameters: ast.Parameters{
+							Required: ast.Identifiers{
+								*newIdentifier("arg1"),
+							},
+						},
+					},
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func binaryOp() *Object {
+func functionFieldOptionalArguments(t *testing.T) (Noder, ast.Node) {
+	oa1 := OptionalArg{Name: "opt1"}
+	oa2 := OptionalArg{Name: "opt2", Default: NewVar("val")}
+
+	o := NewObject()
+	k := FunctionKey("foo", []string{"arg1"}, KeyOptNamedParams(oa1, oa2))
+	o.Set(k, NewObject())
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Kind: ast.ObjectFieldID,
+					Method: &ast.Function{
+						Parameters: ast.Parameters{
+							Required: ast.Identifiers{
+								*newIdentifier("arg1"),
+							},
+							Optional: []ast.NamedParameter{
+								{Name: *newIdentifier("opt1")},
+								{Name: *newIdentifier("opt2"), DefaultArg: &ast.Var{Id: *newIdentifier("val")}},
+							},
+						},
+					},
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func binaryOp(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := NewKey("foo")
 	b := NewBinary(NewVar("alpha"), NewVar("beta"), BopPlus)
-
 	o.Set(k, b)
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldHidden,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.Binary{
+						Left:  &ast.Var{Id: *newIdentifier("alpha")},
+						Op:    ast.BopPlus,
+						Right: &ast.Var{Id: *newIdentifier("beta")},
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func conditional() *Object {
+func conditional(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := NewKey("foo")
 
@@ -436,10 +682,59 @@ func conditional() *Object {
 
 	o.Set(k, c)
 
-	return o
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldHidden,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.Conditional{
+						Cond: &ast.Binary{
+							Left:  &ast.Var{Id: *newIdentifier("alpha")},
+							Op:    ast.BopManifestEqual,
+							Right: &ast.Var{Id: *newIdentifier("beta")},
+						},
+						BranchTrue: &astext.Object{
+							Fields: astext.ObjectFields{
+								{
+									ObjectField: ast.ObjectField{
+										Kind: ast.ObjectFieldID,
+										Hide: ast.ObjectFieldInherit,
+										Id:   newIdentifier("foo"),
+										Expr2: &ast.LiteralString{
+											Kind:  ast.StringDouble,
+											Value: "1",
+										},
+									},
+								},
+							},
+						},
+						BranchFalse: &astext.Object{
+							Fields: astext.ObjectFields{
+								{
+									ObjectField: ast.ObjectField{
+										Kind: ast.ObjectFieldID,
+										Hide: ast.ObjectFieldInherit,
+										Id:   newIdentifier("foo"),
+										Expr2: &ast.LiteralString{
+											Kind:  ast.StringDouble,
+											Value: "2",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
 }
 
-func conditionalNoFalse() *Object {
+func conditionalNoFalse(t *testing.T) (Noder, ast.Node) {
 	o := NewObject()
 	k := NewKey("foo")
 
@@ -461,348 +756,30 @@ func conditionalNoFalse() *Object {
 
 	o.Set(k, c)
 
-	return o
-}
-
-func localApply() *Object {
-	o := NewObject()
-	k := LocalKey("foo")
-
-	call := NewCall("alpha")
-	arg1 := NewStringDouble("arg1")
-	a := NewApply(call, arg1)
-
-	o.Set(k, a)
-	return o
-}
-
-func localApply2() *Object {
-	o := NewObject()
-	k := LocalKey("foo")
-
-	arg1 := NewStringDouble("arg1")
-	a := ApplyCall("alpha.beta.charlie", arg1)
-
-	o.Set(k, a)
-	return o
-}
-
-var (
-	expectations = map[string]ast.Node{
-		"objectWithKeys": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("foo"),
-						Hide:  ast.ObjectFieldHidden,
-						Kind:  ast.ObjectFieldID,
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"objectWithReservedWordKey": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("error"),
-						Hide:  ast.ObjectFieldHidden,
-						Kind:  ast.ObjectFieldStr,
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"inline": &astext.Object{
-			Oneline: true,
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("foo"),
-						Hide:  ast.ObjectFieldHidden,
-						Kind:  ast.ObjectFieldID,
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"localField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("foo"),
-						Kind:  ast.ObjectLocal,
-						Hide:  ast.ObjectFieldHidden,
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"textField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldInherit,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.LiteralString{
-							Kind:  ast.StringDouble,
-							Value: "bar",
-						},
-					},
-				},
-			},
-		},
-		"mixinField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						SuperSugar: true,
-						Id:         newIdentifier("foo"),
-						Hide:       ast.ObjectFieldInherit,
-						Kind:       ast.ObjectFieldID,
-						Expr2: &ast.LiteralString{
-							Kind:  ast.StringDouble,
-							Value: "bar",
-						},
-					},
-				},
-			},
-		},
-		"numberField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldInherit,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.LiteralNumber{
-							Value:          1,
-							OriginalString: "1",
-						},
-					},
-				},
-			},
-		},
-		"selfField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("foo"),
-						Hide:  ast.ObjectFieldInherit,
-						Kind:  ast.ObjectFieldID,
-						Expr2: &ast.Self{},
-					},
-				},
-			},
-		},
-		"arrayField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldInherit,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.Array{
-							Elements: []ast.Node{
-								&ast.LiteralString{
-									Kind:  ast.StringDouble,
-									Value: "hello",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		"commentedField": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:    newIdentifier("foo"),
-						Hide:  ast.ObjectFieldHidden,
-						Kind:  ast.ObjectFieldID,
-						Expr2: &astext.Object{},
-					},
-					Comment: &astext.Comment{Text: "a comment"},
-				},
-			},
-		},
-		"function": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Kind: ast.ObjectFieldID,
-						Method: &ast.Function{
-							Parameters: ast.Parameters{
-								Required: ast.Identifiers{},
-							},
-						},
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"functionWithArgs": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Kind: ast.ObjectFieldID,
-						Method: &ast.Function{
-							Parameters: ast.Parameters{
-								Required: ast.Identifiers{
-									*newIdentifier("arg1"),
-								},
-							},
-						},
-						Expr2: &astext.Object{},
-					},
-				},
-			},
-		},
-		"binaryOp": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldHidden,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.Binary{
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Hide: ast.ObjectFieldHidden,
+					Kind: ast.ObjectFieldID,
+					Expr2: &ast.Conditional{
+						Cond: &ast.Binary{
 							Left:  &ast.Var{Id: *newIdentifier("alpha")},
-							Op:    ast.BopPlus,
+							Op:    ast.BopManifestEqual,
 							Right: &ast.Var{Id: *newIdentifier("beta")},
 						},
-					},
-				},
-			},
-		},
-		"conditional": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldHidden,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.Conditional{
-							Cond: &ast.Binary{
-								Left:  &ast.Var{Id: *newIdentifier("alpha")},
-								Op:    ast.BopManifestEqual,
-								Right: &ast.Var{Id: *newIdentifier("beta")},
-							},
-							BranchTrue: &astext.Object{
-								Fields: astext.ObjectFields{
-									{
-										ObjectField: ast.ObjectField{
-											Kind: ast.ObjectFieldID,
-											Hide: ast.ObjectFieldInherit,
-											Id:   newIdentifier("foo"),
-											Expr2: &ast.LiteralString{
-												Kind:  ast.StringDouble,
-												Value: "1",
-											},
+						BranchTrue: &astext.Object{
+							Fields: astext.ObjectFields{
+								{
+									ObjectField: ast.ObjectField{
+										Kind: ast.ObjectFieldID,
+										Hide: ast.ObjectFieldInherit,
+										Id:   newIdentifier("foo"),
+										Expr2: &ast.LiteralString{
+											Kind:  ast.StringDouble,
+											Value: "1",
 										},
-									},
-								},
-							},
-							BranchFalse: &astext.Object{
-								Fields: astext.ObjectFields{
-									{
-										ObjectField: ast.ObjectField{
-											Kind: ast.ObjectFieldID,
-											Hide: ast.ObjectFieldInherit,
-											Id:   newIdentifier("foo"),
-											Expr2: &ast.LiteralString{
-												Kind:  ast.StringDouble,
-												Value: "2",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		"conditionalNoFalse": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Hide: ast.ObjectFieldHidden,
-						Kind: ast.ObjectFieldID,
-						Expr2: &ast.Conditional{
-							Cond: &ast.Binary{
-								Left:  &ast.Var{Id: *newIdentifier("alpha")},
-								Op:    ast.BopManifestEqual,
-								Right: &ast.Var{Id: *newIdentifier("beta")},
-							},
-							BranchTrue: &astext.Object{
-								Fields: astext.ObjectFields{
-									{
-										ObjectField: ast.ObjectField{
-											Kind: ast.ObjectFieldID,
-											Hide: ast.ObjectFieldInherit,
-											Id:   newIdentifier("foo"),
-											Expr2: &ast.LiteralString{
-												Kind:  ast.StringDouble,
-												Value: "1",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		"localApply": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Kind: ast.ObjectLocal,
-						Expr2: &ast.Apply{
-							Target: &ast.Var{
-								Id: *newIdentifier("alpha"),
-							},
-							Arguments: ast.Arguments{
-								Positional: ast.Nodes{
-									&ast.LiteralString{
-										Kind:  ast.StringDouble,
-										Value: "arg1",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		"localApply2": &astext.Object{
-			Fields: astext.ObjectFields{
-				{
-					ObjectField: ast.ObjectField{
-						Id:   newIdentifier("foo"),
-						Kind: ast.ObjectLocal,
-						Expr2: &ast.Apply{
-							Target: &ast.Index{
-								Id: newIdentifier("charlie"),
-								Target: &ast.Index{
-									Id: newIdentifier("beta"),
-									Target: &ast.Var{
-										Id: *newIdentifier("alpha"),
-									},
-								},
-							},
-							Arguments: ast.Arguments{
-								Positional: ast.Nodes{
-									&ast.LiteralString{
-										Kind:  ast.StringDouble,
-										Value: "arg1",
 									},
 								},
 							},
@@ -812,7 +789,259 @@ var (
 			},
 		},
 	}
-)
+
+	return o, ao
+}
+
+func localApply(t *testing.T) (Noder, ast.Node) {
+	o := NewObject()
+	k := LocalKey("foo")
+
+	call := NewCall("alpha")
+	arg1 := NewStringDouble("arg1")
+	a := NewApply(call, []Noder{arg1}, nil)
+
+	o.Set(k, a)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Kind: ast.ObjectLocal,
+					Expr2: &ast.Apply{
+						Target: &ast.Var{
+							Id: *newIdentifier("alpha"),
+						},
+						Arguments: ast.Arguments{
+							Positional: ast.Nodes{
+								&ast.LiteralString{
+									Kind:  ast.StringDouble,
+									Value: "arg1",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func localApplyWithAnIndex(t *testing.T) (Noder, ast.Node) {
+	o := NewObject()
+	k := LocalKey("foo")
+
+	arg1 := NewStringDouble("arg1")
+	a := ApplyCall("alpha.beta.charlie", arg1)
+
+	o.Set(k, a)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:   newIdentifier("foo"),
+					Kind: ast.ObjectLocal,
+					Expr2: &ast.Apply{
+						Target: &ast.Index{
+							Id: newIdentifier("charlie"),
+							Target: &ast.Index{
+								Id: newIdentifier("beta"),
+								Target: &ast.Var{
+									Id: *newIdentifier("alpha"),
+								},
+							},
+						},
+						Arguments: ast.Arguments{
+							Positional: ast.Nodes{
+								&ast.LiteralString{
+									Kind:  ast.StringDouble,
+									Value: "arg1",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func local(t *testing.T) (Noder, ast.Node) {
+	i := NewImport("value")
+	l := NewLocal("value", i, nil)
+
+	ao := &ast.Local{
+		Binds: ast.LocalBinds{
+			{
+				Variable: *newIdentifier("value"),
+				Body: &ast.Import{
+					File: &ast.LiteralString{
+						Kind:  ast.StringDouble,
+						Value: "value",
+					},
+				},
+			},
+		},
+	}
+
+	return l, ao
+}
+
+func optionalArguments(t *testing.T) (Noder, ast.Node) {
+	apply := NewApply(
+		NewVar("thing"), []Noder{NewVar("arg1")},
+		[]OptionalArg{{Name: "opt1"}, {Name: "opt2", Default: NewStringDouble("val")}})
+
+	ao := &ast.Apply{
+		Target: &ast.Var{Id: *newIdentifier("thing")},
+		Arguments: ast.Arguments{
+			Positional: ast.Nodes{&ast.Var{Id: *newIdentifier("arg1")}},
+			Named: []ast.NamedArgument{
+				{Name: *newIdentifier("opt1"), Arg: &ast.LiteralString{Kind: ast.StringDouble}},
+				{Name: *newIdentifier("opt2"), Arg: &ast.LiteralString{Value: "val", Kind: ast.StringDouble}},
+			},
+		},
+	}
+
+	return apply, ao
+}
+
+func combine0(t *testing.T) (Noder, ast.Node) {
+	c := Combine()
+
+	ao := &astext.Object{}
+
+	return c, ao
+}
+
+func combine1(t *testing.T) (Noder, ast.Node) {
+	c := Combine(NewVar("var1"))
+
+	ao := &ast.Var{Id: *newIdentifier("var1")}
+
+	return c, ao
+}
+
+func combine2(t *testing.T) (Noder, ast.Node) {
+	c := Combine(NewVar("var1"), NewVar("var2"))
+
+	ao := &ast.Binary{
+		Left:  &ast.Var{Id: *newIdentifier("var1")},
+		Right: &ast.Var{Id: *newIdentifier("var2")},
+		Op:    ast.BopPlus,
+	}
+
+	return c, ao
+}
+
+func combine3(t *testing.T) (Noder, ast.Node) {
+	c := Combine(NewVar("var1"), NewVar("var2"), NewVar("var3"))
+
+	ao := &ast.Binary{
+		Left: &ast.Binary{
+			Left:  &ast.Var{Id: *newIdentifier("var1")},
+			Right: &ast.Var{Id: *newIdentifier("var2")},
+			Op:    ast.BopPlus,
+		},
+		Right: &ast.Var{Id: *newIdentifier("var3")},
+		Op:    ast.BopPlus,
+	}
+
+	return c, ao
+}
+
+func kvFromMap1(t *testing.T) (Noder, ast.Node) {
+	m := map[string]interface{}{
+		"string":  "string",
+		"float64": 1.0,
+		"int":     1,
+		"bool":    true,
+	}
+
+	o, err := KVFromMap(m)
+	require.NoError(t, err)
+
+	ao := &astext.Object{
+		Oneline: true,
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Kind:  ast.ObjectFieldID,
+					Hide:  ast.ObjectFieldInherit,
+					Id:    newIdentifier("bool"),
+					Expr2: &ast.LiteralBoolean{Value: true},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind:  ast.ObjectFieldID,
+					Hide:  ast.ObjectFieldInherit,
+					Id:    newIdentifier("float64"),
+					Expr2: &ast.LiteralNumber{Value: 1, OriginalString: "1"},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind:  ast.ObjectFieldID,
+					Hide:  ast.ObjectFieldInherit,
+					Id:    newIdentifier("int"),
+					Expr2: &ast.LiteralNumber{Value: 1, OriginalString: "1"},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind:  ast.ObjectFieldID,
+					Hide:  ast.ObjectFieldInherit,
+					Id:    newIdentifier("string"),
+					Expr2: &ast.LiteralString{Value: "string", Kind: ast.StringDouble},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func kvFromMap2(t *testing.T) (Noder, ast.Node) {
+	m := map[string]interface{}{
+		"invalid": nil,
+	}
+
+	_, err := KVFromMap(m)
+	require.Error(t, err)
+
+	return nil, nil
+}
+
+func kvFromMap3(t *testing.T) (Noder, ast.Node) {
+	_, err := KVFromMap(nil)
+	require.Error(t, err)
+
+	return nil, nil
+}
+
+func function(t *testing.T) (Noder, ast.Node) {
+	body := NewStringDouble("a")
+	f := NewFunction([]string{"option"}, body)
+
+	ao := &ast.Function{
+		Parameters: ast.Parameters{
+			Required: ast.Identifiers{*newIdentifier("option")},
+		},
+		Body: &ast.LiteralString{
+			Kind:  ast.StringDouble,
+			Value: "a",
+		},
+	}
+
+	return f, ao
+}
 
 func TestObject_Get(t *testing.T) {
 	o := NewObject()

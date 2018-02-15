@@ -20,9 +20,6 @@ func testdata(name string) string {
 }
 
 func TestDocument_Integration(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	dir, err := ioutil.TempDir("", "document")
 	require.NoError(t, err)
 

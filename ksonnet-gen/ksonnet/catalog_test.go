@@ -2,6 +2,7 @@ package ksonnet
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 
 	"github.com/go-openapi/spec"
@@ -99,7 +100,7 @@ func TestCatalog_Resource(t *testing.T) {
 	}
 }
 
-func TestCatalog_Types(t *testing.T) {
+func TestCatalog_Fields(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
 	types, err := c.Fields()
@@ -108,7 +109,7 @@ func TestCatalog_Types(t *testing.T) {
 	require.Len(t, types, 22)
 }
 
-func TestCatalog_Types_invalid_description(t *testing.T) {
+func TestCatalog_Fields_invalid_description(t *testing.T) {
 	source, err := ioutil.ReadFile("testdata/invalid_definition.json")
 	require.NoError(t, err)
 
@@ -121,11 +122,11 @@ func TestCatalog_Types_invalid_description(t *testing.T) {
 	_, err = c.Fields()
 	assert.Error(t, err)
 
-	_, err = c.Type("anything")
+	_, err = c.Field("anything")
 	assert.Error(t, err)
 }
 
-func TestCatalog_Types_invalid_field_properties(t *testing.T) {
+func TestCatalog_Fields_invalid_field_properties(t *testing.T) {
 	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
 		return nil, errors.New("failed")
 	}
@@ -138,7 +139,7 @@ func TestCatalog_Types_invalid_field_properties(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestCatalog_Type(t *testing.T) {
+func TestCatalog_Field(t *testing.T) {
 	cases := []struct {
 		name  string
 		id    string
@@ -152,7 +153,7 @@ func TestCatalog_Type(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ty, err := c.Type(tc.id)
+			ty, err := c.Field(tc.id)
 			if tc.isErr {
 				require.Error(t, err)
 			} else {
@@ -162,6 +163,39 @@ func TestCatalog_Type(t *testing.T) {
 			}
 		})
 	}
+}
+
+func offTestCatalog_TypesWithDescendant(t *testing.T) {
+	c := initCatalog(t, "swagger-1.8.json")
+
+	types, err := c.TypesWithDescendant("io.k8s.api.core.v1.PodSpec")
+	require.NoError(t, err)
+
+	var names []string
+	for _, ty := range types {
+		names = append(names, ty.component.String())
+	}
+
+	sort.Strings(names)
+
+	expected := []string{
+		"apps.v1beta1.Deployment",
+		"apps.v1beta1.StatefulSet",
+		"apps.v1beta2.DaemonSet",
+		"apps.v1beta2.Deployment",
+		"apps.v1beta2.ReplicaSet",
+		"apps.v1beta2.StatefulSet",
+		"batch.v1.Job",
+		"batch.v1beta1.CronJob",
+		"batch.v2alpha1.CronJob",
+		"core.v1.Pod",
+		"core.v1.PodTemplate",
+		"core.v1.ReplicationController",
+		"extensions.v1beta1.DaemonSet",
+		"extensions.v1beta1.Deployment",
+		"extensions.v1beta1.ReplicaSet",
+	}
+	require.Equal(t, expected, names)
 }
 
 func TestCatalog_isFormatRef(t *testing.T) {

@@ -53,34 +53,38 @@ func Test_ParseDescription(t *testing.T) {
 		{
 			name: "io.k8s.apimachinery.pkg.version.Info",
 			description: Description{
-				Name: "io.k8s.apimachinery.pkg.version.Info",
-				Kind: "Info",
+				Name:     "io.k8s.apimachinery.pkg.version.Info",
+				Kind:     "Info",
+				Codebase: "apimachinery",
 			},
 		},
 		{
 			name: "io.k8s.apimachinery.pkg.apis.meta.v1.Status",
 			description: Description{
-				Name:    "io.k8s.apimachinery.pkg.apis.meta.v1.Status",
-				Kind:    "Status",
-				Version: "v1",
-				Group:   "meta",
+				Name:     "io.k8s.apimachinery.pkg.apis.meta.v1.Status",
+				Kind:     "Status",
+				Version:  "v1",
+				Group:    "meta",
+				Codebase: "apimachinery",
 			},
 		},
 		{
 			name: "io.k8s.api.admissionregistration.v1alpha1.AdmissionHookClientConfig",
 			description: Description{
-				Name:    "io.k8s.api.admissionregistration.v1alpha1.AdmissionHookClientConfig",
-				Version: "v1alpha1",
-				Kind:    "AdmissionHookClientConfig",
-				Group:   "admissionregistration",
+				Name:     "io.k8s.api.admissionregistration.v1alpha1.AdmissionHookClientConfig",
+				Version:  "v1alpha1",
+				Kind:     "AdmissionHookClientConfig",
+				Group:    "admissionregistration",
+				Codebase: "api",
 			},
 		},
 		{
 			name: "io.k8s.codebase.pkg.api.version.kind",
 			description: Description{
-				Name:    "io.k8s.codebase.pkg.api.version.kind",
-				Version: "version",
-				Kind:    "kind",
+				Name:     "io.k8s.codebase.pkg.api.version.kind",
+				Version:  "version",
+				Kind:     "kind",
+				Codebase: "codebase",
 			},
 		},
 	}

@@ -110,6 +110,15 @@ func (d *Document) groups(resources []Object) ([]Group, error) {
 func (d *Document) Node() (*nm.Object, error) {
 	out := nm.NewObject()
 
+	metadata := map[string]interface{}{
+		"kubernetesVersion": d.catalog.Version(),
+	}
+	metadataObj, err := nm.KVFromMap(metadata)
+	if err != nil {
+		return nil, errors.Wrap(err, "create metadata key")
+	}
+	out.Set(nm.InheritedKey("__ksonnet"), metadataObj)
+
 	if err := d.renderGroups(d, out); err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ func TestType(t *testing.T) {
 		Kind:    "kind",
 	}
 
-	r := NewType("id", "desc", "group1", c, props)
+	r := NewType("id", "desc", "codebase", "group1", c, props)
 
 	assert.Equal(t, "id", r.Identifier())
 	assert.Equal(t, "desc", r.Description())
@@ -39,7 +39,7 @@ func TestType_no_group(t *testing.T) {
 		Kind:    "kind",
 	}
 
-	r := NewType("id", "desc", "", c, props)
+	r := NewType("id", "desc", "codebase", "", c, props)
 
 	assert.Equal(t, "core", r.Group())
 	assert.Equal(t, "group2", r.QualifiedGroup())

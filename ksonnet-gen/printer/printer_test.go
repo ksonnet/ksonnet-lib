@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFprintf(t *testing.T) {
@@ -25,6 +26,7 @@ func TestFprintf(t *testing.T) {
 		{name: "object_with_nested_object"},
 		{name: "local"},
 		{name: "multi_line_comments"},
+		{name: "boolean"},
 		{name: "literal"},
 		{name: "literal_with_newline"},
 		{name: "literal_with_single_quote"},
@@ -39,13 +41,17 @@ func TestFprintf(t *testing.T) {
 		{name: "index_with_index"},
 		{name: "array"},
 		{name: "self_apply"},
+		{name: "apply_with_multiple_arguments"},
 		{name: "declarations"},
 		{name: "chained_apply"},
+		{name: "apply_with_index"},
+		{name: "object_field_with_local"},
+		{name: "local_with_function"},
+		{name: "apply_with_number"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
 		{name: "nil_node", isErr: true},
-		{name: "invalid_apply", isErr: true},
 		{name: "invalid_literal_string", isErr: true},
 		{name: "invalid_of_kind", isErr: true},
 		{name: "invalid_of_hide", isErr: true},
@@ -54,6 +60,7 @@ func TestFprintf(t *testing.T) {
 		{name: "index_invalid_index", isErr: true},
 		{name: "index_invalid_literal_string", isErr: true},
 		{name: "null_index", isErr: true},
+		{name: "function_with_invalid_optional_arg", isErr: true},
 	}
 
 	for _, tc := range cases {
@@ -148,11 +155,11 @@ var (
 					Kind: ast.ObjectFieldID,
 					Id:   &id1,
 					Expr2: &ast.Index{
-						Id: newIdentifier("foo"),
+						Id: newIdentifier("baz"),
 						Target: &ast.Index{
 							Id: newIdentifier("bar"),
 							Target: &ast.Var{
-								Id: *newIdentifier("baz"),
+								Id: *newIdentifier("foo"),
 							},
 						},
 					},
@@ -165,14 +172,14 @@ var (
 					Kind: ast.ObjectFieldID,
 					Id:   &id1,
 					Expr2: &ast.Index{
-						Id: newIdentifier("foo"),
+						Id: newIdentifier("baz"),
 						Target: &ast.Index{
 							Index: &ast.LiteralString{
 								Value: "bar",
 								Kind:  ast.StringDouble,
 							},
 							Target: &ast.Var{
-								Id: *newIdentifier("baz"),
+								Id: *newIdentifier("foo"),
 							},
 						},
 					},
@@ -227,6 +234,26 @@ var (
 					},
 					Comment: &astext.Comment{
 						Text: "line 1\n\nline 3\nline 4",
+					},
+				},
+			},
+		},
+		"boolean": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("isTrue"),
+					Expr2: &ast.LiteralBoolean{
+						Value: true,
+					},
+				},
+				{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("isFalse"),
+					Expr2: &ast.LiteralBoolean{
+						Value: false,
 					},
 				},
 			},
@@ -505,6 +532,15 @@ var (
 			},
 		},
 		"self_apply": &ast.Apply{Target: &ast.Self{}},
+		"apply_with_multiple_arguments": &ast.Apply{
+			Target: &ast.Self{},
+			Arguments: ast.Arguments{
+				Positional: ast.Nodes{
+					&ast.Var{Id: *newIdentifier("a")},
+					&ast.Var{Id: *newIdentifier("b")},
+				},
+			},
+		},
 		"declarations": &ast.Local{
 			Binds: ast.LocalBinds{
 				ast.LocalBind{
@@ -568,11 +604,67 @@ var (
 				},
 			},
 		},
+		"apply_with_index": &ast.Apply{
+			Target: &ast.Index{
+				Id: newIdentifier("charlie"),
+				Target: &ast.Index{
+					Id: newIdentifier("beta"),
+					Target: &ast.Var{
+						Id: *newIdentifier("alpha"),
+					},
+				},
+			},
+			Arguments: ast.Arguments{
+				Positional: ast.Nodes{
+					&ast.LiteralString{
+						Kind:  ast.StringDouble,
+						Value: "arg1",
+					},
+				},
+			},
+		},
+		"object_field_with_local": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind: ast.ObjectFieldID,
+					Id:   newIdentifier("fn"),
+					Expr2: &ast.Local{
+						Binds: ast.LocalBinds{
+							{
+								Variable: *newIdentifier("foo"),
+								Body: &ast.LiteralString{
+									Value: "a",
+									Kind:  ast.StringDouble,
+								},
+							},
+						},
+						Body: &ast.Object{},
+					},
+					Method: &ast.Function{
+						Parameters: ast.Parameters{},
+					},
+				},
+			},
+		},
+		"local_with_function": &ast.Local{
+			Binds: ast.LocalBinds{
+				{
+					Variable: *newIdentifier("foo"),
+					Body: &ast.Function{
+						Body: &ast.LiteralString{
+							Value: "a",
+							Kind:  ast.StringDouble,
+						},
+					},
+				},
+			},
+			Body: &ast.Object{},
+		},
+		"apply_with_number": &ast.Apply{Target: newLiteralNumber("1")},
 
 		// errors
 		"unknown_node":           &noopNode{},
 		"nil_node":               nil,
-		"invalid_apply":          &ast.Apply{Target: newLiteralNumber("1")},
 		"invalid_literal_string": &ast.LiteralString{Kind: 99},
 		"invalid_of_kind": &ast.Object{
 			Fields: ast.ObjectFields{{Kind: 99}},
@@ -595,6 +687,15 @@ var (
 		"index_invalid_index":          &ast.Index{Index: &noopNode{}},
 		"index_invalid_literal_string": &ast.Index{Index: (*ast.LiteralString)(nil)},
 		"null_index":                   (*ast.Index)(nil),
+		"function_with_invalid_optional_arg": &ast.Function{
+			Parameters: ast.Parameters{
+				Optional: []ast.NamedParameter{
+					{
+						DefaultArg: &unprintableNode{},
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -662,6 +763,10 @@ func Test_printer_indent(t *testing.T) {
 	}
 }
 
+type unprintableNode struct {
+	ast.Object
+}
+
 func Test_printer_indent_empty(t *testing.T) {
 	p := printer{cfg: DefaultConfig}
 	p.indentLevel = 1
@@ -683,25 +788,15 @@ func Test_printer_err(t *testing.T) {
 	}
 }
 
-func Test_extractApply(t *testing.T) {
-	n := &ast.Apply{
-		Target: &ast.Index{
-			Id: newIdentifier("new"),
-			Target: &ast.Var{
-				Id: *newIdentifier("deployment"),
-			},
-		},
-	}
+func Test_handleObjectField_unknown_object(t *testing.T) {
+	p := printer{cfg: DefaultConfig}
+	p.handleObjectField(nil)
+	require.Error(t, p.err)
+}
 
-	got, err := extractApply(n.Target)
-	if err != nil {
-		t.Fatalf("extractApply() returned unexpected error: %v", err)
-	}
-
-	expected := "deployment.new"
-	if got != expected {
-		t.Errorf("extractApply() = %s; expected = %s", got, expected)
-	}
+func Test_indexID_nil_index(t *testing.T) {
+	_, err := indexID(nil)
+	require.Error(t, err)
 }
 
 func newLiteralNumber(in string) *ast.LiteralNumber {

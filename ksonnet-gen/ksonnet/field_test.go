@@ -10,10 +10,11 @@ func TestField(t *testing.T) {
 	props := make(map[string]Property)
 	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := NewField("id", "desc", "group", "ver", "kind", props)
+	ty := NewField("id", "desc", "codebase", "group", "ver", "kind", props)
 
 	assert.Equal(t, "id", ty.Identifier())
 	assert.Equal(t, "desc", ty.Description())
+	assert.Equal(t, "codebase", ty.Codebase())
 	assert.Equal(t, "group", ty.Group())
 	assert.Equal(t, "group", ty.QualifiedGroup())
 	assert.Equal(t, "ver", ty.Version())
@@ -27,7 +28,7 @@ func TestField_no_group(t *testing.T) {
 	props := make(map[string]Property)
 	props["foo"] = NewLiteralField("name", "integer", "desc", "ref")
 
-	ty := NewField("id", "desc", "", "ver", "kind", props)
+	ty := NewField("id", "desc", "codebase", "", "ver", "kind", props)
 
 	assert.Equal(t, "core", ty.Group())
 	assert.Equal(t, "core", ty.QualifiedGroup())

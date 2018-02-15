@@ -1,7 +1,7 @@
 package ksonnet
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
@@ -136,7 +136,7 @@ func Test_createObjectWithField(t *testing.T) {
 			if tc.parent == "" {
 				expected = io
 			} else {
-				expected = nm.NewApply(nm.NewCall(tc.parent), io)
+				expected = nm.NewApply(nm.NewCall(tc.parent), []nm.Noder{io}, nil)
 			}
 
 			require.Equal(t, expected, got)
@@ -168,7 +168,7 @@ func Test_convertToArray(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			call := nm.NewCall("std.type")
 			args := nm.NewVar("varName")
-			apply := nm.NewApply(call, args)
+			apply := nm.NewApply(call, []nm.Noder{args}, nil)
 
 			key := nm.InheritedKey("varName", nm.KeyOptMixin(tc.mixin))
 
@@ -185,8 +185,8 @@ func Test_convertToArray(t *testing.T) {
 				trueBranch = trueObject
 				falseBranch = falseObject
 			} else {
-				trueBranch = nm.NewApply(nm.NewCall(tc.parent), trueObject)
-				falseBranch = nm.NewApply(nm.NewCall(tc.parent), falseObject)
+				trueBranch = nm.NewApply(nm.NewCall(tc.parent), []nm.Noder{trueObject}, nil)
+				falseBranch = nm.NewApply(nm.NewCall(tc.parent), []nm.Noder{falseObject}, nil)
 			}
 
 			expected := nm.NewConditional(bo, trueBranch, falseBranch)
@@ -380,7 +380,7 @@ func Test_renderFields(t *testing.T) {
 	err := renderFields(c, o, "", props)
 	require.NoError(t, err)
 
-	err = printer.Fprint(os.Stdout, o.Node())
+	err = printer.Fprint(ioutil.Discard, o.Node())
 	require.NoError(t, err)
 
 	require.NotNil(t, o.Get(fieldName("name", false)))

@@ -48,10 +48,11 @@ func (e *UnknownDefinitionError) Error() string {
 
 // Description is a description of a Kubernetes definition name.
 type Description struct {
-	Name    string
-	Version string
-	Kind    string
-	Group   string
+	Name     string
+	Version  string
+	Kind     string
+	Group    string
+	Codebase string
 }
 
 // Validate validates the Description. A description is valid if it has a version.
@@ -75,11 +76,17 @@ func ParseDescription(name string) (*Description, error) {
 				}
 			}
 
+			codebase := result["codebase"]
+			if codebase == "" {
+				codebase = "api"
+			}
+
 			d := &Description{
-				Name:    name,
-				Version: result["version"],
-				Kind:    result["kind"],
-				Group:   result["group"],
+				Name:     name,
+				Version:  result["version"],
+				Kind:     result["kind"],
+				Group:    result["group"],
+				Codebase: codebase,
 			}
 
 			return d, nil
