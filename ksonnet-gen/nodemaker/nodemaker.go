@@ -53,7 +53,7 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 	}
 	sort.Strings(names)
 
-	o := NewObject(ObjectOptOneline(true))
+	o := NewObject()
 
 	for _, name := range names {
 		switch t := m[name].(type) {
