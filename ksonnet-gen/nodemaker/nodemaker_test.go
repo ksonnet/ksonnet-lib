@@ -968,7 +968,6 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 	require.NoError(t, err)
 
 	ao := &astext.Object{
-		Oneline: true,
 		Fields: astext.ObjectFields{
 			{
 				ObjectField: ast.ObjectField{

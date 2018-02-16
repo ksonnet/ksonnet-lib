@@ -33,7 +33,8 @@ func TestFprintf(t *testing.T) {
 		{name: "object_field_with_comment"},
 		{name: "function_with_no_args"},
 		{name: "function_with_args"},
-		{name: "function_with_optional_args"},
+		{name: "function_with_optional_args_ast"},
+		{name: "function_with_optional_args_astext"},
 		{name: "local_function_with_args"},
 		{name: "conditional"},
 		{name: "conditional_no_false"},
@@ -352,7 +353,7 @@ var (
 				},
 			},
 		},
-		"function_with_optional_args": &ast.Object{
+		"function_with_optional_args_astext": &ast.Object{
 			Fields: ast.ObjectFields{
 				{
 					Kind: ast.ObjectFieldID,
@@ -395,7 +396,6 @@ var (
 								{
 									Name: *newIdentifier("opt1"),
 									DefaultArg: &astext.Object{
-										Oneline: true,
 										Fields: []astext.ObjectField{
 											{
 												ObjectField: ast.ObjectField{
@@ -404,6 +404,65 @@ var (
 													Id:    newIdentifier("foo"),
 													Expr2: newLiteralNumber("1"),
 												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"function_with_optional_args_ast": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind: ast.ObjectFieldID,
+					Id:   newIdentifier("alpha"),
+					Expr2: &ast.Binary{
+						Left:  &ast.Var{Id: *newIdentifier("myVar")},
+						Right: newLiteralNumber("2"),
+						Op:    ast.BopPlus,
+					},
+					Method: &ast.Function{
+						Parameters: ast.Parameters{
+							Required: ast.Identifiers{
+								*newIdentifier("one"),
+								*newIdentifier("two"),
+							},
+							Optional: []ast.NamedParameter{
+								{
+									Name:       *newIdentifier("opt1"),
+									DefaultArg: newLiteralNumber("1"),
+								},
+							},
+						},
+					},
+				},
+				{
+					Kind: ast.ObjectFieldID,
+					Id:   newIdentifier("beta"),
+					Expr2: &ast.Binary{
+						Left:  &ast.Var{Id: *newIdentifier("myVar")},
+						Right: newLiteralNumber("2"),
+						Op:    ast.BopPlus,
+					},
+					Method: &ast.Function{
+						Parameters: ast.Parameters{
+							Required: ast.Identifiers{
+								*newIdentifier("one"),
+								*newIdentifier("two"),
+							},
+							Optional: []ast.NamedParameter{
+								{
+									Name: *newIdentifier("opt1"),
+									DefaultArg: &ast.Object{
+										Fields: []ast.ObjectField{
+											{
+												Kind:  ast.ObjectFieldID,
+												Hide:  ast.ObjectFieldInherit,
+												Id:    newIdentifier("foo"),
+												Expr2: newLiteralNumber("1"),
 											},
 										},
 									},

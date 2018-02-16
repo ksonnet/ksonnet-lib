@@ -67,6 +67,7 @@ type printer struct {
 
 	output      []byte
 	indentLevel int
+	inFunction  bool
 
 	err error
 }
@@ -163,24 +164,30 @@ func (p *printer) print(n interface{}) {
 		p.writeString("{")
 
 		for _, field := range t.Fields {
-			p.indentLevel++
-			p.writeByte(newline, 1)
+			if !p.inFunction {
+				p.indentLevel++
+				p.writeByte(newline, 1)
+			}
 
 			p.print(field)
 
-			p.indentLevel--
-			p.writeByte(comma, 1)
+			if !p.inFunction {
+				p.indentLevel--
+				p.writeByte(comma, 1)
+			}
 		}
 
 		// write an extra newline at the end
-		p.writeByte(newline, 1)
+		if !p.inFunction {
+			p.writeByte(newline, 1)
+		}
 
 		p.writeString("}")
 	case *astext.Object:
 		p.writeString("{")
 
 		for i, field := range t.Fields {
-			if !t.Oneline {
+			if !t.Oneline && !p.inFunction {
 				p.indentLevel++
 				p.writeByte(newline, 1)
 			}
@@ -193,14 +200,14 @@ func (p *printer) print(n interface{}) {
 				}
 			}
 
-			if !t.Oneline {
+			if !t.Oneline && !p.inFunction {
 				p.indentLevel--
 				p.writeByte(comma, 1)
 			}
 		}
 
 		// write an extra newline at the end
-		if !t.Oneline {
+		if !t.Oneline && !p.inFunction {
 			p.writeByte(newline, 1)
 		}
 
@@ -432,22 +439,24 @@ func (p *printer) addMethodSignature(method *ast.Function) {
 	}
 
 	for _, opt := range params.Optional {
-		if opt.DefaultArg != nil {
-			var arg string
-			arg += string(opt.Name)
-			arg += "="
-
-			child := printer{cfg: p.cfg}
-			child.print(opt.DefaultArg)
-			if child.err != nil {
-				p.err = errors.Wrapf(child.err, "invalid argument for %s", string(opt.Name))
-				return
-			}
-
-			arg += string(child.output)
-
-			args = append(args, arg)
+		if opt.DefaultArg == nil {
+			continue
 		}
+		var arg string
+		arg += string(opt.Name)
+		arg += "="
+
+		child := printer{cfg: p.cfg}
+		child.inFunction = true
+		child.print(opt.DefaultArg)
+		if child.err != nil {
+			p.err = errors.Wrapf(child.err, "invalid argument for %s", string(opt.Name))
+			return
+		}
+
+		arg += string(child.output)
+
+		args = append(args, arg)
 	}
 
 	p.writeString(strings.Join(args, ", "))
