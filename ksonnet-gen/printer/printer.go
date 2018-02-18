@@ -330,8 +330,14 @@ func (p *printer) handleLocal(l *ast.Local) {
 			p.print(bt.Body)
 			p.writeString(";")
 		}
-		p.writeByte(newline, 1)
+		c := 1
+		if _, ok := l.Body.(*ast.Local); !ok {
+			c = 2
+		}
+		p.writeByte(newline, c)
+
 	}
+
 	p.print(l.Body)
 }
 
