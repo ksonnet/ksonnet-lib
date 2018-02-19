@@ -9,25 +9,25 @@ import (
 )
 
 func Test_extractProperties_nil_catalog(t *testing.T) {
-	_, err := extractProperties(nil, nil)
+	_, err := extractProperties(nil, nil, nil)
 	require.Error(t, err)
 }
 
-func Test_extraProperties_nil_properties(t *testing.T) {
+func Test_extractProperties_nil_properties(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
-	m, err := extractProperties(c, nil)
+	m, err := extractProperties(c, nil, []string{})
 	require.NoError(t, err)
 	require.NotNil(t, m)
 }
 
-func Test_extraProperties_literal(t *testing.T) {
+func Test_extractProperties_literal(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"]
 	require.True(t, ok)
 
-	props, err := extractProperties(c, s.Properties)
+	props, err := extractProperties(c, s.Properties, []string{})
 	require.NoError(t, err)
 
 	i, ok := props["clusterName"]
@@ -42,13 +42,65 @@ func Test_extraProperties_literal(t *testing.T) {
 	assert.Equal(t, "clusterName", prop.Name())
 }
 
-func Test_extraProperties_type_ref(t *testing.T) {
+func Test_extractProperties_json_schema_props(t *testing.T) {
+	c := initCatalog(t, "swagger-1.8.json")
+
+	s, ok := c.apiSpec.Definitions["io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceValidation"]
+	require.True(t, ok)
+
+	props, err := extractProperties(c, s.Properties, s.Required)
+	require.NoError(t, err)
+
+	i, ok := props["openAPIV3Schema"]
+	require.True(t, ok)
+
+	prop, ok := i.(*LiteralField)
+	require.True(t, ok)
+
+	assert.Equal(t, "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps", prop.Ref())
+}
+
+func Test_extractProperties_kind_required(t *testing.T) {
+	c := initCatalog(t, "swagger-1.8.json")
+
+	s, ok := c.apiSpec.Definitions["io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionNames"]
+	require.True(t, ok)
+
+	props, err := extractProperties(c, s.Properties, s.Required)
+	require.NoError(t, err)
+
+	i, ok := props["kind"]
+	require.True(t, ok)
+
+	prop, ok := i.(*LiteralField)
+	require.True(t, ok)
+
+	assert.Equal(t, "string", prop.FieldType())
+	assert.Equal(t, "Kind is the serialized kind of the resource.  It is normally CamelCase and singular.", prop.Description())
+	assert.Equal(t, "", prop.Ref())
+	assert.Equal(t, "kind", prop.Name())
+}
+
+func Test_extractProperties_kind_not_required(t *testing.T) {
+	c := initCatalog(t, "deployment.json")
+
+	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.Deployment"]
+	require.True(t, ok)
+
+	props, err := extractProperties(c, s.Properties, s.Required)
+	require.NoError(t, err)
+
+	_, ok = props["kind"]
+	require.False(t, ok)
+}
+
+func Test_extractProperties_type_ref(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.RollingUpdateDeployment"]
 	require.True(t, ok)
 
-	props, err := extractProperties(c, s.Properties)
+	props, err := extractProperties(c, s.Properties, []string{})
 	require.NoError(t, err)
 
 	i, ok := props["maxSurge"]
@@ -63,13 +115,13 @@ func Test_extraProperties_type_ref(t *testing.T) {
 	assert.Equal(t, "maxSurge", prop.Name())
 }
 
-func Test_extraProperties_ref(t *testing.T) {
+func Test_extractProperties_ref(t *testing.T) {
 	c := initCatalog(t, "deployment.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.Deployment"]
 	require.True(t, ok)
 
-	props, err := extractProperties(c, s.Properties)
+	props, err := extractProperties(c, s.Properties, []string{})
 	require.NoError(t, err)
 
 	i, ok := props["metadata"]
@@ -83,13 +135,13 @@ func Test_extraProperties_ref(t *testing.T) {
 	assert.Equal(t, "metadata", prop.Name())
 }
 
-func Test_extraProperties_invalid_format_ref(t *testing.T) {
+func Test_extractProperties_invalid_format_ref(t *testing.T) {
 	c := initCatalog(t, "invalid_ref.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.RollingUpdateDeployment"]
 	require.True(t, ok)
 
-	_, err := extractProperties(c, s.Properties)
+	_, err := extractProperties(c, s.Properties, []string{})
 	require.Error(t, err)
 }
 

@@ -179,6 +179,10 @@ func TestObject(t *testing.T) {
 			object: objectWithReservedWordKey,
 		},
 		{
+			name:   "with a string that needs to be quoted as the key",
+			object: objectWithQuotedWordKey,
+		},
+		{
 			name:   "inline",
 			object: inline,
 		},
@@ -331,6 +335,28 @@ func objectWithReservedWordKey(t *testing.T) (Noder, ast.Node) {
 			{
 				ObjectField: ast.ObjectField{
 					Id:    newIdentifier("error"),
+					Hide:  ast.ObjectFieldHidden,
+					Kind:  ast.ObjectFieldStr,
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func objectWithQuotedWordKey(t *testing.T) (Noder, ast.Node) {
+	o := NewObject()
+	k := NewKey("$foo")
+	o2 := NewObject()
+	o.Set(k, o2)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Id:    newIdentifier("$foo"),
 					Hide:  ast.ObjectFieldHidden,
 					Kind:  ast.ObjectFieldStr,
 					Expr2: &astext.Object{},

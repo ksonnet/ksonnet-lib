@@ -152,6 +152,10 @@ func Test_FormatKind(t *testing.T) {
 			name:     "CIDRType",
 			expected: "cidrType",
 		},
+		{
+			name:     "$ref",
+			expected: "dollarRef",
+		},
 	}
 
 	for _, tc := range cases {

@@ -88,6 +88,10 @@ func FormatKind(s string) string {
 		return "localStorage"
 	}
 
+	if strings.HasPrefix(s, "$") {
+		s = "dollar" + strings.Title(strings.TrimPrefix(s, "$"))
+		return s
+	}
 	s = capitalize(s)
 	s = camelCase(s)
 

@@ -2,6 +2,7 @@ package nodemaker
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -312,6 +313,10 @@ type Key struct {
 	mixin       bool
 }
 
+var (
+	reStartsWithNonAlpha = regexp.MustCompile(`^[^A-Za-z]`)
+)
+
 // NewKey creates an instance of Key. KeyOpt functional options can be used to configure the
 // newly generated key.
 func NewKey(name string, opts ...KeyOpt) Key {
@@ -321,6 +326,10 @@ func NewKey(name string, opts ...KeyOpt) Key {
 		if s == name {
 			category = ast.ObjectFieldStr
 		}
+	}
+
+	if reStartsWithNonAlpha.Match([]byte(name)) {
+		category = ast.ObjectFieldStr
 	}
 
 	k := Key{

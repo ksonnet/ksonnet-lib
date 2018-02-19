@@ -54,7 +54,7 @@ func TestCatalog_Resources_invalid_description(t *testing.T) {
 }
 
 func TestCatalog_Resources_invalid_field_properties(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
+	fn := func(*Catalog, map[string]spec.Schema, []string) (map[string]Property, error) {
 		return nil, errors.New("failed")
 	}
 
@@ -127,7 +127,7 @@ func TestCatalog_Fields_invalid_description(t *testing.T) {
 }
 
 func TestCatalog_Fields_invalid_field_properties(t *testing.T) {
-	fn := func(*Catalog, map[string]spec.Schema) (map[string]Property, error) {
+	fn := func(*Catalog, map[string]spec.Schema, []string) (map[string]Property, error) {
 		return nil, errors.New("failed")
 	}
 

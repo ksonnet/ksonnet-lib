@@ -11,22 +11,18 @@ import (
 var (
 	blockedReferences = []string{
 		"io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta",
-		"io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps",
 		"io.k8s.apimachinery.pkg.apis.meta.v1.Status",
 	}
 
 	blockedPropertyNames = []string{
 		"status",
-		"$ref",
-		"$schema",
-		"JSONSchemas",
 		"apiVersion",
 		"kind",
 	}
 )
 
 // ExtractFn is a function which extracts properties from a schema.
-type ExtractFn func(*Catalog, map[string]spec.Schema) (map[string]Property, error)
+type ExtractFn func(*Catalog, map[string]spec.Schema, []string) (map[string]Property, error)
 
 // CatalogOpt is an option for configuring Catalog.
 type CatalogOpt func(*Catalog)
@@ -105,7 +101,7 @@ func (c *Catalog) Types() ([]Type, error) {
 			continue
 		}
 
-		props, err := c.extractFn(c, schema.Properties)
+		props, err := c.extractFn(c, schema.Properties, schema.Required)
 		if err != nil {
 			return nil, errors.Wrapf(err, "extract propererties from %s", name)
 		}
@@ -134,7 +130,7 @@ func (c *Catalog) Fields() ([]Field, error) {
 			return nil, errors.Wrapf(err, "parse description for %s", name)
 		}
 
-		props, err := c.extractFn(c, schema.Properties)
+		props, err := c.extractFn(c, schema.Properties, schema.Required)
 		if err != nil {
 			return nil, errors.Wrapf(err, "extract propererties from %s", name)
 		}

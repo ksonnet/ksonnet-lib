@@ -297,6 +297,9 @@ func genTypeAliasEntry(container *nm.Object, name, refName string) error {
 // Generates a field name.
 func fieldName(name string, isMixin bool) string {
 	var out string
+
+	name = FormatKind(name)
+
 	out = fmt.Sprintf("with%s", strings.Title(name))
 	if isMixin {
 		return fmt.Sprintf("%s%s", out, "Mixin")
