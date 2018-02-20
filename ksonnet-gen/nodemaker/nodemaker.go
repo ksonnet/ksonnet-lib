@@ -116,6 +116,17 @@ func (o *Object) Get(keyName string) Noder {
 	return o.fields[keyName]
 }
 
+// Keys returns a slice of keys in the object.
+func (o *Object) Keys() []Key {
+	var keys []Key
+
+	for _, name := range o.keyList {
+		keys = append(keys, o.keys[name])
+	}
+
+	return keys
+}
+
 // Node converts the object to a jsonnet node.
 func (o *Object) Node() ast.Node {
 	ao := &astext.Object{

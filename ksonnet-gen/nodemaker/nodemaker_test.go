@@ -1113,3 +1113,18 @@ func TestObject_HasUniqueKeys(t *testing.T) {
 		t.Errorf("Set() expected error and there as now")
 	}
 }
+
+func TestObject_RetrieveKeys(t *testing.T) {
+	o := NewObject()
+
+	err := o.Set(NewKey("foo"), NewStringDouble("text"))
+	require.NoError(t, err)
+
+	err = o.Set(NewKey("bar"), NewStringDouble("text"))
+	require.NoError(t, err)
+
+	keys := o.Keys()
+
+	expected := []Key{NewKey("foo"), NewKey("bar")}
+	require.Equal(t, expected, keys)
+}
