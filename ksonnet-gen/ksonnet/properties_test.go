@@ -14,7 +14,7 @@ func Test_extractProperties_nil_catalog(t *testing.T) {
 }
 
 func Test_extractProperties_nil_properties(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	m, err := extractProperties(c, nil, []string{})
 	require.NoError(t, err)
@@ -22,7 +22,7 @@ func Test_extractProperties_nil_properties(t *testing.T) {
 }
 
 func Test_extractProperties_literal(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"]
 	require.True(t, ok)
@@ -82,7 +82,7 @@ func Test_extractProperties_kind_required(t *testing.T) {
 }
 
 func Test_extractProperties_kind_not_required(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.Deployment"]
 	require.True(t, ok)
@@ -95,7 +95,7 @@ func Test_extractProperties_kind_not_required(t *testing.T) {
 }
 
 func Test_extractProperties_type_ref(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.RollingUpdateDeployment"]
 	require.True(t, ok)
@@ -116,7 +116,7 @@ func Test_extractProperties_type_ref(t *testing.T) {
 }
 
 func Test_extractProperties_ref(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	s, ok := c.apiSpec.Definitions["io.k8s.api.apps.v1beta2.Deployment"]
 	require.True(t, ok)

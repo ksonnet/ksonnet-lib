@@ -18,7 +18,7 @@ func TestDocument_nil_catalog(t *testing.T) {
 }
 
 func TestDocument_Groups(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -26,16 +26,16 @@ func TestDocument_Groups(t *testing.T) {
 	groups, err := doc.Groups()
 	require.NoError(t, err)
 
-	require.Len(t, groups, 2)
-
 	var names []string
 	for _, group := range groups {
 		names = append(names, group.Name())
 	}
 
 	sort.Strings(names)
-
-	require.Equal(t, []string{"apps", "meta"}, names)
+	expected := []string{"admissionregistration", "apiextensions", "apiregistration", "apps",
+		"authentication", "authorization", "autoscaling", "batch", "certificates", "core",
+		"extensions", "meta", "networking", "policy", "rbac", "scheduling", "settings", "storage"}
+	require.Equal(t, expected, names)
 }
 
 func TestDocument_Groups_types_error(t *testing.T) {
@@ -43,7 +43,7 @@ func TestDocument_Groups_types_error(t *testing.T) {
 		return nil, errors.New("fail")
 	}
 
-	c := initCatalog(t, "deployment.json", CatalogOptExtractProperties(fn))
+	c := initCatalog(t, "swagger-1.8.json", CatalogOptExtractProperties(fn))
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -53,15 +53,13 @@ func TestDocument_Groups_types_error(t *testing.T) {
 }
 
 func TestDocument_HiddenGroups(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
 
 	groups, err := doc.HiddenGroups()
 	require.NoError(t, err)
-
-	require.Len(t, groups, 3)
 
 	var names []string
 	for _, group := range groups {
@@ -70,7 +68,11 @@ func TestDocument_HiddenGroups(t *testing.T) {
 
 	sort.Strings(names)
 
-	require.Equal(t, []string{"apps", "core", "meta"}, names)
+	expected := []string{"admissionregistration", "apiextensions", "apiregistration", "apps",
+		"authentication", "authorization", "autoscaling", "batch", "certificates", "core",
+		"extensions", "meta", "networking", "policy", "rbac", "scheduling", "settings",
+		"storage"}
+	require.Equal(t, expected, names)
 }
 
 func TestDocument_HiddenGroups_fields_error(t *testing.T) {
@@ -78,7 +80,7 @@ func TestDocument_HiddenGroups_fields_error(t *testing.T) {
 		return nil, errors.New("fail")
 	}
 
-	c := initCatalog(t, "deployment.json", CatalogOptExtractProperties(fn))
+	c := initCatalog(t, "swagger-1.8.json", CatalogOptExtractProperties(fn))
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -88,7 +90,7 @@ func TestDocument_HiddenGroups_fields_error(t *testing.T) {
 }
 
 func TestDocument_Node(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -96,9 +98,9 @@ func TestDocument_Node(t *testing.T) {
 	n, err := doc.Node()
 	require.NoError(t, err)
 
-	for _, name := range []string{"apps", "meta"} {
+	for _, name := range []string{"apps", "apiextensions", "core"} {
 		_, ok := n.Get(name).(*nm.Object)
-		assert.True(t, ok, "node %s", name)
+		assert.True(t, ok, "node %s was not found", name)
 	}
 
 	local, ok := n.Get("hidden").(*nm.Object)
@@ -106,12 +108,12 @@ func TestDocument_Node(t *testing.T) {
 
 	for _, name := range []string{"apps", "core", "meta"} {
 		_, ok := local.Get(name).(*nm.Object)
-		assert.True(t, ok, "hidden node %s", name)
+		assert.True(t, ok, "hidden node %s was not found", name)
 	}
 }
 
 func TestDocument_Node_groups_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -125,7 +127,7 @@ func TestDocument_Node_groups_error(t *testing.T) {
 }
 
 func TestDocument_Node_hidden_groups_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -139,7 +141,7 @@ func TestDocument_Node_hidden_groups_error(t *testing.T) {
 }
 
 func TestDocument_Node_api_object_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -157,7 +159,7 @@ func Test_renderGroups_groups_error(t *testing.T) {
 		return nil, errors.New("fail")
 	}
 
-	c := initCatalog(t, "deployment.json", CatalogOptExtractProperties(fn))
+	c := initCatalog(t, "swagger-1.8.json", CatalogOptExtractProperties(fn))
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -167,7 +169,7 @@ func Test_renderGroups_groups_error(t *testing.T) {
 }
 
 func TestDocument_renderGroups_render_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -185,7 +187,7 @@ func Test_renderHiddenGroups_hidden_groups_error(t *testing.T) {
 		return nil, errors.New("fail")
 	}
 
-	c := initCatalog(t, "deployment.json", CatalogOptExtractProperties(fn))
+	c := initCatalog(t, "swagger-1.8.json", CatalogOptExtractProperties(fn))
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)
@@ -195,7 +197,7 @@ func Test_renderHiddenGroups_hidden_groups_error(t *testing.T) {
 }
 
 func TestDocument_renderHiddenGroups_render_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	doc, err := NewDocument(c)
 	require.NoError(t, err)

@@ -12,9 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	apiSpecCache = map[string]*spec.Swagger{}
+)
+
 func initCatalog(t *testing.T, file string, opts ...CatalogOpt) *Catalog {
-	apiSpec, err := kubespec.Import(testdata(file))
-	require.NoError(t, err)
+	apiSpec := apiSpecCache[file]
+	if apiSpec == nil {
+		var err error
+		apiSpec, err = kubespec.Import(testdata(file))
+		require.NoError(t, err)
+
+		apiSpecCache[file] = apiSpec
+	}
 
 	c, err := NewCatalog(apiSpec, opts...)
 	require.NoError(t, err)
@@ -27,13 +37,20 @@ func TestCatalog_nil_apiSpec(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestCatalog_Resources(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+func TestCatalog_Types(t *testing.T) {
+	c := initCatalog(t, "swagger-1.8.json")
 
 	resources, err := c.Types()
 	require.NoError(t, err)
 
-	require.Len(t, resources, 2)
+	var found bool
+	for _, resource := range resources {
+		if resource.Identifier() == "io.k8s.api.apps.v1beta1.Deployment" {
+			found = true
+		}
+	}
+
+	require.True(t, found)
 }
 
 func TestCatalog_Resources_invalid_description(t *testing.T) {
@@ -60,7 +77,7 @@ func TestCatalog_Resources_invalid_field_properties(t *testing.T) {
 
 	opt := CatalogOptExtractProperties(fn)
 
-	c := initCatalog(t, "deployment.json", opt)
+	c := initCatalog(t, "swagger-1.8.json", opt)
 
 	_, err := c.Types()
 	require.Error(t, err)
@@ -80,7 +97,7 @@ func TestCatalog_Resource(t *testing.T) {
 		{name: "unknown group", group: "Foo", version: "Foo", kind: "Foo", isErr: true},
 	}
 
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -101,12 +118,19 @@ func TestCatalog_Resource(t *testing.T) {
 }
 
 func TestCatalog_Fields(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
-	types, err := c.Fields()
+	fields, err := c.Fields()
 	require.NoError(t, err)
 
-	require.Len(t, types, 22)
+	var found bool
+	for _, field := range fields {
+		if field.Identifier() == "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta" {
+			found = true
+		}
+	}
+
+	require.True(t, found)
 }
 
 func TestCatalog_Fields_invalid_description(t *testing.T) {
@@ -133,7 +157,7 @@ func TestCatalog_Fields_invalid_field_properties(t *testing.T) {
 
 	opt := CatalogOptExtractProperties(fn)
 
-	c := initCatalog(t, "deployment.json", opt)
+	c := initCatalog(t, "swagger-1.8.json", opt)
 
 	_, err := c.Fields()
 	require.Error(t, err)
@@ -149,7 +173,7 @@ func TestCatalog_Field(t *testing.T) {
 		{name: "missing", id: "missing", isErr: true},
 	}
 
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -165,7 +189,7 @@ func TestCatalog_Field(t *testing.T) {
 	}
 }
 
-func offTestCatalog_TypesWithDescendant(t *testing.T) {
+func TestCatalog_TypesWithDescendant(t *testing.T) {
 	c := initCatalog(t, "swagger-1.8.json")
 
 	types, err := c.TypesWithDescendant("io.k8s.api.core.v1.PodSpec")
@@ -217,7 +241,7 @@ func TestCatalog_isFormatRef(t *testing.T) {
 		},
 	}
 
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

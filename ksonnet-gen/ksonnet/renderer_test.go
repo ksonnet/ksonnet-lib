@@ -78,7 +78,7 @@ func TestReferenceRenderer(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			c := initCatalog(t, "deployment.json")
+			c := initCatalog(t, "swagger-1.8.json")
 
 			f := NewReferenceField("name", "desc", tc.ref)
 
@@ -370,7 +370,7 @@ func Test_mixinName(t *testing.T) {
 }
 
 func Test_renderFields(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 	o := nm.NewObject()
 	props := map[string]Property{
 		"name": NewLiteralField("name", "string", "desc", ""),
@@ -396,7 +396,7 @@ func (cf *customField) Name() string        { return "name" }
 func (cf *customField) Ref() string         { return "" }
 
 func Test_renderFields_unknown_type(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 	o := nm.NewObject()
 	props := map[string]Property{
 		"name": &customField{},
@@ -407,7 +407,7 @@ func Test_renderFields_unknown_type(t *testing.T) {
 }
 
 func Test_renderFields_literal_field_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 	o := nm.NewObject()
 	props := map[string]Property{
 		"name": NewLiteralField("name", "unknown", "desc", ""),
@@ -418,7 +418,7 @@ func Test_renderFields_literal_field_error(t *testing.T) {
 }
 
 func Test_renderFields_reference_field_error(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 	o := nm.NewObject()
 	props := map[string]Property{
 		"aref": NewReferenceField("aref", "desc", "unknown-id"),

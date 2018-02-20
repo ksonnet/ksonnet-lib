@@ -25,7 +25,7 @@ func TestAPIObject_Description(t *testing.T) {
 }
 
 func TestAPIObject_Node_with_type(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	t1 := NewField("io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta", "desc", "apimachinery", "group", "ver", "Kind", nil)
 	ao := NewAPIObject(t1)
@@ -40,7 +40,7 @@ func TestAPIObject_Node_with_type(t *testing.T) {
 }
 
 func TestAPIObject_Node_with_field(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	c1 := Component{Group: "group2", Version: "v1", Kind: "Deployment"}
 
@@ -71,7 +71,7 @@ func TestAPIObject_Node_with_nil_catalog(t *testing.T) {
 }
 
 func TestAPIObject_Node_fails_when_renderer_fails(t *testing.T) {
-	c := initCatalog(t, "deployment.json")
+	c := initCatalog(t, "swagger-1.8.json")
 
 	c1 := Component{Group: "group2", Version: "v1", Kind: "Deployment"}
 	o1 := NewType("alpha", "desc", "codebase", "group", c1, nil)

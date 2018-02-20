@@ -40,6 +40,7 @@ type Catalog struct {
 	apiSpec    *spec.Swagger
 	extractFn  ExtractFn
 	apiVersion semver.Version
+	paths      map[string]Component
 
 	// memos
 	typesCache  []Type
@@ -64,10 +65,16 @@ func NewCatalog(apiSpec *spec.Swagger, opts ...CatalogOpt) (*Catalog, error) {
 		return nil, errors.Wrap(err, "invalid apiSpec version")
 	}
 
+	paths, err := parsePaths(apiSpec)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse apiSpec paths")
+	}
+
 	c := &Catalog{
 		apiSpec:    apiSpec,
 		extractFn:  extractProperties,
 		apiVersion: apiVersion,
+		paths:      paths,
 	}
 
 	for _, opt := range opts {
@@ -96,8 +103,10 @@ func (c *Catalog) Types() ([]Type, error) {
 			return nil, errors.Wrapf(err, "parse description for %s", name)
 		}
 
-		component, err := NewComponent(schema)
-		if err != nil {
+		// If there is a path, we can update it as a first class object
+		// in the API. This makes this schema a type.
+		component, ok := c.paths[name]
+		if !ok {
 			continue
 		}
 
@@ -106,7 +115,7 @@ func (c *Catalog) Types() ([]Type, error) {
 			return nil, errors.Wrapf(err, "extract propererties from %s", name)
 		}
 
-		kind := NewType(name, schema.Description, desc.Codebase, desc.Group, *component, props)
+		kind := NewType(name, schema.Description, desc.Codebase, desc.Group, component, props)
 
 		resources = append(resources, kind)
 	}
@@ -128,6 +137,12 @@ func (c *Catalog) Fields() ([]Field, error) {
 		desc, err := ParseDescription(name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "parse description for %s", name)
+		}
+
+		// If there is a path, this should ot be a hidden object. This
+		// makes this schema a field.
+		if _, ok := c.paths[name]; ok {
+			continue
 		}
 
 		props, err := c.extractFn(c, schema.Properties, schema.Required)
@@ -191,6 +206,22 @@ func (c *Catalog) Resource(group, version, kind string) (*Type, error) {
 		group, version, kind)
 }
 
+// TypeByID returns a type by identifier.
+func (c *Catalog) TypeByID(id string) (*Type, error) {
+	resources, err := c.Types()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, resource := range resources {
+		if resource.Identifier() == id {
+			return &resource, nil
+		}
+	}
+
+	return nil, errors.Errorf("unable to find type %q", id)
+}
+
 // TypesWithDescendant returns types who have the specified definition as a descendant.
 // This list does not include List types (e.g. DeploymentList).
 func (c *Catalog) TypesWithDescendant(definition string) ([]Type, error) {
@@ -218,7 +249,22 @@ func (c *Catalog) TypesWithDescendant(definition string) ([]Type, error) {
 	return out, nil
 }
 
+func (c *Catalog) find(id string) (Object, error) {
+	f, err := c.Field(id)
+	if err == nil {
+		return f, nil
+	}
+
+	t, err := c.TypeByID(id)
+	if err != nil {
+		return nil, errors.Errorf("unable to find object %q", id)
+	}
+
+	return t, nil
+}
+
 func (c *Catalog) descend(definition string, m map[string]Property) (bool, error) {
+
 	for _, prop := range m {
 		if ref := prop.Ref(); ref != "" {
 
@@ -226,7 +272,12 @@ func (c *Catalog) descend(definition string, m map[string]Property) (bool, error
 				return true, nil
 			}
 
-			f, err := c.Field(ref)
+			// NOTE: if this is a reference to json schema, bail out because this is recursive.
+			if ref == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" {
+				continue
+			}
+
+			f, err := c.find(ref)
 			if err != nil {
 				return false, errors.Wrapf(err, "find field %s", ref)
 			}
