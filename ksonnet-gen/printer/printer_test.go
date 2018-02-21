@@ -49,6 +49,7 @@ func TestFprintf(t *testing.T) {
 		{name: "object_field_with_local"},
 		{name: "local_with_function"},
 		{name: "apply_with_number"},
+		{name: "local_with_multiline_function"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -720,6 +721,67 @@ var (
 			Body: &ast.Object{},
 		},
 		"apply_with_number": &ast.Apply{Target: newLiteralNumber("1")},
+		"local_with_multiline_function": &ast.Local{
+			Binds: ast.LocalBinds{
+				{
+					Variable: *newIdentifier("foo"),
+					Body: &ast.Function{
+						Body: &ast.Local{
+							Binds: ast.LocalBinds{
+								{
+									Variable: *newIdentifier("a"),
+									Body: &astext.Object{
+										Oneline: true,
+										Fields: astext.ObjectFields{
+											{
+												ObjectField: ast.ObjectField{
+													Id:   newIdentifier("a"),
+													Kind: ast.ObjectFieldID,
+													Hide: ast.ObjectFieldInherit,
+													Expr2: &ast.LiteralString{
+														Value: "a",
+														Kind:  ast.StringDouble,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							Body: &ast.Local{
+								Binds: ast.LocalBinds{
+									{
+										Variable: *newIdentifier("b"),
+										Body: &astext.Object{
+											Oneline: true,
+											Fields: astext.ObjectFields{
+												{
+													ObjectField: ast.ObjectField{
+														Id:   newIdentifier("b"),
+														Kind: ast.ObjectFieldID,
+														Hide: ast.ObjectFieldInherit,
+														Expr2: &ast.LiteralString{
+															Value: "b",
+															Kind:  ast.StringDouble,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								Body: &ast.Binary{
+									Left:  &ast.Var{Id: *newIdentifier("a")},
+									Right: &ast.Var{Id: *newIdentifier("b")},
+									Op:    ast.BopPlus,
+								},
+							},
+						},
+					},
+				},
+			},
+			Body: &ast.Object{},
+		},
 
 		// errors
 		"unknown_node":           &noopNode{},

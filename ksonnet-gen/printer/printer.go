@@ -319,16 +319,14 @@ func (p *printer) handleLocal(l *ast.Local) {
 
 	for _, bind := range l.Binds {
 		p.writeString(string(bind.Variable))
-		switch bt := bind.Body.(type) {
+		switch bodyType := bind.Body.(type) {
 		default:
 			p.writeString(" = ")
 			p.print(bind.Body)
 			p.writeString(";")
 		case *ast.Function:
 			p.print(bind.Body)
-			p.writeString(" = ")
-			p.print(bt.Body)
-			p.writeString(";")
+			p.handleLocalFunction(bodyType)
 		}
 		c := 1
 		if _, ok := l.Body.(*ast.Local); !ok {
@@ -339,6 +337,22 @@ func (p *printer) handleLocal(l *ast.Local) {
 	}
 
 	p.print(l.Body)
+}
+
+func (p *printer) handleLocalFunction(f *ast.Function) {
+	p.writeString(" =")
+	switch f.Body.(type) {
+	default:
+		p.writeByte(space, 1)
+		p.print(f.Body)
+		p.writeString(";")
+	case *ast.Local:
+		p.indentLevel++
+		p.writeByte(newline, 1)
+		p.print(f.Body)
+		p.writeString(";")
+		p.indentLevel--
+	}
 }
 
 func (p *printer) handleObjectField(n interface{}) {
