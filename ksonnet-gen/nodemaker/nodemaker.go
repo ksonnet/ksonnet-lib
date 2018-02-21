@@ -109,6 +109,7 @@ func (o *Object) Set(key Key, value Noder) error {
 	o.keyList = append(o.keyList, name)
 
 	return nil
+
 }
 
 // Get retrieves a field by name.
@@ -419,6 +420,7 @@ type Binary struct {
 	Left  Noder
 	Right Noder
 	Op    BinaryOp
+	Chainer
 }
 
 var _ Noder = (*Binary)(nil)
@@ -450,6 +452,7 @@ func (b *Binary) Node() ast.Node {
 // Var represents a variable.
 type Var struct {
 	ID string
+	Chainer
 }
 
 var _ Noder = (*Binary)(nil)
@@ -483,6 +486,7 @@ type Conditional struct {
 	Cond        Noder
 	BranchTrue  Noder
 	BranchFalse Noder
+	Chainer
 }
 
 var _ Noder = (*Conditional)(nil)
@@ -546,15 +550,16 @@ func (oa *OptionalArg) NamedParameter() ast.NamedParameter {
 
 // Apply represents an application of a function.
 type Apply struct {
-	target         Noder
+	target         Chainable
 	positionalArgs []Noder
 	optionalArgs   []OptionalArg
+	Chainer
 }
 
-var _ Noder = (*Apply)(nil)
+var _ Targetable = (*Apply)(nil)
 
 // NewApply creates an instance of Apply.
-func NewApply(target Noder, positionalArgs []Noder, optionalArgs []OptionalArg) *Apply {
+func NewApply(target Chainable, positionalArgs []Noder, optionalArgs []OptionalArg) *Apply {
 	return &Apply{
 		target:         target,
 		positionalArgs: positionalArgs,
@@ -565,6 +570,11 @@ func NewApply(target Noder, positionalArgs []Noder, optionalArgs []OptionalArg) 
 // ApplyCall creates an Apply using a method string.
 func ApplyCall(method string, args ...Noder) *Apply {
 	return NewApply(NewCall(method), args, nil)
+}
+
+// SetTarget sets the target of this Apply.
+func (a *Apply) SetTarget(c Chainable) {
+	a.target = c
 }
 
 // Node converts the Apply to a jsonnet ast node.
@@ -586,10 +596,12 @@ func (a *Apply) Node() ast.Node {
 
 // Call is a function call.
 type Call struct {
-	parts []string
+	parts  []string
+	target Chainable
+	Chainer
 }
 
-var _ Noder = (*Call)(nil)
+var _ Targetable = (*Call)(nil)
 
 // NewCall creates an instance of Call.
 func NewCall(method string) *Call {
@@ -600,56 +612,175 @@ func NewCall(method string) *Call {
 	}
 }
 
+// SetTarget sets the target of this Call.
+func (c *Call) SetTarget(chainable Chainable) {
+	c.target = chainable
+}
+
 // Node converts the Call to a jsonnet ast node.
 func (c *Call) Node() ast.Node {
-	var head *ast.Index
-	var cur *ast.Index
-
 	parts := c.parts
 
 	if len(parts) == 1 {
 		return NewVar(parts[0]).Node()
 	}
 
+	var theVar *Var
+	var cur *Index
+
+	switch t := c.target.(type) {
+	case *Var:
+		theVar = t
+	case *Index:
+		cur = t
+	}
+
 	for i := range parts {
-		i = len(parts) - 1 - i
-		if i == 0 {
-			v := NewVar(parts[i]).Node()
-			if head == nil {
-				return v
+		part := parts[i]
+		if i == 0 && theVar == nil {
+			v := NewVar(part)
+			theVar = v
+			continue
+		}
+		idx := NewIndex(part)
+		if theVar != nil {
+			idx.SetTarget(theVar)
+			theVar = nil
+		} else if cur != nil {
+			idx.SetTarget(cur)
+		}
+
+		cur = idx
+	}
+
+	if theVar != nil {
+		return theVar.Node()
+	}
+
+	return cur.Node()
+}
+
+// Index is an index type.
+type Index struct {
+	ID     string
+	Target Chainable
+	Chainer
+}
+
+var _ Targetable = (*Index)(nil)
+
+// NewIndex creates an instance of Index.
+func NewIndex(id string) *Index {
+	return &Index{
+		ID: id,
+	}
+}
+
+// SetTarget sets the target for this Index.
+func (i *Index) SetTarget(c Chainable) {
+	i.Target = c
+}
+
+// Node converts the Index to a Jsonnet AST node.
+func (i *Index) Node() ast.Node {
+	astIndex := &ast.Index{Id: newIdentifier(i.ID)}
+
+	if i.Target != nil {
+		astIndex.Target = i.Target.Node()
+	}
+
+	return astIndex
+}
+
+// Chainable is an interface that signifies this object can be
+// used in CallChain.
+type Chainable interface {
+	Chainable()
+	Node() ast.Node
+}
+
+// Targetable is a Chainable that allows you to set a target.
+// Can be used with Calls, Indexes, and Applies.
+type Targetable interface {
+	Chainable
+	SetTarget(Chainable)
+}
+
+// Chainer is an extension struct to bring the Chainable
+// function into a type.
+type Chainer struct{}
+
+// Chainable implements the Chainable interface.
+func (c *Chainer) Chainable() {}
+
+// CallChain creates a call chain. It allows you to string
+// an arbitrary amount of Chainables together.
+type CallChain struct {
+	links []Chainable
+}
+
+var _ Noder = (*CallChain)(nil)
+
+// NewCallChain creates an instance of CallChain.
+func NewCallChain(links ...Chainable) *CallChain {
+
+	return &CallChain{
+		links: links,
+	}
+}
+
+// Node converts the CallChain to a Jsonnet AST node.
+func (cc *CallChain) Node() ast.Node {
+	if len(cc.links) == 1 {
+		return cc.links[0].Node()
+	}
+
+	var previous Chainable
+
+	for i := range cc.links {
+		switch t := cc.links[i].(type) {
+		default:
+			panic(fmt.Sprintf("unhandled node type %T", t))
+		case *Var:
+			previous = t
+		case *Index:
+			if previous != nil {
+				t.SetTarget(previous)
 			}
 
-			cur.Target = v
-			return head
-		}
+			previous = t
+		case *Apply:
+			if previous != nil {
+				if targetable, ok := t.target.(Targetable); ok {
+					targetable.SetTarget(previous)
+				}
+			}
 
-		newIndex := &ast.Index{
-			Id: newIdentifier(parts[i]),
-		}
-		if head == nil {
-			head = newIndex
-			cur = newIndex
-		} else {
-			cur.Target = newIndex
-			cur = newIndex
+			previous = t
+		case *Call:
+			if previous != nil {
+				t.SetTarget(previous)
+			}
+
+			previous = t
 		}
 	}
 
-	return head
+	return previous.Node()
 }
 
 // Local is a local declaration.
 type Local struct {
 	name  string
 	value Noder
-	body  Noder
+	Body  Noder
 }
 
 var _ Noder = (*Local)(nil)
 
 // NewLocal creates an instance of Local.
 func NewLocal(name string, value, body Noder) *Local {
-	return &Local{name: name, value: value, body: body}
+	return &Local{name: name, value: value, Body: body}
 }
 
 // Node converts the Local to a jsonnet ast node.
@@ -665,8 +796,8 @@ func (l *Local) Node() ast.Node {
 		},
 	}
 
-	if l.body != nil {
-		local.Body = l.body.Node()
+	if l.Body != nil {
+		local.Body = l.Body.Node()
 	}
 
 	return local

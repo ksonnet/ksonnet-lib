@@ -1,13 +1,16 @@
 package nodemaker
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1127,4 +1130,122 @@ func TestObject_RetrieveKeys(t *testing.T) {
 
 	expected := []Key{NewKey("foo"), NewKey("bar")}
 	require.Equal(t, expected, keys)
+}
+
+func TestCallChain(t *testing.T) {
+	cases := []struct {
+		name     string
+		noders   []Chainable
+		expected ast.Node
+	}{
+		{
+			name: "var",
+			noders: []Chainable{
+				NewVar("alpha"),
+			},
+			expected: NewVar("alpha").Node(),
+		},
+		{
+			name: "indexed var",
+			noders: []Chainable{
+				NewVar("foo"),
+				NewIndex("bar"),
+			},
+			expected: &ast.Index{
+				Id:     newIdentifier("bar"),
+				Target: NewVar("foo").Node(),
+			},
+		},
+		{
+			name: "apply with index with var",
+			noders: []Chainable{
+				NewVar("std"),
+				NewApply(NewIndex("extVar"), []Noder{
+					NewStringDouble("__ksonnet/params"),
+				}, nil),
+				NewIndex("components"),
+				NewIndex("certificateCrd"),
+			},
+			expected: &ast.Index{
+				Id: newIdentifier("certificateCrd"),
+				Target: &ast.Index{
+					Id: newIdentifier("components"),
+					Target: &ast.Apply{
+						Target: &ast.Index{
+							Id:     newIdentifier("extVar"),
+							Target: &ast.Var{Id: *newIdentifier("std")},
+						},
+						Arguments: ast.Arguments{
+							Positional: ast.Nodes{
+								NewStringDouble("__ksonnet/params").Node(),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "call with apply",
+			noders: []Chainable{
+				NewCall("a.b.c.d"),
+				NewApply(NewIndex("fn"), []Noder{
+					NewVar("arg"),
+				}, nil),
+			},
+			expected: &ast.Apply{
+				Target: &ast.Index{
+					Id: newIdentifier("fn"),
+					Target: &ast.Index{
+						Id: newIdentifier("d"),
+						Target: &ast.Index{
+							Id: newIdentifier("c"),
+							Target: &ast.Index{
+								Id: newIdentifier("b"),
+								Target: &ast.Var{
+									Id: *newIdentifier("a"),
+								},
+							},
+						},
+					},
+				},
+				Arguments: ast.Arguments{
+					Positional: ast.Nodes{
+						NewVar("arg").Node(),
+					},
+				},
+			},
+		},
+		{
+			name: "var with call",
+			noders: []Chainable{
+				NewVar("a"),
+				NewCall("b.c.d"),
+			},
+			expected: &ast.Index{
+				Id: newIdentifier("d"),
+				Target: &ast.Index{
+					Id: newIdentifier("c"),
+					Target: &ast.Index{
+						Id: newIdentifier("b"),
+						Target: &ast.Var{
+							Id: *newIdentifier("a"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cc := NewCallChain(tc.noders...)
+
+			var buf bytes.Buffer
+			err := printer.Fprint(&buf, cc.Node())
+			require.NoError(t, err)
+			spew.Dump("----", tc.name, buf.String())
+
+			assert.Equal(t, tc.expected, cc.Node())
+		})
+	}
 }
