@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
@@ -337,9 +336,9 @@ func objectWithReservedWordKey(t *testing.T) (Noder, ast.Node) {
 		Fields: astext.ObjectFields{
 			{
 				ObjectField: ast.ObjectField{
-					Id:    newIdentifier("error"),
 					Hide:  ast.ObjectFieldHidden,
 					Kind:  ast.ObjectFieldStr,
+					Expr1: NewStringDouble("error").Node(),
 					Expr2: &astext.Object{},
 				},
 			},
@@ -359,9 +358,12 @@ func objectWithQuotedWordKey(t *testing.T) (Noder, ast.Node) {
 		Fields: astext.ObjectFields{
 			{
 				ObjectField: ast.ObjectField{
-					Id:    newIdentifier("$foo"),
-					Hide:  ast.ObjectFieldHidden,
-					Kind:  ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldHidden,
+					Kind: ast.ObjectFieldStr,
+					Expr1: &ast.LiteralString{
+						Value: "$foo",
+						Kind:  ast.StringDouble,
+					},
 					Expr2: &astext.Object{},
 				},
 			},
@@ -1243,7 +1245,6 @@ func TestCallChain(t *testing.T) {
 			var buf bytes.Buffer
 			err := printer.Fprint(&buf, cc.Node())
 			require.NoError(t, err)
-			spew.Dump("----", tc.name, buf.String())
 
 			assert.Equal(t, tc.expected, cc.Node())
 		})

@@ -141,7 +141,12 @@ func (o *Object) Node() ast.Node {
 		of := astext.ObjectField{
 			Comment: o.generateComment(k.comment),
 		}
-		of.Id = newIdentifier(k.name)
+
+		if k.category == ast.ObjectFieldStr {
+			of.Expr1 = NewStringDouble(k.name).Node()
+		} else {
+			of.Id = newIdentifier(k.name)
+		}
 		of.Kind = k.category
 		of.Hide = k.visibility
 		of.Expr2 = v.Node()

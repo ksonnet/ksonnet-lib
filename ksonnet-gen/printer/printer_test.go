@@ -19,7 +19,6 @@ func TestFprintf(t *testing.T) {
 		isErr bool
 	}{
 		{name: "object"},
-		{name: "object_with_string_key"},
 		{name: "object_with_hidden_field"},
 		{name: "inline_object"},
 		{name: "object_mixin"},
@@ -50,6 +49,7 @@ func TestFprintf(t *testing.T) {
 		{name: "local_with_function"},
 		{name: "apply_with_number"},
 		{name: "local_with_multiline_function"},
+		{name: "field_with_string_key"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -73,6 +73,12 @@ func TestFprintf(t *testing.T) {
 			if !ok {
 				t.Fatalf("test case %q does not exist", tc.name)
 			}
+
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("printer paniced: %#v", r)
+				}
+			}()
 
 			err := Fprint(&buf, node)
 			if tc.isErr {
@@ -108,15 +114,6 @@ var (
 	fprintfCases = map[string]ast.Node{
 		"object": &ast.Object{
 			Fields: ast.ObjectFields{},
-		},
-		"object_with_string_key": &ast.Object{
-			Fields: ast.ObjectFields{
-				{
-					Kind:  ast.ObjectFieldStr,
-					Id:    newIdentifier("foo"),
-					Expr2: &ast.Object{},
-				},
-			},
 		},
 		"object_with_hidden_field": &ast.Object{
 			Fields: ast.ObjectFields{
@@ -781,6 +778,22 @@ var (
 				},
 			},
 			Body: &ast.Object{},
+		},
+		"field_with_string_key": &astext.Object{
+			Fields: astext.ObjectFields{
+				{
+					ObjectField: ast.ObjectField{
+						Kind: ast.ObjectFieldID,
+						Expr1: &ast.LiteralString{
+							Kind:  ast.StringDouble,
+							Value: "key",
+						},
+						Expr2: &ast.Var{
+							Id: *newIdentifier("value"),
+						},
+					},
+				},
+			},
 		},
 
 		// errors
