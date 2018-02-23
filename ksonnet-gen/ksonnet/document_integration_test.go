@@ -53,7 +53,11 @@ func TestDocument_Integration(t *testing.T) {
 }
 
 func verifyK8s(t *testing.T, dir string) {
-	cmd := exec.Command("jsonnet", "fmt", "k8s.libsonnet")
+	jsonnetCmd := os.Getenv("JSONNET_BIN")
+	if jsonnetCmd == "" {
+		jsonnetCmd = "jsonnet"
+	}
+	cmd := exec.Command(jsonnetCmd, "fmt", "k8s.libsonnet")
 	cmd.Dir = dir
 
 	var b bytes.Buffer
