@@ -42,7 +42,8 @@ type Object struct {
 
 var _ Noder = (*Object)(nil)
 
-// KVFromMap creates a shallow object using a map.
+// KVFromMap creates a object using a map.
+// nolint: gocyclo
 func KVFromMap(m map[string]interface{}) (*Object, error) {
 	if m == nil {
 		return nil, errors.New("map is nil")
@@ -58,20 +59,70 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 
 	for _, name := range names {
 		switch t := m[name].(type) {
-		case string:
-			o.Set(InheritedKey(name), NewStringDouble(t))
-		case float64:
-			o.Set(InheritedKey(name), NewFloat(t))
-		case int:
-			o.Set(InheritedKey(name), NewInt(t))
-		case bool:
-			o.Set(InheritedKey(name), NewBoolean(t))
+		case string, float64, int, bool:
+			val, err := convertValueToNoder(t)
+			if err != nil {
+				return nil, err
+			}
+			o.Set(InheritedKey(name), val)
+		case []interface{}:
+			var elements []Noder
+			for _, val := range t {
+				noder, err := convertValueToNoder(val)
+				if err != nil {
+					return nil, err
+				}
+
+				elements = append(elements, noder)
+			}
+			array := NewArray(elements)
+			o.Set(InheritedKey(name), array)
+		case map[interface{}]interface{}:
+			newMap, err := convertMapToStringKey(t)
+			if err != nil {
+				return nil, err
+			}
+			child, err := KVFromMap(newMap)
+			if err != nil {
+				return nil, err
+			}
+
+			o.Set(InheritedKey(name), child)
 		default:
 			return nil, errors.Errorf("unsupported type %T", t)
 		}
 	}
 
 	return o, nil
+}
+
+func convertMapToStringKey(m map[interface{}]interface{}) (map[string]interface{}, error) {
+	newMap := make(map[string]interface{})
+	for k := range m {
+		s, ok := k.(string)
+		if !ok {
+			return nil, errors.New("map key is not a string")
+		}
+
+		newMap[s] = m[s]
+	}
+
+	return newMap, nil
+}
+
+func convertValueToNoder(val interface{}) (Noder, error) {
+	switch t := val.(type) {
+	case string:
+		return NewStringDouble(t), nil
+	case float64:
+		return NewFloat(t), nil
+	case int:
+		return NewInt(t), nil
+	case bool:
+		return NewBoolean(t), nil
+	default:
+		return nil, errors.Errorf("unsupported type %T", t)
+	}
 }
 
 // NewObject creates an Object. ObjectOpt functional arguments can be used to configure the

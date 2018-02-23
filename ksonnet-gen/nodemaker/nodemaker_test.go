@@ -993,6 +993,11 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 		"float64": 1.0,
 		"int":     1,
 		"bool":    true,
+		"obj": map[interface{}]interface{}{
+			"a": "a",
+			"b": 2,
+		},
+		"array": []interface{}{"a", "b"},
 	}
 
 	o, err := KVFromMap(m)
@@ -1000,6 +1005,17 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 
 	ao := &astext.Object{
 		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("array"),
+					Expr2: NewArray([]Noder{
+						NewStringDouble("a"),
+						NewStringDouble("b"),
+					}).Node(),
+				},
+			},
 			{
 				ObjectField: ast.ObjectField{
 					Kind:  ast.ObjectFieldID,
@@ -1022,6 +1038,33 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 					Hide:  ast.ObjectFieldInherit,
 					Id:    newIdentifier("int"),
 					Expr2: &ast.LiteralNumber{Value: 1, OriginalString: "1"},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("obj"),
+					Expr2: &astext.Object{
+						Fields: astext.ObjectFields{
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("a"),
+									Expr2: &ast.LiteralString{Value: "a", Kind: ast.StringDouble},
+								},
+							},
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("b"),
+									Expr2: NewInt(2).Node(),
+								},
+							},
+						},
+					},
 				},
 			},
 			{
