@@ -7,7 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func extractProperties(c *Catalog, properties map[string]spec.Schema) (map[string]Property, error) {
+var (
+	recursiveRefs = []string{
+		"io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps",
+	}
+)
+
+func extractProperties(c *Catalog, properties map[string]spec.Schema, required []string) (map[string]Property, error) {
 	if c == nil {
 		return nil, errors.New("catalog is nil")
 	}
@@ -16,10 +22,17 @@ func extractProperties(c *Catalog, properties map[string]spec.Schema) (map[strin
 
 	for name, schema := range properties {
 		if isSkippedProperty(name, schema) {
-			continue
+			if !stringInSlice(name, required) {
+				continue
+			}
 		}
 
 		ref := extractRef(schema)
+
+		if ref != "" && stringInSlice(ref, recursiveRefs) {
+			out[name] = NewLiteralField(name, "object", schema.Description, ref)
+			continue
+		}
 
 		// literal
 		if t := schema.Type; len(t) == 1 {

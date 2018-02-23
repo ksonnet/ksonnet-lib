@@ -13,8 +13,10 @@ local fn = {
   mapContainersWithName(names, f)::
     local nameSet = if std.type(names) == "array" then std.set(names) else std.set([names]);
     local inNameSet(name) = std.length(std.Inter(nameSet, std.set([name]))) > 0;
+
     self.mapContainers(function(c) if std.objectHas(c, "name") && inNameSet(c.name) then f(c) else c),
 };
+
 k8s + {
   apps:: k8s.apps + {
     v1beta1:: k8s.apps.v1beta1 + {

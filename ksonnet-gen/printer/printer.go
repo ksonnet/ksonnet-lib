@@ -319,26 +319,59 @@ func (p *printer) handleLocal(l *ast.Local) {
 
 	for _, bind := range l.Binds {
 		p.writeString(string(bind.Variable))
-		switch bt := bind.Body.(type) {
+		switch bodyType := bind.Body.(type) {
 		default:
 			p.writeString(" = ")
 			p.print(bind.Body)
 			p.writeString(";")
 		case *ast.Function:
 			p.print(bind.Body)
-			p.writeString(" = ")
-			p.print(bt.Body)
-			p.writeString(";")
+			p.handleLocalFunction(bodyType)
 		}
-		p.writeByte(newline, 1)
+		c := 1
+		if _, ok := l.Body.(*ast.Local); !ok {
+			c = 2
+		}
+		p.writeByte(newline, c)
+
 	}
+
 	p.print(l.Body)
+}
+
+func (p *printer) handleLocalFunction(f *ast.Function) {
+	p.writeString(" =")
+	switch f.Body.(type) {
+	default:
+		p.writeByte(space, 1)
+		p.print(f.Body)
+		p.writeString(";")
+	case *ast.Local:
+		p.indentLevel++
+		p.writeByte(newline, 1)
+		p.print(f.Body)
+		p.writeString(";")
+		p.indentLevel--
+	}
+}
+
+func fieldID(expr1 ast.Node, id *ast.Identifier) string {
+	if expr1 != nil {
+		ls := expr1.(*ast.LiteralString)
+		return fmt.Sprintf(`"%s"`, ls.Value)
+	}
+
+	if id != nil {
+		return string(*id)
+	}
+
+	return ""
 }
 
 func (p *printer) handleObjectField(n interface{}) {
 	var ofHide ast.ObjectFieldHide
 	var ofKind ast.ObjectFieldKind
-	var ofID *ast.Identifier
+	var ofID string
 	var ofMethod *ast.Function
 	var ofSugar bool
 	var ofExpr2 ast.Node
@@ -350,18 +383,23 @@ func (p *printer) handleObjectField(n interface{}) {
 	case ast.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = t.Id
+		ofID = fieldID(t.Expr1, t.Id)
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
 	case astext.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = t.Id
+		ofID = fieldID(t.Expr1, t.Id)
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
 		p.writeComment(t.Comment)
+	}
+
+	if ofID == "" {
+		p.err = errors.New("id is not defined")
+		return
 	}
 
 	var fieldType string
@@ -383,7 +421,7 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.err = errors.Errorf("unknown Kind type %#v", ofKind)
 		return
 	case ast.ObjectFieldID:
-		p.writeString(string(*ofID))
+		p.writeString(ofID)
 		if ofMethod != nil {
 			p.addMethodSignature(ofMethod)
 		}
@@ -407,12 +445,12 @@ func (p *printer) handleObjectField(n interface{}) {
 
 	case ast.ObjectLocal:
 		p.writeString("local ")
-		p.writeString(string(*ofID))
+		p.writeString(ofID)
 		p.addMethodSignature(ofMethod)
 		p.writeString(" = ")
 		p.print(ofExpr2)
 	case ast.ObjectFieldStr:
-		p.writeString(fmt.Sprintf(`"%s"%s `, string(*ofID), fieldType))
+		p.writeString(fmt.Sprintf(`%s%s `, ofID, fieldType))
 		p.print(ofExpr2)
 	}
 }

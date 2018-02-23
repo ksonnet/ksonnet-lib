@@ -1,6 +1,7 @@
 package nodemaker
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -179,6 +181,10 @@ func TestObject(t *testing.T) {
 			object: objectWithReservedWordKey,
 		},
 		{
+			name:   "with a string that needs to be quoted as the key",
+			object: objectWithQuotedWordKey,
+		},
+		{
 			name:   "inline",
 			object: inline,
 		},
@@ -330,9 +336,34 @@ func objectWithReservedWordKey(t *testing.T) (Noder, ast.Node) {
 		Fields: astext.ObjectFields{
 			{
 				ObjectField: ast.ObjectField{
-					Id:    newIdentifier("error"),
 					Hide:  ast.ObjectFieldHidden,
 					Kind:  ast.ObjectFieldStr,
+					Expr1: NewStringDouble("error").Node(),
+					Expr2: &astext.Object{},
+				},
+			},
+		},
+	}
+
+	return o, ao
+}
+
+func objectWithQuotedWordKey(t *testing.T) (Noder, ast.Node) {
+	o := NewObject()
+	k := NewKey("$foo")
+	o2 := NewObject()
+	o.Set(k, o2)
+
+	ao := &astext.Object{
+		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Hide: ast.ObjectFieldHidden,
+					Kind: ast.ObjectFieldStr,
+					Expr1: &ast.LiteralString{
+						Value: "$foo",
+						Kind:  ast.StringDouble,
+					},
 					Expr2: &astext.Object{},
 				},
 			},
@@ -962,6 +993,11 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 		"float64": 1.0,
 		"int":     1,
 		"bool":    true,
+		"obj": map[interface{}]interface{}{
+			"a": "a",
+			"b": 2,
+		},
+		"array": []interface{}{"a", "b"},
 	}
 
 	o, err := KVFromMap(m)
@@ -969,6 +1005,17 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 
 	ao := &astext.Object{
 		Fields: astext.ObjectFields{
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("array"),
+					Expr2: NewArray([]Noder{
+						NewStringDouble("a"),
+						NewStringDouble("b"),
+					}).Node(),
+				},
+			},
 			{
 				ObjectField: ast.ObjectField{
 					Kind:  ast.ObjectFieldID,
@@ -991,6 +1038,33 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 					Hide:  ast.ObjectFieldInherit,
 					Id:    newIdentifier("int"),
 					Expr2: &ast.LiteralNumber{Value: 1, OriginalString: "1"},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("obj"),
+					Expr2: &astext.Object{
+						Fields: astext.ObjectFields{
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("a"),
+									Expr2: &ast.LiteralString{Value: "a", Kind: ast.StringDouble},
+								},
+							},
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("b"),
+									Expr2: NewInt(2).Node(),
+								},
+							},
+						},
+					},
 				},
 			},
 			{
@@ -1085,5 +1159,137 @@ func TestObject_HasUniqueKeys(t *testing.T) {
 	err = o.Set(NewKey("foo"), NewStringDouble("text"))
 	if err == nil {
 		t.Errorf("Set() expected error and there as now")
+	}
+}
+
+func TestObject_RetrieveKeys(t *testing.T) {
+	o := NewObject()
+
+	err := o.Set(NewKey("foo"), NewStringDouble("text"))
+	require.NoError(t, err)
+
+	err = o.Set(NewKey("bar"), NewStringDouble("text"))
+	require.NoError(t, err)
+
+	keys := o.Keys()
+
+	expected := []Key{NewKey("foo"), NewKey("bar")}
+	require.Equal(t, expected, keys)
+}
+
+func TestCallChain(t *testing.T) {
+	cases := []struct {
+		name     string
+		noders   []Chainable
+		expected ast.Node
+	}{
+		{
+			name: "var",
+			noders: []Chainable{
+				NewVar("alpha"),
+			},
+			expected: NewVar("alpha").Node(),
+		},
+		{
+			name: "indexed var",
+			noders: []Chainable{
+				NewVar("foo"),
+				NewIndex("bar"),
+			},
+			expected: &ast.Index{
+				Id:     newIdentifier("bar"),
+				Target: NewVar("foo").Node(),
+			},
+		},
+		{
+			name: "apply with index with var",
+			noders: []Chainable{
+				NewVar("std"),
+				NewApply(NewIndex("extVar"), []Noder{
+					NewStringDouble("__ksonnet/params"),
+				}, nil),
+				NewIndex("components"),
+				NewIndex("certificateCrd"),
+			},
+			expected: &ast.Index{
+				Id: newIdentifier("certificateCrd"),
+				Target: &ast.Index{
+					Id: newIdentifier("components"),
+					Target: &ast.Apply{
+						Target: &ast.Index{
+							Id:     newIdentifier("extVar"),
+							Target: &ast.Var{Id: *newIdentifier("std")},
+						},
+						Arguments: ast.Arguments{
+							Positional: ast.Nodes{
+								NewStringDouble("__ksonnet/params").Node(),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "call with apply",
+			noders: []Chainable{
+				NewCall("a.b.c.d"),
+				NewApply(NewIndex("fn"), []Noder{
+					NewVar("arg"),
+				}, nil),
+			},
+			expected: &ast.Apply{
+				Target: &ast.Index{
+					Id: newIdentifier("fn"),
+					Target: &ast.Index{
+						Id: newIdentifier("d"),
+						Target: &ast.Index{
+							Id: newIdentifier("c"),
+							Target: &ast.Index{
+								Id: newIdentifier("b"),
+								Target: &ast.Var{
+									Id: *newIdentifier("a"),
+								},
+							},
+						},
+					},
+				},
+				Arguments: ast.Arguments{
+					Positional: ast.Nodes{
+						NewVar("arg").Node(),
+					},
+				},
+			},
+		},
+		{
+			name: "var with call",
+			noders: []Chainable{
+				NewVar("a"),
+				NewCall("b.c.d"),
+			},
+			expected: &ast.Index{
+				Id: newIdentifier("d"),
+				Target: &ast.Index{
+					Id: newIdentifier("c"),
+					Target: &ast.Index{
+						Id: newIdentifier("b"),
+						Target: &ast.Var{
+							Id: *newIdentifier("a"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cc := NewCallChain(tc.noders...)
+
+			var buf bytes.Buffer
+			err := printer.Fprint(&buf, cc.Node())
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expected, cc.Node())
+		})
 	}
 }

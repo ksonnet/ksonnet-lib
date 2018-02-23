@@ -19,7 +19,6 @@ func TestFprintf(t *testing.T) {
 		isErr bool
 	}{
 		{name: "object"},
-		{name: "object_with_string_key"},
 		{name: "object_with_hidden_field"},
 		{name: "inline_object"},
 		{name: "object_mixin"},
@@ -49,6 +48,8 @@ func TestFprintf(t *testing.T) {
 		{name: "object_field_with_local"},
 		{name: "local_with_function"},
 		{name: "apply_with_number"},
+		{name: "local_with_multiline_function"},
+		{name: "field_with_string_key"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -72,6 +73,12 @@ func TestFprintf(t *testing.T) {
 			if !ok {
 				t.Fatalf("test case %q does not exist", tc.name)
 			}
+
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("printer paniced: %#v", r)
+				}
+			}()
 
 			err := Fprint(&buf, node)
 			if tc.isErr {
@@ -107,15 +114,6 @@ var (
 	fprintfCases = map[string]ast.Node{
 		"object": &ast.Object{
 			Fields: ast.ObjectFields{},
-		},
-		"object_with_string_key": &ast.Object{
-			Fields: ast.ObjectFields{
-				{
-					Kind:  ast.ObjectFieldStr,
-					Id:    newIdentifier("foo"),
-					Expr2: &ast.Object{},
-				},
-			},
 		},
 		"object_with_hidden_field": &ast.Object{
 			Fields: ast.ObjectFields{
@@ -720,6 +718,83 @@ var (
 			Body: &ast.Object{},
 		},
 		"apply_with_number": &ast.Apply{Target: newLiteralNumber("1")},
+		"local_with_multiline_function": &ast.Local{
+			Binds: ast.LocalBinds{
+				{
+					Variable: *newIdentifier("foo"),
+					Body: &ast.Function{
+						Body: &ast.Local{
+							Binds: ast.LocalBinds{
+								{
+									Variable: *newIdentifier("a"),
+									Body: &astext.Object{
+										Oneline: true,
+										Fields: astext.ObjectFields{
+											{
+												ObjectField: ast.ObjectField{
+													Id:   newIdentifier("a"),
+													Kind: ast.ObjectFieldID,
+													Hide: ast.ObjectFieldInherit,
+													Expr2: &ast.LiteralString{
+														Value: "a",
+														Kind:  ast.StringDouble,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							Body: &ast.Local{
+								Binds: ast.LocalBinds{
+									{
+										Variable: *newIdentifier("b"),
+										Body: &astext.Object{
+											Oneline: true,
+											Fields: astext.ObjectFields{
+												{
+													ObjectField: ast.ObjectField{
+														Id:   newIdentifier("b"),
+														Kind: ast.ObjectFieldID,
+														Hide: ast.ObjectFieldInherit,
+														Expr2: &ast.LiteralString{
+															Value: "b",
+															Kind:  ast.StringDouble,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								Body: &ast.Binary{
+									Left:  &ast.Var{Id: *newIdentifier("a")},
+									Right: &ast.Var{Id: *newIdentifier("b")},
+									Op:    ast.BopPlus,
+								},
+							},
+						},
+					},
+				},
+			},
+			Body: &ast.Object{},
+		},
+		"field_with_string_key": &astext.Object{
+			Fields: astext.ObjectFields{
+				{
+					ObjectField: ast.ObjectField{
+						Kind: ast.ObjectFieldID,
+						Expr1: &ast.LiteralString{
+							Kind:  ast.StringDouble,
+							Value: "key",
+						},
+						Expr2: &ast.Var{
+							Id: *newIdentifier("value"),
+						},
+					},
+				},
+			},
+		},
 
 		// errors
 		"unknown_node":           &noopNode{},
