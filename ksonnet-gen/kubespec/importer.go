@@ -1,7 +1,9 @@
 package kubespec
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
@@ -9,13 +11,23 @@ import (
 )
 
 // Import imports an OpenAPI swagger schema.
-func Import(path string) (*spec.Swagger, error) {
+func Import(path string) (*spec.Swagger, string, error) {
 	b, err := swag.LoadFromFileOrHTTP(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "load schema from path")
+		return nil, "", errors.Wrap(err, "load schema from path")
 	}
 
-	return CreateAPISpec(b)
+	h := sha256.New()
+	h.Write(b)
+
+	checksum := fmt.Sprintf("%x", h.Sum(nil))
+
+	spec, err := CreateAPISpec(b)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return spec, checksum, nil
 }
 
 // CreateAPISpec a swagger file into a *spec.Swagger.

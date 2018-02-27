@@ -8,29 +8,42 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Lib is a ksonnet lib.
+type Lib struct {
+	K8s        []byte
+	Extensions []byte
+	Version    string
+}
+
 // GenerateLib generates ksonnet lib.
-func GenerateLib(source string) ([]byte, []byte, error) {
-	apiSpec, err := kubespec.Import(source)
+func GenerateLib(source string) (*Lib, error) {
+	apiSpec, checksum, err := kubespec.Import(source)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "import Kubernetes spec")
+		return nil, errors.Wrap(err, "import Kubernetes spec")
 	}
 
-	c, err := NewCatalog(apiSpec)
+	c, err := NewCatalog(apiSpec, CatalogOptChecksum(checksum))
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "create ksonnet catalog")
+		return nil, errors.Wrap(err, "create ksonnet catalog")
 	}
 
 	k8s, err := createK8s(c)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "create k8s.libsonnet")
+		return nil, errors.Wrap(err, "create k8s.libsonnet")
 	}
 
 	k, err := createK(c)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "create k.libsonnet")
+		return nil, errors.Wrap(err, "create k.libsonnet")
 	}
 
-	return k8s, k, nil
+	lib := &Lib{
+		K8s:        k8s,
+		Extensions: k,
+		Version:    c.apiVersion.String(),
+	}
+
+	return lib, nil
 }
 
 func createK8s(c *Catalog) ([]byte, error) {

@@ -112,6 +112,7 @@ func (d *Document) Node() (*nm.Object, error) {
 
 	metadata := map[string]interface{}{
 		"kubernetesVersion": d.catalog.Version(),
+		"checksum":          d.catalog.Checksum(),
 	}
 	metadataObj, err := nm.KVFromMap(metadata)
 	if err != nil {

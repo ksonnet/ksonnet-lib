@@ -35,12 +35,20 @@ func CatalogOptExtractProperties(fn ExtractFn) CatalogOpt {
 	}
 }
 
+// CatalogOptChecksum is a Catalog option for setting the checksum of the swagger schema.
+func CatalogOptChecksum(checksum string) CatalogOpt {
+	return func(c *Catalog) {
+		c.checksum = checksum
+	}
+}
+
 // Catalog is a catalog definitions
 type Catalog struct {
 	apiSpec    *spec.Swagger
 	extractFn  ExtractFn
 	apiVersion semver.Version
 	paths      map[string]Component
+	checksum   string
 
 	// memos
 	typesCache  []Type
@@ -82,6 +90,11 @@ func NewCatalog(apiSpec *spec.Swagger, opts ...CatalogOpt) (*Catalog, error) {
 	}
 
 	return c, nil
+}
+
+// Checksum returns the checksum of the swagger schema.
+func (c *Catalog) Checksum() string {
+	return c.checksum
 }
 
 // Version returns the Kubernetes API version represented by this Catalog.
