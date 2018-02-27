@@ -38,7 +38,7 @@ func TestComponent(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			apiSpec, err := kubespec.Import(testdata("swagger-1.8.json"))
+			apiSpec, _, err := kubespec.Import(testdata("swagger-1.8.json"))
 			require.NoError(t, err)
 
 			schema := apiSpec.Definitions[tc.name]

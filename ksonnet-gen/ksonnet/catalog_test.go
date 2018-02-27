@@ -20,7 +20,7 @@ func initCatalog(t *testing.T, file string, opts ...CatalogOpt) *Catalog {
 	apiSpec := apiSpecCache[file]
 	if apiSpec == nil {
 		var err error
-		apiSpec, err = kubespec.Import(testdata(file))
+		apiSpec, _, err = kubespec.Import(testdata(file))
 		require.NoError(t, err)
 
 		apiSpecCache[file] = apiSpec

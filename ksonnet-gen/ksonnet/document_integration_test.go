@@ -66,10 +66,10 @@ func verifyK8s(t *testing.T, dir string) {
 }
 
 func genDoc(t *testing.T, input string) []byte {
-	apiSpec, err := kubespec.Import(testdata(input))
+	apiSpec, checksum, err := kubespec.Import(testdata(input))
 	require.NoError(t, err)
 
-	c, err := ksonnet.NewCatalog(apiSpec)
+	c, err := ksonnet.NewCatalog(apiSpec, ksonnet.CatalogOptChecksum(checksum))
 	require.NoError(t, err)
 
 	doc, err := ksonnet.NewDocument(c)

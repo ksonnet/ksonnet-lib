@@ -20,6 +20,7 @@ func TestImporter_Import(t *testing.T) {
 	cases := []struct {
 		name     string
 		location string
+		checksum string
 		isErr    bool
 	}{
 		{
@@ -35,6 +36,7 @@ func TestImporter_Import(t *testing.T) {
 		{
 			name:     "valid file",
 			location: testdata("deployment.json"),
+			checksum: "0958866ac95c381dc661136396c73456038854df20b06688332a91a463857135",
 		},
 	}
 
@@ -51,12 +53,13 @@ func TestImporter_Import(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			apiSpec, err := kubespec.Import(tc.location)
+			apiSpec, checksum, err := kubespec.Import(tc.location)
 			if tc.isErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, apiSpec)
+				require.Equal(t, tc.checksum, checksum)
 			}
 		})
 	}
