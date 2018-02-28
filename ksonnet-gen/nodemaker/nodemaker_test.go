@@ -294,7 +294,9 @@ func TestObject(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			node, expected := tc.object(t)
 			if node != nil && expected != nil {
-				require.Equal(t, expected, node.Node())
+				if !assert.Equal(t, expected, node.Node()) {
+					printer.Fprint(os.Stdout, node.Node())
+				}
 			}
 		})
 	}
@@ -997,6 +999,10 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 			"a": "a",
 			"b": 2,
 		},
+		"obj2": map[string]interface{}{
+			"a": "a",
+			"b": 2,
+		},
 		"array": []interface{}{"a", "b"},
 	}
 
@@ -1045,6 +1051,33 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 					Kind: ast.ObjectFieldID,
 					Hide: ast.ObjectFieldInherit,
 					Id:   newIdentifier("obj"),
+					Expr2: &astext.Object{
+						Fields: astext.ObjectFields{
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("a"),
+									Expr2: &ast.LiteralString{Value: "a", Kind: ast.StringDouble},
+								},
+							},
+							{
+								ObjectField: ast.ObjectField{
+									Kind:  ast.ObjectFieldID,
+									Hide:  ast.ObjectFieldInherit,
+									Id:    newIdentifier("b"),
+									Expr2: NewInt(2).Node(),
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("obj2"),
 					Expr2: &astext.Object{
 						Fields: astext.ObjectFields{
 							{
