@@ -38,7 +38,7 @@ func TestDocument_Integration(t *testing.T) {
 	compPath := filepath.Join(dir, "component.libsonnet")
 	copyFile(t, testdata("component.libsonnet"), compPath)
 
-	cmd := exec.Command("jsonnet", "component.libsonnet")
+	cmd := exec.Command(jsonnetCmd(), "component.libsonnet")
 	cmd.Dir = dir
 
 	out, err := cmd.CombinedOutput()
@@ -52,12 +52,17 @@ func TestDocument_Integration(t *testing.T) {
 	require.Equal(t, string(expected), string(out))
 }
 
-func verifyK8s(t *testing.T, dir string) {
-	jsonnetCmd := os.Getenv("JSONNET_BIN")
-	if jsonnetCmd == "" {
-		jsonnetCmd = "jsonnet"
+func jsonnetCmd() string {
+	bin := os.Getenv("JSONNET_BIN")
+	if bin == "" {
+		bin = "jsonnet"
 	}
-	cmd := exec.Command(jsonnetCmd, "fmt", "k8s.libsonnet")
+
+	return bin
+}
+
+func verifyK8s(t *testing.T, dir string) {
+	cmd := exec.Command(jsonnetCmd(), "fmt", "k8s.libsonnet")
 	cmd.Dir = dir
 
 	var b bytes.Buffer
