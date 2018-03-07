@@ -12,7 +12,7 @@ local fn = {
   },
   mapContainersWithName(names, f)::
     local nameSet = if std.type(names) == "array" then std.set(names) else std.set([names]);
-    local inNameSet(name) = std.length(std.Inter(nameSet, std.set([name]))) > 0;
+    local inNameSet(name) = std.length(std.setInter(nameSet, std.set([name]))) > 0;
 
     self.mapContainers(function(c) if std.objectHas(c, "name") && inNameSet(c.name) then f(c) else c),
 };
