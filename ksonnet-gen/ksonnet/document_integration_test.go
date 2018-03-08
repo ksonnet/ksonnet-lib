@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ksonnet"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/kubespec"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,15 +23,15 @@ func TestDocument_Integration(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	b := genDoc(t, "swagger-1.8.json")
+	lib := genDoc(t, "testdata/swagger-1.8.json")
 
 	k8sPath := filepath.Join(dir, "k8s.libsonnet")
-	writeFile(t, k8sPath, b)
-
-	verifyK8s(t, dir)
+	writeFile(t, k8sPath, lib.K8s)
+	verifyJsonnet(t, dir, "k8s.libsonnet")
 
 	ksPath := filepath.Join(dir, "k.libsonnet")
-	copyFile(t, testdata("k.libsonnet"), ksPath)
+	writeFile(t, ksPath, lib.Extensions)
+	verifyJsonnet(t, dir, "k.libsonnet")
 
 	compPath := filepath.Join(dir, "component.libsonnet")
 	copyFile(t, testdata("component.libsonnet"), compPath)
@@ -61,8 +59,8 @@ func jsonnetCmd() string {
 	return bin
 }
 
-func verifyK8s(t *testing.T, dir string) {
-	cmd := exec.Command(jsonnetCmd(), "fmt", "k8s.libsonnet")
+func verifyJsonnet(t *testing.T, dir, fileName string) {
+	cmd := exec.Command(jsonnetCmd(), "fmt", fileName)
 	cmd.Dir = dir
 
 	var b bytes.Buffer
@@ -70,27 +68,15 @@ func verifyK8s(t *testing.T, dir string) {
 
 	err := cmd.Run()
 	if err != nil {
-		t.Fatalf("k8s.libsonnet verification failed: %v", b.String())
+		t.Fatalf("%s verification failed: %v", fileName, b.String())
 	}
 }
 
-func genDoc(t *testing.T, input string) []byte {
-	apiSpec, checksum, err := kubespec.Import(testdata(input))
+func genDoc(t *testing.T, input string) *ksonnet.Lib {
+	lib, err := ksonnet.GenerateLib(input)
 	require.NoError(t, err)
 
-	c, err := ksonnet.NewCatalog(apiSpec, ksonnet.CatalogOptChecksum(checksum))
-	require.NoError(t, err)
-
-	doc, err := ksonnet.NewDocument(c)
-	require.NoError(t, err)
-
-	node, err := doc.Node()
-	require.NoError(t, err)
-
-	var buf bytes.Buffer
-	require.NoError(t, printer.Fprint(&buf, node.Node()))
-
-	return buf.Bytes()
+	return lib
 }
 
 func writeFile(t *testing.T, name string, content []byte) {
