@@ -21,6 +21,7 @@ func TestFprintf(t *testing.T) {
 		{name: "object"},
 		{name: "object_with_hidden_field"},
 		{name: "inline_object"},
+		{name: "apply_brace"},
 		{name: "object_mixin"},
 		{name: "object_with_nested_object"},
 		{name: "local"},
@@ -147,6 +148,10 @@ var (
 					},
 				},
 			},
+		},
+		"apply_brace": &ast.ApplyBrace{
+			Left:  &ast.Var{Id: *newIdentifier("params")},
+			Right: &astext.Object{},
 		},
 		"index": &ast.Object{
 			Fields: ast.ObjectFields{
