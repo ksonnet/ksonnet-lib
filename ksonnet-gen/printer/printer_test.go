@@ -51,6 +51,7 @@ func TestFprintf(t *testing.T) {
 		{name: "apply_with_number"},
 		{name: "local_with_multiline_function"},
 		{name: "field_with_string_key"},
+		{name: "object_comp"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -75,35 +76,22 @@ func TestFprintf(t *testing.T) {
 				t.Fatalf("test case %q does not exist", tc.name)
 			}
 
-			defer func() {
-				if r := recover(); r != nil {
-					t.Fatalf("printer paniced: %#v", r)
-				}
-			}()
-
 			err := Fprint(&buf, node)
 			if tc.isErr {
-				if err == nil {
-					t.Fatalf("test case %q expected error and it was not", tc.name)
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("test case %q returned an unexpected error: %v", tc.name, err)
-				}
-
-				testDataFile := filepath.Join("testdata", tc.name)
-				testData, err := ioutil.ReadFile(testDataFile)
-
-				if err != nil {
-					t.Fatalf("unable to read test data: %v", err)
-				}
-
-				if got, expected := buf.String(), string(testData); got != expected {
-					t.Fatalf("Fprint\ngot      = %s\nexpected = %s",
-						strconv.Quote(got), strconv.Quote(expected))
-				}
+				require.Error(t, err)
+				return
 			}
 
+			require.NoError(t, err)
+
+			testDataFile := filepath.Join("testdata", tc.name)
+			testData, err := ioutil.ReadFile(testDataFile)
+			require.NoError(t, err, "unable to read test data")
+
+			if got, expected := buf.String(), string(testData); got != expected {
+				t.Fatalf("Fprint\ngot      = %s\nexpected = %s",
+					strconv.Quote(got), strconv.Quote(expected))
+			}
 		})
 	}
 }
@@ -795,6 +783,66 @@ var (
 						},
 						Expr2: &ast.Var{
 							Id: *newIdentifier("value"),
+						},
+					},
+				},
+			},
+		},
+		"object_comp": &astext.Object{
+			Fields: astext.ObjectFields{
+				{
+					ObjectField: ast.ObjectField{
+						Kind: ast.ObjectFieldID,
+						Hide: ast.ObjectFieldInherit,
+						Id:   newIdentifier("field"),
+						Expr2: &ast.ObjectComp{
+							Fields: ast.ObjectFields{
+								{
+									Kind: ast.ObjectFieldExpr,
+									Hide: ast.ObjectFieldInherit,
+									Expr1: &ast.Var{
+										Id: *newIdentifier("x"),
+									},
+									Expr2: &ast.Binary{
+										Left: &ast.Index{
+											Target: &ast.Index{
+												Target: &ast.Var{
+													Id: *newIdentifier("envParams"),
+												},
+												Id: newIdentifier("components"),
+											},
+											Index: &ast.Var{
+												Id: *newIdentifier("x"),
+											},
+										},
+										Op: ast.BopPlus,
+										Right: &ast.Var{
+											Id: *newIdentifier("globals"),
+										},
+									},
+								},
+							},
+							Spec: ast.ForSpec{
+								VarName: *newIdentifier("x"),
+								Expr: &ast.Apply{
+									Target: &ast.Index{
+										Target: &ast.Var{
+											Id: *newIdentifier("std"),
+										},
+										Id: newIdentifier("objectFields"),
+									},
+									Arguments: ast.Arguments{
+										Positional: ast.Nodes{
+											&ast.Index{
+												Target: &ast.Var{
+													Id: *newIdentifier("envParams"),
+												},
+												Id: newIdentifier("components"),
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
