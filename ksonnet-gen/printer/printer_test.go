@@ -23,6 +23,7 @@ func TestFprintf(t *testing.T) {
 		{name: "inline_object"},
 		{name: "apply_brace"},
 		{name: "object_mixin"},
+		{name: "object_mixin_with_string_index"},
 		{name: "object_with_nested_object"},
 		{name: "local"},
 		{name: "multi_line_comments"},
@@ -183,6 +184,20 @@ var (
 				{
 					Kind:       ast.ObjectFieldID,
 					Id:         &id1,
+					Expr2:      &ast.Object{},
+					SuperSugar: true,
+				},
+			},
+		},
+		"object_mixin_with_string_index": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind: 3,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Kind:  ast.StringDouble,
+						Value: "id",
+					},
 					Expr2:      &ast.Object{},
 					SuperSugar: true,
 				},
