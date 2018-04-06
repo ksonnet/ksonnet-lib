@@ -477,7 +477,12 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.writeString(" = ")
 		p.print(ofExpr2)
 	case ast.ObjectFieldStr:
-		p.writeString(fmt.Sprintf(`%s%s `, ofID, fieldType))
+		p.writeString(ofID)
+		if ofSugar {
+			p.writeByte(syntaxSugar, 1)
+		}
+		p.writeString(fieldType)
+		p.writeByte(space, 1)
 		p.print(ofExpr2)
 	case ast.ObjectFieldExpr:
 		// TODO: this can't be correct
