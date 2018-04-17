@@ -41,6 +41,8 @@ func TestFprintf(t *testing.T) {
 		{name: "conditional_no_false"},
 		{name: "index"},
 		{name: "index_with_index"},
+		{name: "index_quote_name"},
+		{name: "index_quote_name_2"},
 		{name: "array"},
 		{name: "self_apply"},
 		{name: "apply_with_multiple_arguments"},
@@ -177,6 +179,48 @@ var (
 						},
 					},
 				},
+			},
+		},
+		"index_quote_name": &ast.Object{
+			Fields: ast.ObjectFields{
+				{
+					Kind: ast.ObjectFieldID,
+					Id:   &id1,
+					Expr2: &ast.Index{
+						Id: newIdentifier("baz-dashed"),
+						Target: &ast.Index{
+							Id: newIdentifier("bar-dashed"),
+							Target: &ast.Var{
+								Id: *newIdentifier("foo"),
+							},
+						},
+					},
+				},
+			},
+		},
+		"index_quote_name_2": &ast.Index{
+			Target: &ast.Index{
+				Target: &ast.Apply{
+					Target: &ast.Index{
+						Target: &ast.Var{
+							Id: *newIdentifier("std"),
+						},
+						Id: newIdentifier("extVar"),
+					},
+					Arguments: ast.Arguments{
+						Positional: ast.Nodes{
+							&ast.LiteralString{
+								Value: "__ksonnet/params",
+								Kind:  ast.StringDouble,
+							},
+						},
+					},
+				},
+				Id: newIdentifier("components"),
+			},
+			Index: &ast.LiteralString{
+				Value: "my-service",
+				Kind:  ast.StringDouble,
 			},
 		},
 		"object_mixin": &ast.Object{
