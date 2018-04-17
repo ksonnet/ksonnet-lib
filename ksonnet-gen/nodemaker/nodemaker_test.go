@@ -1004,10 +1004,18 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 			"b": 2,
 		},
 		"array": []interface{}{"a", "b"},
+		"arraywithmap": []interface{}{
+			map[string]interface{}{
+				"a": "a",
+			},
+		},
 	}
 
 	o, err := KVFromMap(m)
 	require.NoError(t, err)
+
+	arrayWithMapObject := NewObject()
+	arrayWithMapObject.Set(InheritedKey("a"), NewStringDouble("a"))
 
 	ao := &astext.Object{
 		Fields: astext.ObjectFields{
@@ -1019,6 +1027,16 @@ func kvFromMap1(t *testing.T) (Noder, ast.Node) {
 					Expr2: NewArray([]Noder{
 						NewStringDouble("a"),
 						NewStringDouble("b"),
+					}).Node(),
+				},
+			},
+			{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID,
+					Hide: ast.ObjectFieldInherit,
+					Id:   newIdentifier("arraywithmap"),
+					Expr2: NewArray([]Noder{
+						arrayWithMapObject,
 					}).Node(),
 				},
 			},
