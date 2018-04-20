@@ -55,6 +55,7 @@ func TestFprintf(t *testing.T) {
 		{name: "local_with_multiline_function"},
 		{name: "field_with_string_key"},
 		{name: "object_comp"},
+		{name: "importstr"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -905,6 +906,12 @@ var (
 						},
 					},
 				},
+			},
+		},
+		"importstr": &ast.ImportStr{
+			File: &ast.LiteralString{
+				Value: "file.txt",
+				Kind:  ast.StringDouble,
 			},
 		},
 
