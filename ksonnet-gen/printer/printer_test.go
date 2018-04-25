@@ -18,6 +18,7 @@ func TestFprintf(t *testing.T) {
 		name  string
 		isErr bool
 	}{
+		{name: "null"},
 		{name: "object"},
 		{name: "object_with_hidden_field"},
 		{name: "inline_object"},
@@ -105,6 +106,7 @@ var (
 	id2 = ast.Identifier("bar")
 
 	fprintfCases = map[string]ast.Node{
+		"null": &ast.LiteralNull{},
 		"object": &ast.Object{
 			Fields: ast.ObjectFields{},
 		},
