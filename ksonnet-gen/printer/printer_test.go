@@ -59,6 +59,9 @@ func TestFprintf(t *testing.T) {
 		{name: "array_comp"},
 		{name: "importstr"},
 		{name: "function"},
+		{name: "super_index"},
+		{name: "block_string"},
+		{name: "dollar"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -953,6 +956,14 @@ var (
 		"function": &ast.Function{
 			Body: &astext.Object{Oneline: true},
 		},
+		"super_index": &ast.SuperIndex{
+			Id: newIdentifier("metadata"),
+		},
+		"block_string": &ast.LiteralString{
+			Kind:  ast.StringBlock,
+			Value: "text",
+		},
+		"dollar": &ast.Dollar{},
 
 		// errors
 		"unknown_node":           &noopNode{},
