@@ -159,7 +159,10 @@ func (p *printer) print(n interface{}) {
 	case *ast.Conditional:
 		p.handleConditional(t)
 	case *ast.Function:
+		p.writeString("function")
 		p.addMethodSignature(t)
+		p.writeString(" ")
+		p.print(t.Body)
 	case *ast.Import:
 		p.writeString("import ")
 		p.print(t.File)
@@ -338,7 +341,7 @@ func (p *printer) handleLocal(l *ast.Local) {
 			p.print(bind.Body)
 			p.writeString(";")
 		case *ast.Function:
-			p.print(bind.Body)
+			p.addMethodSignature(bodyType)
 			p.handleLocalFunction(bodyType)
 		}
 		c := 1

@@ -58,6 +58,7 @@ func TestFprintf(t *testing.T) {
 		{name: "object_comp"},
 		{name: "array_comp"},
 		{name: "importstr"},
+		{name: "function"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -948,6 +949,9 @@ var (
 					},
 				},
 			},
+		},
+		"function": &ast.Function{
+			Body: &astext.Object{Oneline: true},
 		},
 
 		// errors
