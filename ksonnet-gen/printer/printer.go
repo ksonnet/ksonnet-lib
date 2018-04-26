@@ -146,6 +146,8 @@ func (p *printer) print(n interface{}) {
 			}
 		}
 		p.writeString("]")
+	case *ast.ArrayComp:
+		p.handleArrayComp(t)
 	case *ast.Binary:
 		p.print(t.Left)
 		p.writeByte(space, 1)
@@ -389,6 +391,23 @@ func (p *printer) handleObjectComp(oc *ast.ObjectComp) {
 	p.handleObjectField(oc)
 }
 
+func (p *printer) handleArrayComp(ac *ast.ArrayComp) {
+	p.writeString("[")
+	p.indentLevel++
+	p.writeByte(newline, 1)
+	p.print(ac.Body)
+	p.writeByte(newline, 1)
+	p.forSpec(ac.Spec)
+	p.indentLevel--
+	p.writeByte(newline, 1)
+	p.writeString("]")
+}
+
+func (p *printer) forSpec(spec ast.ForSpec) {
+	p.writeString(fmt.Sprintf("for %s in ", string(spec.VarName)))
+	p.print(spec.Expr)
+}
+
 func (p *printer) handleObjectField(n interface{}) {
 	var ofHide ast.ObjectFieldHide
 	var ofKind ast.ObjectFieldKind
@@ -451,7 +470,7 @@ func (p *printer) handleObjectField(n interface{}) {
 
 	switch ofKind {
 	default:
-		p.err = errors.Errorf("unknown Kind type %#v", ofKind)
+		p.err = errors.Errorf("unknown Kind type (%T) %#v", ofKind, ofKind)
 		return
 	case ast.ObjectFieldID:
 		p.writeString(ofID)
@@ -499,8 +518,7 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.print(ofExpr2)
 		p.writeByte(comma, 1)
 		p.writeByte(space, 1)
-		p.writeString(fmt.Sprintf("for %s in ", string(forSpec.VarName)))
-		p.print(forSpec.Expr)
+		p.forSpec(forSpec)
 		p.indentLevel--
 		p.writeByte(newline, 1)
 		p.writeString("}")
