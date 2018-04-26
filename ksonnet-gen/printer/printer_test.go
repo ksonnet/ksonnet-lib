@@ -56,7 +56,9 @@ func TestFprintf(t *testing.T) {
 		{name: "local_with_multiline_function"},
 		{name: "field_with_string_key"},
 		{name: "object_comp"},
+		{name: "array_comp"},
 		{name: "importstr"},
+		{name: "function"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -915,6 +917,41 @@ var (
 				Value: "file.txt",
 				Kind:  ast.StringDouble,
 			},
+		},
+		"array_comp": &ast.ArrayComp{
+			Body: &ast.Object{
+				Fields: ast.ObjectFields{
+					{
+						Id:    newIdentifier("kind"),
+						Kind:  ast.ObjectFieldID,
+						Hide:  ast.ObjectFieldInherit,
+						Expr2: &ast.Var{Id: *newIdentifier("kind")},
+					},
+					{
+						Id:   newIdentifier("qty"),
+						Kind: ast.ObjectFieldID,
+						Hide: ast.ObjectFieldInherit,
+						Expr2: &ast.Binary{
+							Left:  &ast.LiteralNumber{Value: float64(4), OriginalString: "4"},
+							Right: &ast.LiteralNumber{Value: float64(3), OriginalString: "3"},
+							Op:    ast.BopDiv,
+						},
+					},
+				},
+			},
+			Spec: ast.ForSpec{
+				VarName: *newIdentifier("kind"),
+				Expr: &ast.Array{
+					Elements: ast.Nodes{
+						&ast.LiteralString{Value: "Honey Syrup", Kind: ast.StringSingle},
+						&ast.LiteralString{Value: "Lemon Juice", Kind: ast.StringSingle},
+						&ast.LiteralString{Value: "Farmers Gin", Kind: ast.StringSingle},
+					},
+				},
+			},
+		},
+		"function": &ast.Function{
+			Body: &astext.Object{Oneline: true},
 		},
 
 		// errors
