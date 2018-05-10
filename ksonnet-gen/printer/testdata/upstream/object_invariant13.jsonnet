@@ -1,0 +1,3 @@
+{
+  assert error "x"
+}
