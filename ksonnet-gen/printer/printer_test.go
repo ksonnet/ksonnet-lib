@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-jsonnet/ast"
+	"github.com/google/go-jsonnet/parser"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +23,6 @@ func TestFprintf(t *testing.T) {
 		{name: "null"},
 		{name: "object"},
 		{name: "object_with_hidden_field"},
-		{name: "inline_object"},
 		{name: "apply_brace"},
 		{name: "object_mixin"},
 		{name: "object_mixin_with_string_index"},
@@ -62,14 +63,13 @@ func TestFprintf(t *testing.T) {
 		{name: "super_index"},
 		{name: "block_string"},
 		{name: "dollar"},
+		{name: "nil_node"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
-		{name: "nil_node", isErr: true},
 		{name: "invalid_literal_string", isErr: true},
 		{name: "invalid_of_kind", isErr: true},
 		{name: "invalid_of_hide", isErr: true},
-		{name: "invalid_of_method", isErr: true},
 		{name: "index_no_index_or_id", isErr: true},
 		{name: "index_invalid_index", isErr: true},
 		{name: "index_invalid_literal_string", isErr: true},
@@ -106,6 +106,48 @@ func TestFprintf(t *testing.T) {
 	}
 }
 
+func Test_with_upstream_golden(t *testing.T) {
+	dataPath := filepath.FromSlash("testdata/upstream")
+	fis, err := ioutil.ReadDir(dataPath)
+	require.NoError(t, err)
+
+	for _, fi := range fis {
+		t.Run(fi.Name(), func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Logf("recover from panic: %v", r)
+				}
+			}()
+
+			if fi.IsDir() {
+				return
+			}
+
+			filePath := filepath.Join(dataPath, fi.Name())
+			b, err := ioutil.ReadFile(filePath)
+			require.NoError(t, err)
+
+			tokens, err := parser.Lex(fi.Name(), string(b))
+			require.NoError(t, err)
+
+			node, err := parser.Parse(tokens)
+			require.NoError(t, err)
+
+			var buf bytes.Buffer
+
+			err = Fprint(&buf, node)
+			require.NoError(t, err)
+
+			got := strings.TrimSpace(buf.String())
+			expected := strings.TrimSpace(string(b))
+			if got != expected {
+				t.Fatalf("Fprint from upstream\ngot      = %s\nexpected = %s",
+					strconv.Quote(got), strconv.Quote(expected))
+			}
+		})
+	}
+}
+
 var (
 	id1 = ast.Identifier("foo")
 	id2 = ast.Identifier("bar")
@@ -126,25 +168,6 @@ var (
 					Kind:  ast.ObjectFieldID,
 					Id:    newIdentifier("bar"),
 					Expr2: &ast.Object{},
-				},
-			},
-		},
-		"inline_object": &astext.Object{
-			Oneline: true,
-			Fields: []astext.ObjectField{
-				{
-					ObjectField: ast.ObjectField{
-						Kind:  ast.ObjectFieldID,
-						Id:    &id1,
-						Expr2: &ast.Var{Id: *newIdentifier("foo")},
-					},
-				},
-				{
-					ObjectField: ast.ObjectField{
-						Kind:  ast.ObjectFieldID,
-						Id:    &id1,
-						Expr2: &ast.Var{Id: *newIdentifier("bar")},
-					},
 				},
 			},
 		},
@@ -963,28 +986,17 @@ var (
 			Kind:  ast.StringBlock,
 			Value: "text",
 		},
-		"dollar": &ast.Dollar{},
+		"dollar":   &ast.Dollar{},
+		"nil_node": nil,
 
 		// errors
 		"unknown_node":           &noopNode{},
-		"nil_node":               nil,
 		"invalid_literal_string": &ast.LiteralString{Kind: 99},
 		"invalid_of_kind": &ast.Object{
 			Fields: ast.ObjectFields{{Kind: 99}},
 		},
 		"invalid_of_hide": &ast.Object{
 			Fields: ast.ObjectFields{{Hide: 99}},
-		},
-		"invalid_of_method": &ast.Object{
-			Fields: ast.ObjectFields{{
-				Method: &ast.Function{
-					Parameters: ast.Parameters{
-						Optional: []ast.NamedParameter{
-							{Name: *newIdentifier("opt1"), DefaultArg: &noopNode{}},
-						},
-					},
-				},
-			}},
 		},
 		"index_no_index_or_id":         &ast.Index{},
 		"index_invalid_index":          &ast.Index{Index: &noopNode{}},
@@ -1095,11 +1107,6 @@ func Test_handleObjectField_unknown_object(t *testing.T) {
 	p := printer{cfg: DefaultConfig}
 	p.handleObjectField(nil)
 	require.Error(t, p.err)
-}
-
-func Test_indexID_nil_index(t *testing.T) {
-	_, err := indexID(nil)
-	require.Error(t, err)
 }
 
 func newLiteralNumber(in string) *ast.LiteralNumber {

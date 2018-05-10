@@ -31,7 +31,7 @@ func ExampleApply() {
 
 	// Output:
 	// {
-	//   local foo = alpha.beta.charlie("arg1"),
+	//   local foo = alpha.beta.charlie("arg1")
 	// }
 }
 
@@ -52,7 +52,7 @@ func ExampleArray() {
 
 	// Output:
 	// {
-	//   foo: ["hello"],
+	//   foo: ["hello"]
 	// }
 }
 
@@ -71,7 +71,7 @@ func ExampleBinary() {
 
 	// Output:
 	// {
-	//   foo:: alpha + beta,
+	//   foo:: alpha + beta
 	// }
 }
 
@@ -91,7 +91,7 @@ func ExampleCall() {
 
 	// Output:
 	// {
-	//   foo:: a.b.c.d,
+	//   foo:: a.b.c.d
 	// }
 }
 
@@ -111,8 +111,7 @@ func ExampleObject() {
 
 	// Output:
 	// {
-	//   foo:: {
-	//   },
+	//   foo:: {}
 	// }
 }
 
@@ -156,10 +155,10 @@ func ExampleConditional() {
 	// Output:
 	// {
 	//   foo:: if alpha == beta then {
-	//     foo: "1",
+	//     foo: "1"
 	//   } else {
-	//     foo: "2",
-	//   },
+	//     foo: "2"
+	//   }
 	// }
 }
 

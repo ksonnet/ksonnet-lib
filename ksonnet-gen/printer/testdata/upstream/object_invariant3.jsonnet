@@ -1,0 +1,3 @@
+std.objectFields({
+  assert false
+})
