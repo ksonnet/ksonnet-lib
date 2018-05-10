@@ -141,11 +141,15 @@ func Test_with_upstream_golden(t *testing.T) {
 			got := strings.TrimSpace(buf.String())
 			expected := strings.TrimSpace(string(b))
 			if got != expected {
-				t.Fatalf("Fprint from upstream\ngot      = %s\nexpected = %s",
-					strconv.Quote(got), strconv.Quote(expected))
+				// dmp := diffmatchpatch.New()
+				// diffs := dmp.DiffMain(expected, got, false)
+				// t.Fatalf(dmp.DiffPrettyText(diffs))
+				t.Fatalf("Fprint from upstream\ngot:\n %s\n===\nexpected:\n%s\n",
+					got, expected)
 			}
 		})
 	}
+
 }
 
 var (

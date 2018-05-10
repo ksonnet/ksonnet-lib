@@ -1,3 +1,0 @@
-std.type({
-  assert false
-})

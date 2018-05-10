@@ -1,5 +1,0 @@
-{
-  assert true
-} + {
-  assert true
-}

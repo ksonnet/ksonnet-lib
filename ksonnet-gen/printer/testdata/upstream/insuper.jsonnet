@@ -1,5 +1,5 @@
 {
-  x: 42
+  x: 42,
 } {
-  assert "x" in super
+  assert "x" in super,
 }

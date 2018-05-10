@@ -246,19 +246,17 @@ func (p *printer) print(n interface{}) {
 			}
 
 			p.print(field)
-			if i < len(t.Fields)-1 {
-				if p.isObjectSingleLine(t) {
+			if p.isObjectSingleLine(t) {
+				if i < len(t.Fields)-1 {
 					p.writeByte(comma, 1)
 					p.writeByte(space, 1)
 				}
+			} else {
+				p.writeByte(comma, 1)
 			}
 
 			if !p.isObjectSingleLine(t) {
 				p.indentLevel--
-
-				if l := len(t.Fields); i != l-1 && l > 1 {
-					p.writeByte(comma, 1)
-				}
 			}
 		}
 
@@ -279,8 +277,8 @@ func (p *printer) print(n interface{}) {
 
 			p.print(field)
 			if i < len(t.Fields)-1 {
-				if !p.isObjectSingleLine(t) {
-					p.writeByte(comma, 1)
+				p.writeByte(comma, 1)
+				if p.isObjectSingleLine(t) {
 					p.writeByte(space, 1)
 				}
 			}

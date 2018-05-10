@@ -1,3 +1,0 @@
-{
-  assert undeclared in super
-}
