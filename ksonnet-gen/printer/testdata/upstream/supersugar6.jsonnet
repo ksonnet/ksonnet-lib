@@ -1,5 +1,5 @@
 {
-  x: "hello, "
+  x: "hello, ",
 } {
-  x+: "world"
+  x+: "world",
 }

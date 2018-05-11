@@ -1,6 +1,6 @@
 {
-  assert self.x
+  assert self.x,
 } {
-  x+: false
+  x+: false,
 }
 

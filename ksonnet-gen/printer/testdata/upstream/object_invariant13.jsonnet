@@ -1,3 +1,0 @@
-{
-  assert error "x"
-}
