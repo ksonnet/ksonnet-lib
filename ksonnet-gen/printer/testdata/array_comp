@@ -1,0 +1,7 @@
+[
+  {
+    kind: kind,
+    qty: 4 / 3,
+  }
+  for kind in ['Honey Syrup', 'Lemon Juice', 'Farmers Gin']
+]

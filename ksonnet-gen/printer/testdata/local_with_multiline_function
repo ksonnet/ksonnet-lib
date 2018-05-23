@@ -1,0 +1,7 @@
+local foo() =
+  local a = {a: "a"};
+  local b = {b: "b"};
+
+  a + b;
+
+{}
