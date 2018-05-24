@@ -1,1 +1,1 @@
-std.extVar("selfRecursiveVar")
+std.extVar('selfRecursiveVar')

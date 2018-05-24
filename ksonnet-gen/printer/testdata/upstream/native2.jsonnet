@@ -1,1 +1,1 @@
-std.native("jsonToString")({})
+std.native('jsonToString')({})

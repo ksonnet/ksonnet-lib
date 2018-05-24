@@ -1,3 +1,4 @@
 {
-  ["x"]: error "xxx" for x in [1]
+  ['x']: error 'xxx'
+  for x in [1]
 }

@@ -1,5 +1,5 @@
-local a = import "a";
-local b = "b";
+local a = import 'a';
+local b = 'b';
 local c = deployment.new();
 
 {}

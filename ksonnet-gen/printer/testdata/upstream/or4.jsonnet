@@ -1,1 +1,1 @@
-false || error "xxx"
+false || error 'xxx'

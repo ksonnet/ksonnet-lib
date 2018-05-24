@@ -1,1 +1,1 @@
-std.filter(42, "42")
+std.filter(42, '42')

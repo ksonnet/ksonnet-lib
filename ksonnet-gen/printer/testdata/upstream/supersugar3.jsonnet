@@ -1,1 +1,1 @@
-{assert self.x} {x+: true}
+{ assert self.x } { x+: true }

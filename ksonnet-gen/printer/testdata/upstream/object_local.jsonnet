@@ -1,2 +1,1 @@
-{local foo(bar) = bar, baz: foo(42)}
-
+{ local foo(bar) = bar, baz: foo(42) }

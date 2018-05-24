@@ -1,1 +1,1 @@
-if false then error "no way" else 42
+if false then error 'no way' else 42

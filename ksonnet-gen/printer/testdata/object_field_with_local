@@ -1,6 +1,6 @@
 {
   fn()::
-    local foo = "a";
+    local foo = 'a';
 
     {},
 }

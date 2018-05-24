@@ -1,1 +1,1 @@
-std.md5("message digest")
+std.md5('message digest')

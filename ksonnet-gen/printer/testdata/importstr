@@ -1,1 +1,1 @@
-importstr "file.txt"
+importstr 'file.txt'

@@ -1,1 +1,1 @@
-importstr "true.jsonnet"
+importstr 'true.jsonnet'

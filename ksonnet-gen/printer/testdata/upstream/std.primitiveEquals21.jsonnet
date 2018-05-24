@@ -1,1 +1,1 @@
-std.primitiveEquals("xxx", 42)
+std.primitiveEquals('xxx', 42)

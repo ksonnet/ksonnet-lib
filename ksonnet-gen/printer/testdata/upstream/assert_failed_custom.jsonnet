@@ -1,1 +1,1 @@
-assert false : "Custom Message"; true
+assert false : 'Custom Message'; true

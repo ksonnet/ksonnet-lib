@@ -1,1 +1,1 @@
-({} {x+: function(x) x}).x(42)
+({} { x+: function(x) x }).x(42)

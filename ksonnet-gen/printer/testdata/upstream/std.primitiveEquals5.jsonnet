@@ -1,1 +1,1 @@
-std.primitiveEquals(1, "x")
+std.primitiveEquals(1, 'x')

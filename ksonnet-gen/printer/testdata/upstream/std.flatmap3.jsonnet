@@ -1,1 +1,1 @@
-std.flatMap(function(x) error "never happens", [])
+std.flatMap(function(x) error 'never happens', [])

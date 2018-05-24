@@ -1,1 +1,1 @@
-std.filter(function(n) error "xxx", [])
+std.filter(function(n) error 'xxx', [])

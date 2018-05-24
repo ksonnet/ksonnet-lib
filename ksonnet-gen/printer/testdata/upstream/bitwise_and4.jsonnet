@@ -1,1 +1,1 @@
-1 & error "x"
+1 & error 'x'

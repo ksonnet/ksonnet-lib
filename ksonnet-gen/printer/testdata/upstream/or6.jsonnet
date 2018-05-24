@@ -1,1 +1,1 @@
-false || "xxx"
+false || 'xxx'

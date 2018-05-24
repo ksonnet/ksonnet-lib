@@ -1,1 +1,1 @@
-std.extVar("stringVar")
+std.extVar('stringVar')

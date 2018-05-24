@@ -1,1 +1,1 @@
-std.sqrt("cookie")
+std.sqrt('cookie')

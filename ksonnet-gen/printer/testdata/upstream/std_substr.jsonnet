@@ -1,1 +1,1 @@
-std.substr("abcd", 1, 2)
+std.substr('abcd', 1, 2)

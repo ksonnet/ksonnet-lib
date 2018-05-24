@@ -1,1 +1,1 @@
-std.codepoint("台")
+std.codepoint('台')

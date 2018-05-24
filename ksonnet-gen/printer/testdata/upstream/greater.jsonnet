@@ -1,1 +1,1 @@
-if 1 > 2 then error "x"
+if 1 > 2 then error 'x'

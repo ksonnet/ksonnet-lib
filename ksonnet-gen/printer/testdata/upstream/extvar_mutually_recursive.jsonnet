@@ -1,1 +1,1 @@
-std.extVar("mutuallyRecursiveVar1")
+std.extVar('mutuallyRecursiveVar1')

@@ -1,3 +1,3 @@
-local x = std.length("x");
+local x = std.length('x');
 
 x

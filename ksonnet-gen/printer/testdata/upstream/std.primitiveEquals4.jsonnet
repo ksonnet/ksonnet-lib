@@ -1,1 +1,1 @@
-std.primitiveEquals("xxx", "xxy")
+std.primitiveEquals('xxx', 'xxy')

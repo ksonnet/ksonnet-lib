@@ -1,1 +1,1 @@
-{} {x: "x" in super}
+{} { x: 'x' in super }
