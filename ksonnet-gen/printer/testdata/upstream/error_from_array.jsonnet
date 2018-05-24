@@ -1,1 +1,1 @@
-[error "xxx"][0]
+[error 'xxx'][0]

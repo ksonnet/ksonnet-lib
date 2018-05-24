@@ -1,3 +1,3 @@
 local a = 42;
 
-{x: {x: a}}.x.x
+{ x: { x: a } }.x.x

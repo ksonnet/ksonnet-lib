@@ -1,1 +1,1 @@
-std.pow(42, "xxx")
+std.pow(42, 'xxx')

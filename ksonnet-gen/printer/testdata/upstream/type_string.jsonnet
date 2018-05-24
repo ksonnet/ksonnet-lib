@@ -1,1 +1,1 @@
-std.type("xxx")
+std.type('xxx')

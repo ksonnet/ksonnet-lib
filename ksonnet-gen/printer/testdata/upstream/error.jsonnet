@@ -1,1 +1,1 @@
-error "42"
+error '42'

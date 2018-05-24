@@ -1,1 +1,1 @@
-std.native("blah")
+std.native('blah')

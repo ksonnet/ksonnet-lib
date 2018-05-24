@@ -1,1 +1,1 @@
-std.toString({x: [{y: []}]})
+std.toString({ x: [{ y: [] }] })

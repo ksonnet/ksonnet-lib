@@ -34,6 +34,7 @@ func TestFprintf(t *testing.T) {
 		{name: "literal_with_newline"},
 		{name: "literal_with_single_quote"},
 		{name: "object_field_with_comment"},
+		{name: "object_field_trailing_comma"},
 		{name: "function_with_no_args"},
 		{name: "function_with_args"},
 		{name: "function_with_optional_args_ast"},
@@ -64,6 +65,7 @@ func TestFprintf(t *testing.T) {
 		{name: "block_string"},
 		{name: "dollar"},
 		{name: "nil_node"},
+		{name: "trimmed_whitespace_in_tests"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -98,9 +100,11 @@ func TestFprintf(t *testing.T) {
 			testData, err := ioutil.ReadFile(testDataFile)
 			require.NoError(t, err, "unable to read test data")
 
-			if got, expected := buf.String(), string(testData); got != expected {
+			got := strings.TrimSpace(buf.String())
+			expected := strings.TrimSpace(string(testData))
+			if got != expected {
 				t.Fatalf("Fprint\ngot      = %s\nexpected = %s",
-					strconv.Quote(got), strconv.Quote(expected))
+					got, expected)
 			}
 		})
 	}
@@ -144,8 +148,8 @@ func Test_with_upstream_golden(t *testing.T) {
 				// dmp := diffmatchpatch.New()
 				// diffs := dmp.DiffMain(expected, got, false)
 				// t.Fatalf(dmp.DiffPrettyText(diffs))
-				t.Fatalf("Fprint from upstream\ngot:\n %s\n===\nexpected:\n%s\n",
-					got, expected)
+				t.Fatalf("Fprint from upstream\ngot:\n%s\n===\nexpected:\n%s\n",
+					strconv.Quote(got), strconv.Quote(expected))
 			}
 		})
 	}
@@ -384,6 +388,26 @@ var (
 			},
 		},
 		"object_field_with_comment": &astext.Object{
+			Object: ast.Object{TrailingComma: false},
+			Fields: []astext.ObjectField{
+				{
+					ObjectField: ast.ObjectField{
+						Kind: ast.ObjectFieldID,
+						Hide: ast.ObjectFieldInherit,
+						Id:   &id1,
+						Expr2: &ast.LiteralString{
+							Value: "value",
+							Kind:  ast.StringDouble,
+						},
+					},
+					Comment: &astext.Comment{
+						Text: "a comment",
+					},
+				},
+			},
+		},
+		"object_field_trailing_comma": &astext.Object{
+			Object: ast.Object{TrailingComma: true},
 			Fields: []astext.ObjectField{
 				{
 					ObjectField: ast.ObjectField{
@@ -1014,6 +1038,9 @@ var (
 					},
 				},
 			},
+		},
+		"trimmed_whitespace_in_tests": &ast.Object{
+			Fields: ast.ObjectFields{},
 		},
 	}
 )

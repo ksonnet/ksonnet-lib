@@ -1,1 +1,1 @@
-true && error "should happen"
+true && error 'should happen'

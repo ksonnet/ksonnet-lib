@@ -3,5 +3,5 @@
   //
   // line 3
   // line 4
-  local bar = {}
+  local bar = {},
 }

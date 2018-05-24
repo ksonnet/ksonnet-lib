@@ -1,3 +1,3 @@
 local x = 42;
 
-std.extVar("UndeclaredX")
+std.extVar('UndeclaredX')

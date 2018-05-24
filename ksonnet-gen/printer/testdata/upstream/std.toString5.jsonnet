@@ -1,1 +1,1 @@
-std.toString(error "x")
+std.toString(error 'x')

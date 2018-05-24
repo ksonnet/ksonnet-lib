@@ -1,1 +1,1 @@
-std.native("jsonToString")(error "xxx")
+std.native('jsonToString')(error 'xxx')

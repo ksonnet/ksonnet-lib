@@ -1,1 +1,1 @@
-std.char("xxx")
+std.char('xxx')

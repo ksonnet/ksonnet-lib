@@ -1,1 +1,1 @@
-std.extVar("staticErrorVar")
+std.extVar('staticErrorVar')

@@ -24,6 +24,16 @@ const (
 	syntaxSugar = '+'
 )
 
+// quoteMode is an enumeration specifying how a jsonnet string should be quoted.
+type quoteMode int
+
+const (
+	quoteModeNone quoteMode = iota
+	quoteModeSingle
+	quoteModeDouble
+	quoteModeBlock
+)
+
 // Fprint prints a node to the supplied writer using the default
 // configuration.
 func Fprint(output io.Writer, node ast.Node) error {
@@ -32,7 +42,10 @@ func Fprint(output io.Writer, node ast.Node) error {
 
 // DefaultConfig is a default configuration.
 var DefaultConfig = Config{
-	IndentSize: 2,
+	IndentSize:  2,
+	PadArrays:   false,
+	PadObjects:  true,
+	SortImports: true,
 }
 
 // IndentMode is the indent mode for Config.
@@ -47,8 +60,11 @@ const (
 
 // Config is a configuration for the printer.
 type Config struct {
-	IndentSize int
-	IndentMode IndentMode
+	IndentSize  int
+	IndentMode  IndentMode
+	PadArrays   bool
+	PadObjects  bool
+	SortImports bool
 }
 
 // Fprint prints a node to the supplied writer.
@@ -120,6 +136,68 @@ func (p *printer) writeStringNoIndent(s string) {
 	}
 }
 
+// detectQuoteMode decides what quote style to use for serializing
+// a jsonnet string, with logic similar to that of `jsonnet fmt`.
+//
+// Briefly, single quotes are preferred, unless escaping can be avoided
+// by using double quotes.
+// In cases where both single and double quotes are detected,
+// the status-quo is preferred (as specificed by `kind`).
+func detectQuoteMode(s string, kind ast.LiteralStringKind) quoteMode {
+	hasSingle := strings.ContainsRune(s, '\'')
+	hasDouble := strings.ContainsRune(s, '"')
+
+	switch kind {
+	default:
+		return quoteModeNone
+	case ast.StringSingle:
+		// Go with single unless there's only single quotes already.
+		useSingle := !(hasSingle && !hasDouble)
+		if useSingle {
+			return quoteModeSingle
+		}
+
+	case ast.StringDouble:
+		// Cases:
+		// 1. [" 'abc' "] -> [" 'abc' "]
+		// 2. [" \"abc\" "] -> [' "abc" ']
+		// 3. [" 'abc' \"123\" "] -> [" 'abc' \"123\" "]
+		// 4. [" abc "] -> [' abc ']
+		useDouble := (hasSingle && !hasDouble) ||
+			(hasSingle && hasDouble)
+		if useDouble {
+			return quoteModeDouble
+		}
+	case ast.StringBlock:
+		return quoteModeBlock
+	}
+
+	return quoteModeNone
+}
+
+// stringQuote returns a quoted jsonnet string ready for serialization.
+// useSingle specifies whether to use single quotes, otherwise double-quotes
+// will be used instead.
+// Note the following characters will be escaped (with leading backslash): "'\/bfnrt
+// Quotes (single or double) will only be escaped to avoid conflict with the enclosing quote type.
+func stringQuote(s string, useSingle bool) string {
+	quoted := strconv.Quote(s)
+
+	if !useSingle {
+		return quoted
+	}
+
+	// Convert to single quotes
+	sb := strings.Builder{}
+	sb.WriteByte(singleQuote)
+	flipped := strings.Replace(quoted[1:len(quoted)-1], "'", "\\'", -1)
+	flipped = strings.Replace(quoted[1:len(quoted)-1], "\\\"", "\"", -1) // TODO use Replacer
+	sb.WriteString(flipped)
+	sb.WriteByte(singleQuote)
+
+	return sb.String()
+}
+
 // printer prints a node.
 // nolint: gocyclo
 func (p *printer) print(n interface{}) {
@@ -148,11 +226,15 @@ func (p *printer) print(n interface{}) {
 		if loc := t.NodeBase.Loc(); loc != nil && loc.Begin.Line == loc.End.Line {
 			oneLine = true
 		}
+		shouldPad := oneLine && p.cfg.PadArrays && len(t.Elements) > 0
 
 		p.writeString("[")
 		if !oneLine {
 			p.indentLevel++
 			p.writeByte(newline, 1)
+		}
+		if shouldPad {
+			p.writeByte(space, 1)
 		}
 
 		for i := 0; i < len(t.Elements); i++ {
@@ -168,9 +250,17 @@ func (p *printer) print(n interface{}) {
 			}
 		}
 
+		// Trailing comma
+		if !oneLine && len(t.Elements) > 0 {
+			p.writeByte(comma, 1)
+		}
+
 		if !oneLine {
 			p.indentLevel--
 			p.writeByte(newline, 1)
+		}
+		if shouldPad {
+			p.writeByte(space, 1)
 		}
 
 		p.writeString("]")
@@ -237,37 +327,13 @@ func (p *printer) print(n interface{}) {
 	case *ast.Local:
 		p.handleLocal(t)
 	case *ast.Object:
+		isSingleLine := p.isObjectSingleLine(t)
+		shouldPad := isSingleLine && p.cfg.PadObjects && len(t.Fields) > 0
+		needTrailingComma := !isSingleLine && len(t.Fields) > 0
 		p.writeString("{")
-
-		for i, field := range t.Fields {
-			if !p.isObjectSingleLine(t) {
-				p.indentLevel++
-				p.writeByte(newline, 1)
-			}
-
-			p.print(field)
-			if p.isObjectSingleLine(t) {
-				if i < len(t.Fields)-1 {
-					p.writeByte(comma, 1)
-					p.writeByte(space, 1)
-				}
-			} else {
-				p.writeByte(comma, 1)
-			}
-
-			if !p.isObjectSingleLine(t) {
-				p.indentLevel--
-			}
+		if shouldPad {
+			p.writeByte(space, 1)
 		}
-
-		// write an extra newline at the end
-		if !p.isObjectSingleLine(t) {
-			p.writeByte(newline, 1)
-		}
-
-		p.writeString("}")
-	case *astext.Object:
-		p.writeString("{")
 
 		for i, field := range t.Fields {
 			if !p.isObjectSingleLine(t) {
@@ -288,11 +354,59 @@ func (p *printer) print(n interface{}) {
 			}
 		}
 
+		if needTrailingComma {
+			p.writeByte(comma, 1)
+		}
+
 		// write an extra newline at the end
 		if !p.isObjectSingleLine(t) {
 			p.writeByte(newline, 1)
 		}
 
+		if shouldPad {
+			p.writeByte(space, 1)
+		}
+		p.writeString("}")
+	case *astext.Object:
+		isSingleLine := p.isObjectSingleLine(t)
+		shouldPad := isSingleLine && p.cfg.PadObjects && len(t.Fields) > 0
+		needTrailingComma := !isSingleLine && len(t.Fields) > 0
+		p.writeString("{")
+		if shouldPad {
+			p.writeByte(space, 1)
+		}
+
+		for i, field := range t.Fields {
+			if !p.isObjectSingleLine(t) {
+				p.indentLevel++
+				p.writeByte(newline, 1)
+			}
+
+			p.print(field)
+			if i < len(t.Fields)-1 {
+				p.writeByte(comma, 1)
+				if p.isObjectSingleLine(t) {
+					p.writeByte(space, 1)
+				}
+			}
+
+			if !p.isObjectSingleLine(t) {
+				p.indentLevel--
+			}
+		}
+
+		if needTrailingComma {
+			p.writeByte(comma, 1)
+		}
+
+		// write an extra newline at the end
+		if !p.isObjectSingleLine(t) {
+			p.writeByte(newline, 1)
+		}
+
+		if shouldPad {
+			p.writeByte(space, 1)
+		}
 		p.writeString("}")
 	case *ast.ObjectComp:
 		p.handleObjectComp(t)
@@ -305,14 +419,16 @@ func (p *printer) print(n interface{}) {
 			p.writeString("false")
 		}
 	case *ast.LiteralString:
+		qm := detectQuoteMode(t.Value, t.Kind)
+
 		switch t.Kind {
 		default:
 			p.err = errors.Errorf("unknown string literal kind %#v", t.Kind)
 			return
-		case ast.StringSingle:
-			p.writeString(fmt.Sprintf("'%s'", t.Value))
-		case ast.StringDouble:
-			p.writeString(strconv.Quote(t.Value))
+		case ast.StringSingle, ast.StringDouble:
+			useSingle := (qm != quoteModeDouble)
+			quoted := stringQuote(t.Value, useSingle)
+			p.writeString(quoted)
 		case ast.StringBlock:
 			p.writeString("|||")
 			p.writeByte(newline, 1)
@@ -515,19 +631,46 @@ func (p *printer) handleLocalFunction(f *ast.Function) {
 	}
 }
 
-func fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Identifier) string {
+// reID matches `id` as defined in the jsonnet spec
+var reID = regexp.MustCompile(`^[_a-zA-Z][_a-zA-Z0-9]*$`)
+
+func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Identifier) string {
 	if expr1 != nil {
 		switch t := expr1.(type) {
 		case *ast.LiteralString:
-			var qt string
-			if t.Kind == ast.StringDouble {
-				qt = `"`
-			} else if t.Kind == ast.StringSingle {
-				qt = `'`
-			} else {
-				panic(`only able to handle to handle single and double quoted strings`)
+			qm := detectQuoteMode(t.Value, t.Kind)
+			useSingle := (qm == quoteModeSingle)
+			quoted := stringQuote(t.Value, useSingle)
+
+			// Block quotes (|||) are always retained:
+			if qm == quoteModeBlock {
+				sb := strings.Builder{}
+				sb.WriteString("|||")
+				sb.WriteByte(newline)
+				// Indent the value using BlockIndent, but be aware that our caller
+				// will also be indenting using indentLevel. Remove those many bytes.
+				padding := strings.Repeat(" ", p.indentLevel*p.cfg.IndentSize)
+				replaceCount := strings.Count(t.Value, "\n") - 1 // Replace all but the last newline
+				indented := padding + strings.Replace(t.Value, "\n", ("\n"+padding), replaceCount)
+				sb.WriteString(indented)
+				sb.WriteString("|||")
+				return sb.String()
 			}
-			return fmt.Sprintf(`%s%s%s`, qt, t.Value, qt)
+
+			// Return identity if quotes aren't strictly necessary
+			switch kind {
+			case ast.ObjectFieldID, ast.ObjectFieldStr:
+				// Verify it looks like an ID before unquoting.
+				// Avoid unquoting something like 'guestbook-ui'.
+				isID := reID.MatchString(t.Value)
+				if quoted[1:len(quoted)-1] == t.Value && isID {
+					return t.Value
+				}
+			}
+
+			// Example where quotes are needed: kind==ObjectFieldExpr
+			return quoted
+
 		case *ast.Var:
 			return string(t.Id)
 		default:
@@ -568,7 +711,7 @@ func (p *printer) forSpec(spec ast.ForSpec) {
 	p.print(spec.Expr)
 
 	for _, ifSpec := range spec.Conditions {
-		p.writeByte(space, 1)
+		p.writeByte(newline, 1)
 		p.print(ifSpec)
 	}
 }
@@ -591,7 +734,7 @@ func (p *printer) handleObjectField(n interface{}) {
 	case ast.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = fieldID(ofKind, t.Expr1, t.Id)
+		ofID = p.fieldID(ofKind, t.Expr1, t.Id)
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
@@ -599,7 +742,7 @@ func (p *printer) handleObjectField(n interface{}) {
 	case astext.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = fieldID(ofKind, t.Expr1, t.Id)
+		ofID = p.fieldID(ofKind, t.Expr1, t.Id)
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
 		ofExpr2 = t.Expr2
@@ -609,7 +752,7 @@ func (p *printer) handleObjectField(n interface{}) {
 		field := t.Fields[0]
 		ofHide = field.Hide
 		ofKind = field.Kind
-		ofID = fieldID(ofKind, field.Expr1, field.Id)
+		ofID = p.fieldID(ofKind, field.Expr1, field.Id)
 		ofMethod = field.Method
 		ofSugar = field.SuperSugar
 		ofExpr2 = field.Expr2
@@ -685,7 +828,7 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.writeByte(newline, 1)
 		p.writeString(fmt.Sprintf("[%s]: ", ofID))
 		p.print(ofExpr2)
-		p.writeByte(space, 1)
+		p.writeByte(newline, 1)
 		p.forSpec(forSpec)
 		p.indentLevel--
 		p.writeByte(newline, 1)
@@ -765,7 +908,8 @@ func (p *printer) indexID(i *ast.Index) {
 				p.writeString(fmt.Sprintf(".%s", id))
 				return
 			}
-			p.writeString(fmt.Sprintf(`["%s"]`, id))
+			quoted := stringQuote(id, true)
+			p.writeString(fmt.Sprintf(`[%s]`, quoted))
 		case *ast.Unary:
 			p.writeString("[")
 			p.print(t)
@@ -775,7 +919,8 @@ func (p *printer) indexID(i *ast.Index) {
 		}
 	} else if i.Id != nil {
 		id := string(*i.Id)
-		index := fmt.Sprintf(`["%s"]`, id)
+		quoted := stringQuote(id, true)
+		index := fmt.Sprintf(`[%s]`, quoted)
 		if reDotIndex.MatchString(id) {
 			index = fmt.Sprintf(`.%s`, id)
 		}

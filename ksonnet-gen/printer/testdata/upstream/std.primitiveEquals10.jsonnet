@@ -1,1 +1,1 @@
-std.primitiveEquals(error "x", 42)
+std.primitiveEquals(error 'x', 42)

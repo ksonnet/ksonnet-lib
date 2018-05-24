@@ -1,1 +1,1 @@
-std.codepoint("ą")
+std.codepoint('ą')

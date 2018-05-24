@@ -1,1 +1,1 @@
-std.modulo("xxx", 42)
+std.modulo('xxx', 42)

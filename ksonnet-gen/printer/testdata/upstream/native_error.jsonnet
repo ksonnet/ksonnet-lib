@@ -1,1 +1,1 @@
-std.native("nativeError")()
+std.native('nativeError')()

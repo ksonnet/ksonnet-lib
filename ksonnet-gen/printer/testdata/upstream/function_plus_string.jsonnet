@@ -1,1 +1,1 @@
-(function() 42) + "xxx"
+(function() 42) + 'xxx'

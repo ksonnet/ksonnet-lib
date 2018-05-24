@@ -1,1 +1,1 @@
-std.join("xxx", ["aa", "bb"])
+std.join('xxx', ['aa', 'bb'])

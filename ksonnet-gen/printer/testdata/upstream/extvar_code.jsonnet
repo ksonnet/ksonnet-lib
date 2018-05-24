@@ -1,1 +1,1 @@
-std.extVar("codeVar")
+std.extVar('codeVar')

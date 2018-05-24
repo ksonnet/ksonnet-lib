@@ -1,1 +1,1 @@
-std.length("x")
+std.length('x')

@@ -1,1 +1,1 @@
-std.filter(function(n) false, [error "xxx"])
+std.filter(function(n) false, [error 'xxx'])

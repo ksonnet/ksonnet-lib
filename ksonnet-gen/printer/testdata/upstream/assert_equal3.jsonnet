@@ -1,1 +1,1 @@
-std.assertEqual({x:: 42}, {})
+std.assertEqual({ x:: 42 }, {})

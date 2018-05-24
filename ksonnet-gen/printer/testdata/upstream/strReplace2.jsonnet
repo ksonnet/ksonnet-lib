@@ -1,1 +1,1 @@
-std.strReplace("test test test", "test", "__")
+std.strReplace('test test test', 'test', '__')

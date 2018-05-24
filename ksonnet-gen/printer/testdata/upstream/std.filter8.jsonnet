@@ -1,1 +1,1 @@
-std.filter([42], function(i) "xxx")
+std.filter([42], function(i) 'xxx')

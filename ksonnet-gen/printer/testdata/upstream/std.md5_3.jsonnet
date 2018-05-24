@@ -1,1 +1,1 @@
-std.md5("a")
+std.md5('a')

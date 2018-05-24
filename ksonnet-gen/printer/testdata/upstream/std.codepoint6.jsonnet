@@ -1,1 +1,1 @@
-std.codepoint("")
+std.codepoint('')

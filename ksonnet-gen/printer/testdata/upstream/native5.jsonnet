@@ -1,1 +1,1 @@
-std.native("jsonToString")(function() 42)
+std.native('jsonToString')(function() 42)

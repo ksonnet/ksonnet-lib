@@ -1,1 +1,1 @@
-"xxx" || true
+'xxx' || true

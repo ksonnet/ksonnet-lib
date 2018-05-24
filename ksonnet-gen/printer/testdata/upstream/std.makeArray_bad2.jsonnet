@@ -1,1 +1,1 @@
-std.makeArray(42, "xxx")
+std.makeArray(42, 'xxx')

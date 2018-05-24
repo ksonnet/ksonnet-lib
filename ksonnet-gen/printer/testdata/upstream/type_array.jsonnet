@@ -1,1 +1,1 @@
-std.type([error "x"])
+std.type([error 'x'])
