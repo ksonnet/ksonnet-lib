@@ -3,6 +3,13 @@
 `ksonnet-gen` takes the OpenAPI Kubernetes specification and generates
 a Jsonnet file representing that API definition.
 
+## Build
+
+```bash
+dep ensure      # Fetch dependencies
+go build -o ksonnet-gen .
+```
+
 ## Usage
 
 `ksonnet-gen [path to k8s OpenAPI swagger.json] [output dir]`
