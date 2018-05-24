@@ -9,6 +9,7 @@ import (
 
 func TestCreateField(t *testing.T) {
 	id := ast.Identifier("name")
+	uId := ast.Identifier("underscore_name")
 
 	cases := []struct {
 		name     string
@@ -20,6 +21,21 @@ func TestCreateField(t *testing.T) {
 			expected: &ObjectField{
 				ObjectField: ast.ObjectField{
 					Kind: ast.ObjectFieldID, Id: &id}},
+		},
+		{
+			name: "underscore_name",
+			expected: &ObjectField{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldID, Id: &uId}},
+		},
+		{
+			name: "underscore_field-",
+			expected: &ObjectField{
+				ObjectField: ast.ObjectField{
+					Kind: ast.ObjectFieldStr, Expr1: &ast.LiteralString{
+						Value: "underscore_field-",
+						Kind:  ast.StringDouble,
+					}}},
 		},
 		{
 			name: "dashed-name",
