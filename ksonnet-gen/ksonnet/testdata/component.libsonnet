@@ -1,12 +1,12 @@
-local k = import "k.libsonnet";
+local k = import 'k.libsonnet';
 
 local params = {
-  version: "v1beta2",
-  name: "appName",
+  version: 'v1beta2',
+  name: 'appName',
   replicas: 3,
   containerPort: 80,
-  image: "nginx:latest",
-  labels: {app: "customName"},
+  image: 'nginx:latest',
+  labels: { app: 'customName' },
 };
 
 // defining the deployment version as a variable means you potentially have the ability to
@@ -25,9 +25,9 @@ local container = function(version, name, image, containerPort)
   local port = portsType.withContainerPort(containerPort);
 
   containersType
-    .withName(name)
-    .withImage(image)
-    .withPorts(port);
+  .withName(name)
+  .withImage(image)
+  .withPorts(port);
 
 
 // createDeployment is our function for creating a deployment
@@ -35,18 +35,18 @@ local createDeployment = function(version, name, containers, podLabels={}, repli
   // create a local variable with our resource
   local deployment = k.apps[version].deployment;
 
-  local labels = {app: name} + podLabels;
+  local labels = { app: name } + podLabels;
   local metadata = deployment.mixin.metadata.withName(name);
   local spec = deployment.mixin.spec.withReplicas(replicas);
   local templateSpec = spec.template.spec.withContainers(containers);
   local templateMetadata = spec.template.metadata.withLabels(labels);
 
   deployment
-    .new()
-    + metadata
-    + spec
-    + templateSpec
-    + templateMetadata;
+  .new()
+  + metadata
+  + spec
+  + templateSpec
+  + templateMetadata;
 
 
 local containers = [
@@ -60,6 +60,7 @@ local appDeployment = createDeployment(
   params.name,
   containers,
   podLabels=params.labels,
-  replicas=2);
+  replicas=2
+);
 
 k.core.v1.list.new([appDeployment])
