@@ -66,6 +66,7 @@ func TestFprintf(t *testing.T) {
 		{name: "dollar"},
 		{name: "nil_node"},
 		{name: "trimmed_whitespace_in_tests"},
+		{name: "field_id_keywords"},
 
 		// errors
 		{name: "unknown_node", isErr: true},
@@ -1041,6 +1042,70 @@ var (
 		},
 		"trimmed_whitespace_in_tests": &ast.Object{
 			Fields: ast.ObjectFields{},
+		},
+		"field_id_keywords": &ast.Object{
+			Fields: ast.ObjectFields{
+				ast.ObjectField{
+					Kind: ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Value: "error",
+						Kind:  ast.StringSingle,
+					},
+					Expr2: &ast.LiteralString{
+						Value: "value",
+						Kind:  ast.StringSingle,
+					},
+				},
+				ast.ObjectField{
+					Kind: ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Value: "local",
+						Kind:  ast.StringSingle,
+					},
+					Expr2: &ast.LiteralString{
+						Value: "value",
+						Kind:  ast.StringSingle,
+					},
+				},
+				ast.ObjectField{
+					Kind: ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Value: "unquoteme",
+						Kind:  ast.StringSingle,
+					},
+					Expr2: &ast.LiteralString{
+						Value: "value",
+						Kind:  ast.StringSingle,
+					},
+				},
+				ast.ObjectField{
+					Kind: ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Value: "but-not-me",
+						Kind:  ast.StringSingle,
+					},
+					Expr2: &ast.LiteralString{
+						Value: "value",
+						Kind:  ast.StringSingle,
+					},
+				},
+				ast.ObjectField{
+					Kind: ast.ObjectFieldStr,
+					Hide: ast.ObjectFieldInherit,
+					Expr1: &ast.LiteralString{
+						Value: "nor:me",
+						Kind:  ast.StringSingle,
+					},
+					Expr2: &ast.LiteralString{
+						Value: "value",
+						Kind:  ast.StringSingle,
+					},
+				},
+			},
 		},
 	}
 )

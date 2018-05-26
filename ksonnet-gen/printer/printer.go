@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-jsonnet/ast"
+	"github.com/google/go-jsonnet/parser"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
@@ -631,6 +632,33 @@ func (p *printer) handleLocalFunction(f *ast.Function) {
 	}
 }
 
+// shouldUnquoteFieldID determines whether s can be an unquoted field identifier.
+// Things that can't be unquoted: keywords, expressions.
+func shouldUnquoteFieldID(s string) bool {
+	// Try to pose the string as a raw (unquoted) object field identifier.
+	// If this succeeds, quotes are not needed.
+	toParse := fmt.Sprintf("{%s: 'value'}", s)
+	tokens, err := parser.Lex("", toParse)
+	if err != nil {
+		return false
+	}
+
+	if len(tokens) < 3 {
+		return false
+	}
+
+	// The following pattern would show s tokenized entirely as a single identifier.
+	// NOTE we resort to string matching as `token.kind` is not exported.
+	idTokenMatch := fmt.Sprintf("(IDENTIFIER, \"%s\")", s)
+
+	if tokens[1].String() == idTokenMatch &&
+		tokens[2].String() == "\":\"" {
+		return true
+	}
+
+	return false
+}
+
 // reID matches `id` as defined in the jsonnet spec
 var reID = regexp.MustCompile(`^[_a-zA-Z][_a-zA-Z0-9]*$`)
 
@@ -657,13 +685,13 @@ func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Iden
 				return sb.String()
 			}
 
-			// Return identity if quotes aren't strictly necessary
+			// Return identity if quotes aren't strictly necessary,
+			// that is it could pass for a bare identifier without ambiguity.
+			// This is not the case for keywords, expressions,
+			// e.g. 'guestbook-ui' or 'error'.
 			switch kind {
 			case ast.ObjectFieldID, ast.ObjectFieldStr:
-				// Verify it looks like an ID before unquoting.
-				// Avoid unquoting something like 'guestbook-ui'.
-				isID := reID.MatchString(t.Value)
-				if quoted[1:len(quoted)-1] == t.Value && isID {
+				if shouldUnquoteFieldID(t.Value) {
 					return t.Value
 				}
 			}

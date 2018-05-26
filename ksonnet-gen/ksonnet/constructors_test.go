@@ -3,6 +3,7 @@ package ksonnet
 import (
 	"bytes"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
@@ -86,10 +87,12 @@ func Test_constructor(t *testing.T) {
 	err = printer.Fprint(&buf, o.Node())
 	require.NoError(t, err)
 
-	expected, err := ioutil.ReadFile("testdata/constructor.libsonnet")
+	testData, err := ioutil.ReadFile("testdata/constructor.libsonnet")
 	require.NoError(t, err)
 
-	assert.Equal(t, string(expected), buf.String())
+	got := strings.TrimSpace(buf.String())
+	expected := strings.TrimSpace(string(testData))
+	assert.Equal(t, expected, got)
 }
 
 func Test_constructorParam(t *testing.T) {
