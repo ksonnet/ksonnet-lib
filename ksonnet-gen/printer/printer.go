@@ -662,7 +662,7 @@ func shouldUnquoteFieldID(s string) bool {
 // reID matches `id` as defined in the jsonnet spec
 var reID = regexp.MustCompile(`^[_a-zA-Z][_a-zA-Z0-9]*$`)
 
-func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Identifier) string {
+func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Identifier) {
 	if expr1 != nil {
 		switch t := expr1.(type) {
 		case *ast.LiteralString:
@@ -682,7 +682,8 @@ func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Iden
 				indented := padding + strings.Replace(t.Value, "\n", ("\n"+padding), replaceCount)
 				sb.WriteString(indented)
 				sb.WriteString("|||")
-				return sb.String()
+				p.writeString(sb.String())
+				return
 			}
 
 			// Return identity if quotes aren't strictly necessary,
@@ -692,25 +693,27 @@ func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Iden
 			switch kind {
 			case ast.ObjectFieldID, ast.ObjectFieldStr:
 				if shouldUnquoteFieldID(t.Value) {
-					return t.Value
+					p.writeString(t.Value)
+					return
 				}
 			}
 
 			// Example where quotes are needed: kind==ObjectFieldExpr
-			return quoted
+			p.writeString(quoted)
+			return
 
 		case *ast.Var:
-			return string(t.Id)
+			p.print(t)
+			return
 		default:
 			panic(fmt.Sprintf("unknown Expr1 type %T", t))
 		}
 	}
 
 	if id != nil {
-		return string(*id)
+		p.writeString(string(*id))
+		return
 	}
-
-	return ""
 }
 
 func (p *printer) handleObjectComp(oc *ast.ObjectComp) {
@@ -755,9 +758,10 @@ func (p *printer) forSpec(spec ast.ForSpec) {
 func (p *printer) handleObjectField(n interface{}) {
 	var ofHide ast.ObjectFieldHide
 	var ofKind ast.ObjectFieldKind
-	var ofID string
+	var ofID *ast.Identifier
 	var ofMethod *ast.Function
 	var ofSugar bool
+	var ofExpr1 ast.Node
 	var ofExpr2 ast.Node
 	var ofExpr3 ast.Node
 
@@ -770,17 +774,19 @@ func (p *printer) handleObjectField(n interface{}) {
 	case ast.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = p.fieldID(ofKind, t.Expr1, t.Id)
+		ofID = t.Id
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
+		ofExpr1 = t.Expr1
 		ofExpr2 = t.Expr2
 		ofExpr3 = t.Expr3
 	case astext.ObjectField:
 		ofHide = t.Hide
 		ofKind = t.Kind
-		ofID = p.fieldID(ofKind, t.Expr1, t.Id)
+		ofID = t.Id
 		ofMethod = t.Method
 		ofSugar = t.SuperSugar
+		ofExpr1 = t.Expr1
 		ofExpr2 = t.Expr2
 		ofExpr3 = t.Expr3
 		p.writeComment(t.Comment)
@@ -788,8 +794,8 @@ func (p *printer) handleObjectField(n interface{}) {
 		field := t.Fields[0]
 		ofHide = field.Hide
 		ofKind = field.Kind
-		ofID = p.fieldID(ofKind, field.Expr1, field.Id)
 		ofMethod = field.Method
+		ofExpr1 = field.Expr1
 		ofSugar = field.SuperSugar
 		ofExpr2 = field.Expr2
 
@@ -822,7 +828,7 @@ func (p *printer) handleObjectField(n interface{}) {
 			p.print(ofExpr3)
 		}
 	case ast.ObjectFieldID:
-		p.writeString(ofID)
+		p.fieldID(ofKind, ofExpr1, ofID)
 		if ofMethod != nil {
 			p.addMethodSignature(ofMethod)
 		}
@@ -846,12 +852,12 @@ func (p *printer) handleObjectField(n interface{}) {
 
 	case ast.ObjectLocal:
 		p.writeString("local ")
-		p.writeString(ofID)
+		p.fieldID(ofKind, ofExpr1, ofID)
 		p.addMethodSignature(ofMethod)
 		p.writeString(" = ")
 		p.print(ofExpr2)
 	case ast.ObjectFieldStr:
-		p.writeString(ofID)
+		p.fieldID(ofKind, ofExpr1, ofID)
 		if ofSugar {
 			p.writeByte(syntaxSugar, 1)
 		}
@@ -859,7 +865,9 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.writeByte(space, 1)
 		p.print(ofExpr2)
 	case ast.ObjectFieldExpr:
-		p.writeString(fmt.Sprintf("[%s]: ", ofID))
+		p.writeString("[")
+		p.fieldID(ofKind, ofExpr1, ofID)
+		p.writeString("]: ")
 		p.print(ofExpr2)
 		if forSpec.VarName != "" {
 			p.writeByte(newline, 1)
