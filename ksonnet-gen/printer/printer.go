@@ -714,7 +714,13 @@ func (p *printer) fieldID(kind ast.ObjectFieldKind, expr1 ast.Node, id *ast.Iden
 }
 
 func (p *printer) handleObjectComp(oc *ast.ObjectComp) {
+	p.writeString("{")
+	p.indentLevel++
+	p.writeByte(newline, 1)
 	p.handleObjectField(oc)
+	p.indentLevel--
+	p.writeByte(newline, 1)
+	p.writeString("}")
 }
 
 func (p *printer) handleArrayComp(ac *ast.ArrayComp) {
@@ -735,12 +741,14 @@ func (p *printer) forSpec(spec ast.ForSpec) {
 		p.writeByte(newline, 1)
 	}
 
-	p.writeString(fmt.Sprintf("for %s in ", string(spec.VarName)))
-	p.print(spec.Expr)
+	if spec.VarName != "" {
+		p.writeString(fmt.Sprintf("for %s in ", string(spec.VarName)))
+		p.print(spec.Expr)
 
-	for _, ifSpec := range spec.Conditions {
-		p.writeByte(newline, 1)
-		p.print(ifSpec)
+		for _, ifSpec := range spec.Conditions {
+			p.writeByte(newline, 1)
+			p.print(ifSpec)
+		}
 	}
 }
 
@@ -851,16 +859,12 @@ func (p *printer) handleObjectField(n interface{}) {
 		p.writeByte(space, 1)
 		p.print(ofExpr2)
 	case ast.ObjectFieldExpr:
-		p.writeString("{")
-		p.indentLevel++
-		p.writeByte(newline, 1)
 		p.writeString(fmt.Sprintf("[%s]: ", ofID))
 		p.print(ofExpr2)
-		p.writeByte(newline, 1)
-		p.forSpec(forSpec)
-		p.indentLevel--
-		p.writeByte(newline, 1)
-		p.writeString("}")
+		if forSpec.VarName != "" {
+			p.writeByte(newline, 1)
+			p.forSpec(forSpec)
+		}
 	}
 }
 
