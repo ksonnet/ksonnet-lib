@@ -3,4 +3,7 @@ local o = {
   b: 'b',
 };
 
-{ ['pre-' + key]: o[key], for key in std.objectFields(o) }
+{
+  ['pre-' + key]: o[key]
+  for key in std.objectFields(o)
+}
