@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-jsonnet/ast"
 	"github.com/google/go-jsonnet/parser"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1203,6 +1204,50 @@ func Test_handleObjectField_unknown_object(t *testing.T) {
 	p := printer{cfg: DefaultConfig}
 	p.handleObjectField(nil)
 	require.Error(t, p.err)
+}
+
+func Test_quoteString(t *testing.T) {
+	tests := []struct {
+		s         string
+		expected  string
+		useSingle bool
+	}{
+		{
+			s:         "\\tFoo\tBar",
+			expected:  `'\tFoo\tBar'`,
+			useSingle: true,
+		},
+		{
+			s:         "\\tFoo\tBar",
+			expected:  `"\tFoo\tBar"`,
+			useSingle: false,
+		},
+		{
+			s:         "Foo\n\u000aBar",
+			expected:  `'Foo\n\nBar'`,
+			useSingle: true,
+		},
+		{
+			s:         "Foo\n\\u000a\rBar",
+			expected:  `'Foo\n\n\rBar'`,
+			useSingle: true,
+		},
+		{
+			s:         "'Foo'\\n\"Bar\\\"",
+			expected:  `'\'Foo\'\n"Bar"'`,
+			useSingle: true,
+		},
+		{
+			s:         "'Foo'\\n\"Bar\\\"",
+			expected:  `"'Foo'\n\"Bar\""`,
+			useSingle: false,
+		},
+	}
+
+	for _, tc := range tests {
+		actual := stringQuote(tc.s, tc.useSingle)
+		assert.Equal(t, tc.expected, actual)
+	}
 }
 
 func newLiteralNumber(in string) *ast.LiteralNumber {
