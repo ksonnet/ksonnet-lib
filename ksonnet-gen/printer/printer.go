@@ -152,10 +152,6 @@ func detectQuoteMode(s string, kind ast.LiteralStringKind) quoteMode {
 	default:
 		return quoteModeNone
 	case ast.StringSingle:
-		if strings.ContainsAny(s, "\n") {
-			return quoteModeDouble
-		}
-
 		// Go with single unless there's only single quotes already.
 		useSingle := !(hasSingle && !hasDouble)
 		if useSingle {
@@ -163,10 +159,6 @@ func detectQuoteMode(s string, kind ast.LiteralStringKind) quoteMode {
 		}
 
 	case ast.StringDouble:
-		if strings.ContainsAny(s, "\n") {
-			return quoteModeDouble
-		}
-
 		// Cases:
 		// 1. [" 'abc' "] -> [" 'abc' "]
 		// 2. [" \"abc\" "] -> [' "abc" ']
