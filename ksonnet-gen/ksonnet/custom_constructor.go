@@ -148,7 +148,7 @@ var (
 					map[string]interface{}{})),
 			*newConstructor("fromPersistentVolumeClaim",
 				*newConstructorParam("name", "withName", nil),
-				*newConstructorParam("emptyDir", "mixin.persistentVolumeClaim.withClaimName", nil)),
+				*newConstructorParam("claimName", "mixin.persistentVolumeClaim.withClaimName", nil)),
 			*newConstructor("fromHostPath",
 				*newConstructorParam("name", "withName", nil),
 				*newConstructorParam("hostPath", "mixin.hostPath.withPath", nil)),
