@@ -45,6 +45,7 @@ RUN CGO_ENABLED=1 GOOS=linux go install -a --ldflags '-linkmode external -extldf
 FROM alpine:3.6
 ENV KUBECFG_VERSION v0.5.0
 ENV JSONNET_VERSION v0.9.4
+ENV KSONNET_VERSION ksonnet.beta.2
 
 # Copy kubecfg executable and lib files from previous stage
 RUN mkdir -p /usr/share/kubecfg/${KUBECFG_VERSION}
@@ -60,4 +61,4 @@ RUN cd jsonnet && git checkout tags/${JSONNET_VERSION} -b ${JSONNET_VERSION} && 
 # Get ksonnet-lib, add to the Jsonnet -J path.
 RUN git clone https://github.com/ksonnet/ksonnet-lib.git
 RUN mkdir -p /usr/share/${JSONNET_VERSION}
-RUN cp -r ksonnet-lib/ksonnet.beta.2 /usr/share/${JSONNET_VERSION}
+RUN cp -r ksonnet-lib/${KSONNET_VERSION} /usr/share/${JSONNET_VERSION}
