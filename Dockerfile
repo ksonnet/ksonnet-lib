@@ -31,7 +31,7 @@
 
 FROM golang:1.8 as kubecfg-builder
 # Keep this in sync with the corresponding ENV in stage 2
-ENV KUBECFG_VERSION v0.5.0
+ENV KUBECFG_VERSION v0.9.0
 
 RUN go get github.com/ksonnet/kubecfg
 WORKDIR /go/src/github.com/ksonnet/kubecfg
@@ -43,7 +43,7 @@ RUN CGO_ENABLED=1 GOOS=linux go install -a --ldflags '-linkmode external -extldf
 ##############################################
 
 FROM alpine:3.6
-ENV KUBECFG_VERSION v0.5.0
+ENV KUBECFG_VERSION v0.9.0
 ENV JSONNET_VERSION v0.12.1
 ENV KSONNET_VERSION ksonnet.beta.2
 
