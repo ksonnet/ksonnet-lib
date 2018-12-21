@@ -44,7 +44,7 @@ RUN CGO_ENABLED=1 GOOS=linux go install -a --ldflags '-linkmode external -extldf
 
 FROM alpine:3.6
 ENV KUBECFG_VERSION v0.5.0
-ENV JSONNET_VERSION v0.9.4
+ENV JSONNET_VERSION v0.12.1
 ENV KSONNET_VERSION ksonnet.beta.2
 
 # Copy kubecfg executable and lib files from previous stage
