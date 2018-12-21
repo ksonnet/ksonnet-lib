@@ -60,5 +60,5 @@ RUN cd jsonnet && git checkout tags/${JSONNET_VERSION} -b ${JSONNET_VERSION} && 
 
 # Get ksonnet-lib, add to the Jsonnet -J path.
 RUN git clone https://github.com/ksonnet/ksonnet-lib.git
-RUN mkdir -p /usr/share/${JSONNET_VERSION}
-RUN cp -r ksonnet-lib/${KSONNET_VERSION} /usr/share/${JSONNET_VERSION}
+RUN mkdir -p /usr/share/jsonnet-${JSONNET_VERSION}
+RUN cp -r ksonnet-lib/${KSONNET_VERSION} /usr/share/jsonnet-${JSONNET_VERSION}
